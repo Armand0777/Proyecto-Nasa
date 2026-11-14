@@ -8,9 +8,9 @@ enum Planeta { TIERRA, LUNA, MARTE }
 
 ## De la guía de física del equipo. Gravedad calibrada para jugar; la real va en el comentario.
 const AMBIENTES := {
-	Planeta.TIERRA: {"nombre": "Tierra (Centro Espacial)", "gravedad": 9.8, "salto": 4.5, "necesita_traje": false, "retraso_comunicacion_seg": 0.0},
-	Planeta.LUNA: {"nombre": "Luna (Polo Sur - Cráter Shackleton)", "gravedad": 3.5, "salto": 5.2, "necesita_traje": true, "retraso_comunicacion_seg": 1.3},  # Real: 1.62 m/s².
-	Planeta.MARTE: {"nombre": "Marte (Cráter Jezero)", "gravedad": 5.5, "salto": 4.8, "necesita_traje": true, "retraso_comunicacion_seg": 5.0},  # Real: 3.72 m/s²; 5 s representan 4 a 20 min.
+	Planeta.TIERRA: {"gravedad": 9.8, "salto": 4.5, "retraso_comunicacion_seg": 0.0},
+	Planeta.LUNA: {"gravedad": 3.5, "salto": 5.2, "retraso_comunicacion_seg": 1.3},  # Real: 1.62 m/s².
+	Planeta.MARTE: {"gravedad": 5.5, "salto": 4.8, "retraso_comunicacion_seg": 5.0},  # Real: 3.72 m/s²; 5 s representan 4 a 20 min.
 }
 
 ## Las 6 barras del guion, de 0 a 100.

@@ -47,8 +47,9 @@ func _hablar(texto: String) -> void:
 	if not Ajustes.voz_arti:
 		return
 	if not _voz_buscada:
-		_voz_buscada = true
 		var voces := DisplayServer.tts_get_voices_for_language("es")
+		# En el navegador la lista llega vacía hasta que cargan las voces: se vuelve a buscar la próxima vez.
+		_voz_buscada = not voces.is_empty()
 		if not voces.is_empty():
 			_voz = voces[0]
 			for datos in DisplayServer.tts_get_voices():

@@ -26,6 +26,10 @@ var _material: StandardMaterial3D
 func _ready() -> void:
 	GameManager.planeta_actual = GameManager.Planeta.TIERRA
 	GameManager.reiniciar()
+	# Partida nueva: nada de la anterior (fotos, carga, dato de DONKI).
+	GameManager.fotos.clear()
+	GameManager.carga_elegida.clear()
+	GameManager.estado_donki = "no se jugó la tormenta"
 	# El exterior trae su propia cámara (la del menú); aquí se ve con la del jugador.
 	$Exterior/Pivote/Camara.current = false
 	$Player/Camara.make_current()

@@ -7,6 +7,9 @@ const BAJO := 25.0
 const VERDE := Color(0.239, 0.863, 0.592)
 const ROJO := Color(1.0, 0.231, 0.361)
 
+## Las barras del biodomo (electricidad, soporte vital, escudo); en la Tierra no aplican.
+@export var mostrar_domo := true
+
 @onready var arti: PanelContainer = %DialogoARTI
 @onready var _domo: VBoxContainer = %Domo
 @onready var _personales: HBoxContainer = %Personales
@@ -24,6 +27,7 @@ func _ready() -> void:
 	for datos in [["hambre", "Hambre", Color("ff9f43")], ["agua", "Agua", Color("7fdbff")], ["oxigeno_traje", "Oxígeno del traje", Color("4da3ff")]]:
 		_personales.add_child(_crear_barra(datos[0], datos[1], datos[2], 300.0))
 	GameManager.recurso_cambiado.connect(_al_cambiar_recurso)
+	_domo.visible = mostrar_domo
 	_aviso.hide()
 	_conectar_jugador.call_deferred()
 

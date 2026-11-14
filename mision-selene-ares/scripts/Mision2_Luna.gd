@@ -602,8 +602,12 @@ func _tomar_foto() -> void:
 	if not encuadre:
 		_arti.decir("La foto salió sin nada importante. Encuadra la Tierra o el biodomo en el centro y vuelve a pulsar F.")
 		return
+	if not _foto_ok:
+		# Una sola foto por caminata, achicada: una captura completa pesa varios MB.
+		var foto := get_viewport().get_texture().get_image()
+		foto.resize(480, 270)
+		GameManager.fotos.append(foto)
 	_foto_ok = true
-	GameManager.fotos.append(get_viewport().get_texture().get_image())
 	_actualizar_objetivos()
 	_arti.decir("¡Gran foto científica! La guardé para el álbum de la misión.")
 

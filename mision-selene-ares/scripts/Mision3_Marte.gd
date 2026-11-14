@@ -13,8 +13,6 @@ const NOMBRES := {"calefaccion": "Calefacción", "oxigeno": "Oxígeno (microalga
 ## Energía de los paneles solares en un sol claro y con tormenta de polvo.
 const SOLAR_CLARO := 100.0
 const SOLAR_TORMENTA := 40.0
-## 5 s en el juego representan hasta 20 minutos reales (cada sentido).
-const RETRASO_SEG := 5.0
 const LLEGADA := {
 	"energia": 40.0, "soporte_vital": 70.0, "escudo": 30.0,
 	"hambre": 80.0, "agua": 80.0, "oxigeno_traje": 100.0,
@@ -116,6 +114,8 @@ func _actualizar() -> void:
 
 
 func _terminar_sol() -> void:
+	# Evita que un doble clic cierre dos soles; _preparar_sol lo vuelve a activar.
+	_terminar.disabled = true
 	var usado := _total()
 	# Lo que sobra de los paneles se guarda en la batería; lo que falta sale de ella.
 	GameManager.cambiar("energia", _solar() - usado)
@@ -150,10 +150,11 @@ func _terminar_sol() -> void:
 func _pedir_ayuda_a_la_tierra() -> void:
 	_pedir_ayuda.disabled = true
 	_pedir_ayuda.text = "Mensaje viajando a la Tierra..."
+	var retraso: float = GameManager.ambiente()["retraso_comunicacion_seg"]
 	var tween := create_tween()
-	tween.tween_property(_senal, "value", 100.0, RETRASO_SEG)
+	tween.tween_property(_senal, "value", 100.0, retraso)
 	tween.tween_callback(func() -> void: _pedir_ayuda.text = "La respuesta viene de vuelta...")
-	tween.tween_property(_senal, "value", 0.0, RETRASO_SEG)
+	tween.tween_property(_senal, "value", 0.0, retraso)
 	await tween.finished
 	_arti.decir("Llegó la respuesta de Control de Misión: «Guarden batería en los días claros y no apaguen la calefacción de noche». Tardó 10 segundos aquí; en la vida real, hasta 40 minutos ida y vuelta. ¡Por eso en Marte hay que decidir solos!")
 	_pedir_ayuda.text = "Pedir ayuda a la Tierra"
