@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/fondos/FondoLuna.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/CieloLuna.gdshader" id="2_cielo"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cielo"]
+shader = ExtResource("2_cielo")
+
+[sub_resource type="Sky" id="Sky_cielo"]
+sky_material = SubResource("ShaderMaterial_cielo")
+radiance_size = 0
+
+[sub_resource type="Environment" id="Environment_luna"]
+background_mode = 2
+sky = SubResource("Sky_cielo")
+ambient_light_source = 2
+ambient_light_color = Color(0.36, 0.38, 0.44, 1)
+ambient_light_energy = 0.6
+reflected_light_source = 1
+
+[node name="FondoLuna" type="Node3D"]
+script = ExtResource("1_script")
+descripcion = "El biodomo en el Polo Sur de la Luna. En la realidad, desde ahí la Tierra se ve unas 4 veces más grande que la Luna llena."
+segundos_por_vuelta = 300.0
+inclinacion_camara = 6.0
+elevacion_sol = 7.0
+azimut_sol = -120.0
+cantidad_rocas = 60
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_luna")
+
+[node name="Sol" type="DirectionalLight3D" parent="."]
+light_energy = 2.0
+shadow_enabled = true
+directional_shadow_max_distance = 160.0
+
+[node name="Terreno" type="MeshInstance3D" parent="."]
+
+[node name="Rocas" type="Node3D" parent="."]
+
+[node name="Pivote" type="Node3D" parent="."]
+
+[node name="Camara" type="Camera3D" parent="Pivote"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+current = true
+fov = 70.0

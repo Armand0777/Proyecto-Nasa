@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/PanelCarga.gd" id="1_carga"]
+
+[node name="PanelCarga" type="PanelContainer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -580.0
+offset_top = -300.0
+offset_right = 580.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_carga")
+
+[node name="Contenido" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Titulo" type="Label" parent="Contenido"]
+layout_mode = 2
+theme_type_variation = &"Titulo"
+theme_override_font_sizes/font_size = 48
+text = "Carga útil"
+
+[node name="Indicacion" type="Label" parent="Contenido"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.639216, 0.682353, 0.811765, 1)
+text = "Elige qué llevar al cohete. No cabe todo: el límite es 100 kg."
+autowrap_mode = 3
+
+[node name="Opciones" type="GridContainer" parent="Contenido"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+columns = 2
+
+[node name="Fila" type="HBoxContainer" parent="Contenido"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Bascula" type="ProgressBar" parent="Contenido/Fila"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+show_percentage = false
+
+[node name="Peso" type="Label" parent="Contenido/Fila"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "0 / 100 kg"
+
+[node name="Cargar" type="Button" parent="Contenido"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Cargar el cohete"

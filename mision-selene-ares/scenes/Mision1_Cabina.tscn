@@ -1,0 +1,112 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Mision1_Cabina.gd" id="1_cabina"]
+[ext_resource type="PackedScene" path="res://scenes/ARTI.tscn" id="2_arti"]
+[ext_resource type="PackedScene" path="res://scenes/DialogoARTI.tscn" id="3_dialogo"]
+
+[sub_resource type="Environment" id="Environment_cabina"]
+background_mode = 1
+background_color = Color(0, 0, 0, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.35, 0.38, 0.48, 1)
+ambient_light_energy = 0.7
+
+[node name="Mision1_Cabina" type="Node3D"]
+script = ExtResource("1_cabina")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_cabina")
+
+[node name="Camara" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.970296, 0.241922, 0, -0.241922, 0.970296, 0, 1.45, 0.2)
+current = true
+fov = 70.0
+
+[node name="LuzVentana" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -1.3)
+light_color = Color(0.56, 0.77, 1, 1)
+omni_range = 4.0
+
+[node name="LuzAlerta" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+light_color = Color(1, 0.7, 0.2, 1)
+light_energy = 0.0
+omni_range = 4.0
+
+[node name="ARTI" parent="." instance=ExtResource("2_arti")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.25, -0.45, -1.3)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Tiempo" type="Label" parent="UI"]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 36.0
+offset_right = 300.0
+offset_bottom = 90.0
+grow_horizontal = 2
+theme_override_colors/font_outline_color = Color(0.0431373, 0.0627451, 0.14902, 0.9)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 34
+text = "Tiempo para el despegue: 30 s"
+horizontal_alignment = 1
+
+[node name="Cuenta" type="Label" parent="UI"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -400.0
+offset_right = 500.0
+offset_bottom = -180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Titulo"
+theme_override_colors/font_outline_color = Color(0.0431373, 0.0627451, 0.14902, 0.9)
+theme_override_constants/outline_size = 16
+theme_override_font_sizes/font_size = 160
+text = "3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DialogoARTI" parent="UI" instance=ExtResource("3_dialogo")]
+unique_name_in_owner = true
+
+[node name="Fundido" type="ColorRect" parent="UI"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Mensaje" type="Label" parent="UI"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -700.0
+offset_top = -80.0
+offset_right = 700.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Titulo"
+theme_override_font_sizes/font_size = 48
+text = "Rumbo a la Luna...
+La Misión 2 todavía está en construcción."
+horizontal_alignment = 1
+vertical_alignment = 1

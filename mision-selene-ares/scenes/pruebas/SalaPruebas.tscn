@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/pruebas/SalaPruebas.gd" id="1_sala"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/Interactuable.gd" id="4_interactuable"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_cielo"]
+
+[sub_resource type="Sky" id="Sky_cielo"]
+sky_material = SubResource("ProceduralSkyMaterial_cielo")
+
+[sub_resource type="Environment" id="Environment_sala"]
+background_mode = 2
+sky = SubResource("Sky_cielo")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_piso"]
+size = Vector3(40, 1, 40)
+
+[sub_resource type="BoxMesh" id="BoxMesh_piso"]
+size = Vector3(40, 1, 40)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_consola"]
+size = Vector3(1.6, 1.8, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_consola"]
+albedo_color = Color(0.180392, 0.901961, 0.839216, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_consola"]
+material = SubResource("StandardMaterial3D_consola")
+size = Vector3(1.6, 1.8, 0.8)
+
+[node name="SalaPruebas" type="Node3D"]
+script = ExtResource("1_sala")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_sala")
+
+[node name="Sol" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.643, 0.766, 0, -0.766, 0.643, 0, 6, 0)
+shadow_enabled = true
+
+[node name="Piso" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="Forma" type="CollisionShape3D" parent="Piso"]
+shape = SubResource("BoxShape3D_piso")
+
+[node name="Malla" type="MeshInstance3D" parent="Piso"]
+mesh = SubResource("BoxMesh_piso")
+
+[node name="Consola" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -4)
+script = ExtResource("4_interactuable")
+texto = "Usar la consola"
+
+[node name="Forma" type="CollisionShape3D" parent="Consola"]
+shape = SubResource("BoxShape3D_consola")
+
+[node name="Malla" type="MeshInstance3D" parent="Consola"]
+mesh = SubResource("BoxMesh_consola")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 2)
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]

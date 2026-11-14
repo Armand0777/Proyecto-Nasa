@@ -1,0 +1,52 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/fondos/FondoTierra.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/CieloTierra.gdshader" id="2_cielo"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cielo"]
+shader = ExtResource("2_cielo")
+
+[sub_resource type="Sky" id="Sky_cielo"]
+sky_material = SubResource("ShaderMaterial_cielo")
+radiance_size = 0
+
+[sub_resource type="Environment" id="Environment_tierra"]
+background_mode = 2
+sky = SubResource("Sky_cielo")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.7, 0.82, 1)
+ambient_light_energy = 0.5
+reflected_light_source = 1
+fog_enabled = true
+fog_light_color = Color(0.78, 0.86, 0.95, 1)
+fog_density = 0.0016
+fog_sky_affect = 0.0
+
+[node name="FondoTierra" type="Node3D"]
+script = ExtResource("1_script")
+descripcion = "La base de lanzamiento en la Tierra: el cohete Artemis-IX listo para despegar. Arriba se ve la Luna, el primer destino."
+segundos_por_vuelta = 300.0
+inclinacion_camara = 5.0
+elevacion_sol = 32.0
+azimut_sol = -40.0
+cantidad_rocas = 70
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_tierra")
+
+[node name="Sol" type="DirectionalLight3D" parent="."]
+light_color = Color(1, 0.96, 0.88, 1)
+light_energy = 1.0
+shadow_enabled = true
+directional_shadow_max_distance = 260.0
+
+[node name="Terreno" type="MeshInstance3D" parent="."]
+
+[node name="Rocas" type="Node3D" parent="."]
+
+[node name="Pivote" type="Node3D" parent="."]
+
+[node name="Camara" type="Camera3D" parent="Pivote"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+current = true
+fov = 70.0

@@ -1,0 +1,80 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/fondos/FondoMarte.gd" id="1_script"]
+[ext_resource type="Shader" path="res://shaders/CieloMarte.gdshader" id="2_cielo"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cielo"]
+shader = ExtResource("2_cielo")
+
+[sub_resource type="Sky" id="Sky_cielo"]
+sky_material = SubResource("ShaderMaterial_cielo")
+radiance_size = 0
+
+[sub_resource type="Environment" id="Environment_marte"]
+background_mode = 2
+sky = SubResource("Sky_cielo")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.46, 0.42, 1)
+ambient_light_energy = 0.7
+reflected_light_source = 1
+fog_enabled = true
+fog_light_color = Color(0.851, 0.627, 0.4, 1)
+fog_density = 0.003
+fog_sky_affect = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_polvo"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.878, 0.541, 0.357, 0.6)
+billboard_mode = 3
+distance_fade_mode = 1
+distance_fade_min_distance = 3.0
+distance_fade_max_distance = 10.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_polvo"]
+material = SubResource("StandardMaterial3D_polvo")
+size = Vector2(0.07, 0.07)
+
+[sub_resource type="Gradient" id="Gradient_polvo"]
+offsets = PackedFloat32Array(0, 0.2, 0.8, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="FondoMarte" type="Node3D"]
+script = ExtResource("1_script")
+descripcion = "La Tierra y la Luna vistas desde Marte al atardecer. En la realidad se ven como dos estrellas brillantes."
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_marte")
+
+[node name="Sol" type="DirectionalLight3D" parent="."]
+light_color = Color(1, 0.84, 0.66, 1)
+light_energy = 1.4
+shadow_enabled = true
+directional_shadow_max_distance = 160.0
+
+[node name="Terreno" type="MeshInstance3D" parent="."]
+
+[node name="Rocas" type="Node3D" parent="."]
+
+[node name="Polvo" type="CPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+amount = 160
+lifetime = 14.0
+preprocess = 14.0
+mesh = SubResource("QuadMesh_polvo")
+emission_shape = 3
+emission_box_extents = Vector3(45, 4, 45)
+direction = Vector3(1, 0.05, 0.3)
+spread = 25.0
+gravity = Vector3(0, -0.02, 0)
+initial_velocity_min = 1.0
+initial_velocity_max = 2.5
+color_ramp = SubResource("Gradient_polvo")
+
+[node name="Pivote" type="Node3D" parent="."]
+
+[node name="Camara" type="Camera3D" parent="Pivote"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+current = true
+fov = 70.0

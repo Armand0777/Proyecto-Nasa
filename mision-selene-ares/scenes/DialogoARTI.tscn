@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/DialogoARTI.gd" id="1_dialogo"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_burbuja"]
+content_margin_left = 28.0
+content_margin_top = 20.0
+content_margin_right = 28.0
+content_margin_bottom = 22.0
+bg_color = Color(0.0431373, 0.0627451, 0.14902, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.180392, 0.901961, 0.839216, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[node name="DialogoARTI" type="PanelContainer"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -780.0
+offset_top = -300.0
+offset_right = -40.0
+offset_bottom = -170.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_burbuja")
+script = ExtResource("1_dialogo")
+
+[node name="Contenido" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Nombre" type="Label" parent="Contenido"]
+layout_mode = 2
+theme_type_variation = &"Titulo"
+theme_override_colors/font_color = Color(0.180392, 0.901961, 0.839216, 1)
+theme_override_font_sizes/font_size = 28
+text = "A.R.T.I."
+
+[node name="Texto" type="RichTextLabel" parent="Contenido"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(680, 0)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 26
+bbcode_enabled = true
+fit_content = true
+
+[node name="Pregunta" type="Button" parent="Contenido"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 24
+text = "? Pregunta"
