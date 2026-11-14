@@ -25,6 +25,7 @@ signal _motor_encendido
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
+const Decoracion := preload("res://scripts/Decoracion.gd")
 const SIGUIENTE_ESCENA := "res://scenes/Mision2_Alunizaje.tscn"
 const SEGUNDOS_LIMITE := 30.0
 
@@ -116,6 +117,9 @@ var _toma_inicio := 0.0
 # Puzle 2.
 var _luces: Array[StandardMaterial3D] = []
 var _botones: Array[Node3D] = []
+var _separacion_cuerpo: Node3D  # El botón amarillo: se hunde al pulsarlo, no se junta con lo fijo.
+var _leds: Array[StandardMaterial3D] = []  # Luces de los paneles que parpadean.
+var _colores_led: Array[Color] = []
 var _siguiente := 0
 var _restante := SEGUNDOS_LIMITE
 
@@ -181,7 +185,7 @@ func _ready() -> void:
 	_construir_capa_nubes()
 	_construir_espacio()
 	_crear_interfaz()
-	_camara.fov = 75.0
+	_camara.fov = 85.0  # Más ancho: se ve más espacio por las ventanas.
 	_camara.far = 9000.0
 	_camara.position = OJOS
 	_interior.add_child(_camara)
@@ -197,12 +201,19 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_tiempo += delta
 	if _sentado and _toma == "" and not _pilotando:
-		# Mirar moviendo el mouse (sin capturarlo, así se puede hacer clic en el tablero).
+		# Mirar moviendo el mouse (sin capturarlo, así se puede hacer clic en el tablero). Cerca del
+		# centro gira suave; hacia los bordes llega a las ventanas de los lados (±100°), a la consola
+		# del techo (65° arriba) y a los mandos del asiento (30° abajo).
 		var vista := get_viewport().get_visible_rect().size
-		var m := get_viewport().get_mouse_position() / vista
-		var deseada := Vector2((0.5 - m.y) * 1.0 + 0.18, (0.5 - m.x) * 1.7)
+		var m := ((get_viewport().get_mouse_position() / vista - Vector2(0.5, 0.5)) * 2.0).clamp(-Vector2.ONE, Vector2.ONE)
+		var arriba := -_curva(m.y) * (0.95 if m.y < 0.0 else 0.7)
+		var deseada := Vector2(0.18 + arriba, -_curva(m.x) * 1.75)
 		_mirada = _mirada.lerp(deseada, minf(1.0, delta * 5.0))
 		_camara.rotation = Vector3(_mirada.x, _mirada.y, 0.0)
+	# Luces del tablero que parpadean, cada color a su ritmo.
+	for i in _leds.size():
+		var encendida := fmod(_tiempo * (0.6 + i * 0.37) + i * 0.29, 1.0) < 0.6
+		_leds[i].albedo_color = _colores_led[i] if encendida else _colores_led[i].darkened(0.8)
 	var camara := _camara_ext if _toma != "" else _camara
 	camara.h_offset = randf_range(-1.0, 1.0) * 0.035 * _temblor
 	camara.v_offset = randf_range(-1.0, 1.0) * 0.035 * _temblor
@@ -979,8 +990,9 @@ func _construir_interior() -> void:
 			Vector3(cos(a0) * RADIO_ARRIBA, ALTO, sin(a0) * RADIO_ARRIBA),
 		]
 		if k in VENTANAS:
-			var marco := Rect2(0.12, 0.32, 0.76, 0.54)
-			var hueco := Rect2(0.16, 0.36, 0.68, 0.46)
+			# Ventanas grandes con marco fino: se ve más espacio.
+			var marco := Rect2(0.06, 0.24, 0.88, 0.66)
+			var hueco := Rect2(0.09, 0.27, 0.82, 0.6)
 			_anillo(st, esquinas, todo, marco, COLOR_PARED)
 			_anillo(st, esquinas, marco, hueco, COLOR_ACERO.darkened(0.3))
 			_cuadro(vidrio, esquinas, hueco, Color.WHITE)
@@ -1007,7 +1019,7 @@ func _construir_interior() -> void:
 		st.set_color(COLOR_PISO)
 		for punto in [Vector3.ZERO, Vector3(cos(a1), 0, sin(a1)) * RADIO_ABAJO, Vector3(cos(a0), 0, sin(a0)) * RADIO_ABAJO]:
 			st.add_vertex(punto)
-		st.set_color(COLOR_PARED.darkened(0.1))
+		st.set_color(Color(0.5, 0.55, 0.63))  # Techo gris azulado: así resaltan sus tiras de luz.
 		for punto in [Vector3(0, ALTO, 0), Vector3(cos(a0) * RADIO_ARRIBA, ALTO, sin(a0) * RADIO_ARRIBA), Vector3(cos(a1) * RADIO_ARRIBA, ALTO, sin(a1) * RADIO_ARRIBA)]:
 			st.add_vertex(punto)
 	st.generate_normals()
@@ -1043,12 +1055,18 @@ func _construir_interior() -> void:
 
 	_construir_tablero()
 	_construir_asientos()
+	_construir_detalles()
+	# Rendimiento: todo lo fijo en pocas mallas; quedan aparte la escotilla y los botones que se hunden.
+	Decoracion.fusionar(_interior, [_puerta_escotilla, _separacion_cuerpo] + _botones)
 
 
 ## Tablero: tres consolas inclinadas con pantallas, los tres interruptores del Puzle 2 y el botón
 ## amarillo de separación (también sirve para encender el motor de la cápsula).
 func _construir_tablero() -> void:
 	var consolas := [[Vector3(-0.98, 0.72, -1.05), 0.8], [Vector3(0, 0.72, -1.45), 0.0], [Vector3(0.98, 0.72, -1.05), -0.8]]
+	var luz_franja := _material_luz(Color(0.09, 0.22, 0.4))
+	var luz_verde := _material_luz(COLOR_LISTO)
+	var luz_azul := _material_luz(Color(0.35, 0.65, 1.0))
 	for datos in consolas:
 		var consola := Node3D.new()
 		consola.position = datos[0]
@@ -1065,6 +1083,20 @@ func _construir_tablero() -> void:
 		pantalla.material_override = fondo
 		pantalla.position = Vector3(0, 0.02, 0.145)
 		consola.add_child(pantalla)
+		# Marco, franja de título arriba, teclas debajo y luces de estado: pantalla de cabina de verdad.
+		for borde in [[Vector3(0.94, 0.03, 0.02), Vector3(0, 0.235, 0.15)], [Vector3(0.94, 0.03, 0.02), Vector3(0, -0.195, 0.15)], [Vector3(0.03, 0.46, 0.02), Vector3(-0.455, 0.02, 0.15)], [Vector3(0.03, 0.46, 0.02), Vector3(0.455, 0.02, 0.15)]]:
+			_bloque(borde[0], borde[1], COLOR_NOCHE, false, consola)
+		var franja := MeshInstance3D.new()
+		var tira := QuadMesh.new()
+		tira.size = Vector2(0.86, 0.04)
+		franja.mesh = tira
+		franja.material_override = luz_franja
+		franja.position = Vector3(0, 0.2, 0.147)
+		consola.add_child(franja)
+		for t in 5:
+			_bloque(Vector3(0.11, 0.035, 0.025), Vector3(-0.3 + t * 0.15, -0.25, 0.15), COLOR_ACERO.darkened(0.2), false, consola)
+		for t in 3:
+			_led(consola, Vector3(0.3 + t * 0.045, 0.27, 0.142), luz_azul if t == 2 else luz_verde)
 		var texto := Label3D.new()
 		texto.font_size = 44
 		texto.pixel_size = 0.0016
@@ -1116,6 +1148,7 @@ func _construir_tablero() -> void:
 	separacion.add_child(tapa)
 	separacion.input_event.connect(_al_tocar_separacion)
 	_interior.add_child(separacion)
+	_separacion_cuerpo = separacion
 	_etiqueta_3d("SEPARACIÓN", separacion.position + Vector3(0, 0.08, 0))
 
 
@@ -1156,6 +1189,170 @@ func _construir_asientos() -> void:
 		asiento.add_child(respaldo)
 		_bloque(Vector3(0.58, 0.95, 0.12), Vector3(0, 0.47, 0), tela, false, respaldo)
 		_bloque(Vector3(0.58, 0.06, 0.13), Vector3(0, 0.3, 0), COLOR_NARANJA, false, respaldo)
+
+
+## Detalles de una cabina de verdad: la barra donde van montados los interruptores (y de la que cuelga
+## el botón de separación), la consola del techo con interruptores de palanca y luces, paneles en las
+## paredes sin ventana, tiras de luz alrededor del techo, una baranda, los mandos junto al asiento y
+## una luz azul suave que sale del tablero. Las luces de colores no son turquesa ni rojas: turquesa
+## es «se puede tocar» y rojo es solo para emergencias.
+func _construir_detalles() -> void:
+	var oscuro := COLOR_NOCHE.lightened(0.18)
+	var metal := COLOR_ACERO.lightened(0.25)
+	var verde := _material_luz(COLOR_LISTO)
+	var ambar := _material_luz(Color(1.0, 0.7, 0.2))
+	var azul := _material_luz(Color(0.35, 0.65, 1.0))
+	for color in [COLOR_LISTO, Color(1.0, 0.7, 0.2), Color(0.35, 0.65, 1.0)]:
+		_colores_led.append(color)
+		_leds.append(_material_luz(color))
+	var luces := [verde, verde, azul, ambar, _leds[0], verde, azul, _leds[1], verde, _leds[2]]
+
+	# Barra de control: los interruptores 1-2-3 quedan montados en ella.
+	_bloque(Vector3(1.24, 0.04, 0.26), Vector3(0, 1.06, -1.26), oscuro, false, _interior)
+	_bloque(Vector3(1.24, 0.05, 0.02), Vector3(0, 1.055, -1.125), metal, false, _interior)
+	_bloque(Vector3(0.08, 0.07, 0.06), Vector3(0, 1.01, -1.11), oscuro, false, _interior)  # Soporte del botón de separación.
+
+	# Consola del techo, inclinada hacia el asiento y por encima de la ventana del frente.
+	var techo := Node3D.new()
+	techo.position = Vector3(0, 2.27, -0.55)
+	techo.rotation.x = 0.85
+	_interior.add_child(techo)
+	_bloque(Vector3(1.1, 0.5, 0.06), Vector3.ZERO, oscuro, false, techo)
+	var titulos := ["ENERGÍA", "SOPORTE VITAL", "COMUNICACIÓN"]
+	for s in 3:
+		var x := -0.36 + s * 0.36
+		_bloque(Vector3(0.33, 0.44, 0.012), Vector3(x, -0.01, 0.034), oscuro.lightened(0.07), false, techo)
+		_rotulo(techo, titulos[s], Vector3(x, 0.18, 0.045))
+		for fila in 2:
+			for c in 4:
+				var punto := Vector3(x - 0.105 + c * 0.07, 0.06 - fila * 0.15, 0.04)
+				_bloque(Vector3(0.036, 0.036, 0.012), punto, metal.darkened(0.25), false, techo)
+				var palanca := _bloque(Vector3(0.012, 0.012, 0.05), punto + Vector3(0, 0.0, 0.025), metal, false, techo)
+				palanca.rotation.x = 0.45 if (s + fila + c) % 3 != 0 else -0.45  # Unas arriba y otras abajo.
+				_led(techo, punto + Vector3(0, 0.045, 0.0), luces[(s * 7 + fila * 4 + c) % luces.size()])
+		_bloque(Vector3(0.3, 0.012, 0.01), Vector3(x, -0.2, 0.042), COLOR_AMARILLO.darkened(0.2), false, techo)
+
+	# Paneles en las paredes sin ventana (izquierda y atrás a los lados).
+	_panel_pared(6, 0.5, "CABINA", "O2   21 %\nPRESIÓN 1 atm\nTEMP.  22 °C", luces)
+	_panel_pared(5, 0.62, "BIO-BOX", "PECES     OK\nABEJORROS OK\nALGAS     OK", luces)
+	_panel_pared(3, 0.62, "ENERGÍA", "BATERÍA 98 %\nCARGA   OK", luces)
+
+	# Tiras de luz alrededor del techo: brillan más que el blanco (emisión), así se notan.
+	var tira := StandardMaterial3D.new()
+	tira.albedo_color = Color.BLACK
+	tira.emission_enabled = true
+	tira.emission = Color(0.8, 0.9, 1.0)
+	tira.emission_energy_multiplier = 2.5
+	for i in 8:
+		var angulo := -PI / 2.0 + i * PI / 4.0
+		var luz := MeshInstance3D.new()
+		luz.mesh = Fondo._caja(Vector3(0.6, 0.025, 0.05))
+		luz.material_override = tira
+		luz.position = Vector3(cos(angulo), 0.0, sin(angulo)) * 0.88 + Vector3(0, ALTO - 0.02, 0)
+		luz.rotation.y = -(angulo + PI / 2.0)
+		luz.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_interior.add_child(luz)
+
+	# Baranda sobre la ventana del frente, para agarrarse.
+	var baranda := _bloque(Vector3(0.7, 0.025, 0.025), Vector3(0, 2.2, -0.95), metal, false, _interior)
+	baranda.rotation.x = 0.4
+	for x in [-0.3, 0.3]:
+		_bloque(Vector3(0.025, 0.06, 0.06), Vector3(x, 2.23, -0.98), metal.darkened(0.2), false, _interior)
+
+	# Mandos de las manos junto al asiento: el derecho gira la cápsula y el izquierdo la mueve.
+	for x in [-0.38, 0.38]:
+		_bloque(Vector3(0.09, 0.06, 0.4), Vector3(x, 0.56, 0.62), oscuro, false, _interior)
+		_bloque(Vector3(0.1, 0.04, 0.12), Vector3(x, 0.61, 0.5), metal.darkened(0.3), false, _interior)
+		_bloque(Vector3(0.03, 0.1, 0.03), Vector3(x, 0.68, 0.5), metal, false, _interior)
+		_bloque(Vector3(0.05, 0.08, 0.05), Vector3(x, 0.76, 0.5), COLOR_NOCHE, false, _interior)
+		_led(_interior, Vector3(x, 0.805, 0.5), ambar, 0.022)
+
+	# Luz azul suave del tablero (sin sombra: es barata).
+	var brillo := OmniLight3D.new()
+	brillo.light_color = Color(0.5, 0.72, 1.0)
+	brillo.light_energy = 0.35
+	brillo.omni_range = 1.8
+	brillo.position = Vector3(0, 1.0, -1.05)
+	_interior.add_child(brillo)
+
+
+## Panel en la pared «k» (a la altura «v», de 0 abajo a 1 arriba): título, una pantallita con datos,
+## botones y una fila de luces.
+func _panel_pared(k: int, v: float, titulo: String, datos: String, luces: Array) -> void:
+	var panel := Node3D.new()
+	panel.transform = _en_pared(k, v)
+	_interior.add_child(panel)
+	_bloque(Vector3(0.66, 0.46, 0.03), Vector3(0, 0, 0.015), COLOR_NOCHE.lightened(0.18), false, panel)
+	_rotulo(panel, titulo, Vector3(0, 0.19, 0.034))
+	var pantalla := MeshInstance3D.new()
+	var cuadro := QuadMesh.new()
+	cuadro.size = Vector2(0.3, 0.2)
+	pantalla.mesh = cuadro
+	pantalla.material_override = _material_luz(Color(0.05, 0.12, 0.22))
+	pantalla.position = Vector3(-0.14, 0.03, 0.032)
+	panel.add_child(pantalla)
+	var texto := Label3D.new()
+	texto.text = datos
+	texto.font_size = 22
+	texto.pixel_size = 0.0011
+	texto.outline_size = 0
+	texto.modulate = Color(0.6, 0.85, 1.0)
+	texto.position = Vector3(-0.14, 0.03, 0.034)
+	panel.add_child(texto)
+	for f in 3:
+		for c in 3:
+			var color: Color = [COLOR_ACERO, COLOR_ACERO.lightened(0.2), Color(0.25, 0.45, 0.75)][(f + c) % 3]
+			_bloque(Vector3(0.05, 0.05, 0.02), Vector3(0.09 + c * 0.075, 0.1 - f * 0.075, 0.04), color, false, panel)
+	for i in 6:
+		_led(panel, Vector3(-0.25 + i * 0.05, -0.17, 0.035), luces[(k + i * 3) % luces.size()])
+
+
+## Posición sobre la cara «k» del octágono (al centro, a la altura «v») mirando hacia adentro de la
+## cápsula y con la misma inclinación que la pared.
+func _en_pared(k: int, v: float) -> Transform3D:
+	var centro := -PI / 2.0 + k * PI / 4.0
+	var a0 := centro - PI / 8.0
+	var a1 := centro + PI / 8.0
+	var e: Array[Vector3] = [
+		Vector3(cos(a0) * RADIO_ABAJO, 0, sin(a0) * RADIO_ABAJO),
+		Vector3(cos(a1) * RADIO_ABAJO, 0, sin(a1) * RADIO_ABAJO),
+		Vector3(cos(a1) * RADIO_ARRIBA, ALTO, sin(a1) * RADIO_ARRIBA),
+		Vector3(cos(a0) * RADIO_ARRIBA, ALTO, sin(a0) * RADIO_ARRIBA),
+	]
+	var punto := _punto(e, 0.5, v)
+	var y := ((e[2] + e[3]) - (e[0] + e[1])).normalized()
+	var z := (e[1] - e[0]).normalized().cross(y).normalized()
+	if z.dot(-Vector3(punto.x, 0, punto.z)) < 0.0:
+		z = -z  # Que mire hacia adentro.
+	return Transform3D(Basis(y.cross(z), y, z), punto + z * 0.01)
+
+
+func _material_luz(color: Color) -> StandardMaterial3D:
+	var luz := StandardMaterial3D.new()
+	luz.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	luz.albedo_color = color
+	return luz
+
+
+func _led(padre: Node3D, posicion: Vector3, material: Material, tamano := 0.018) -> void:
+	var led := MeshInstance3D.new()
+	led.mesh = Fondo._caja(Vector3(tamano, tamano, 0.01))
+	led.material_override = material
+	led.position = posicion
+	led.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	padre.add_child(led)
+
+
+## Letrero chico gris claro (títulos de los paneles).
+func _rotulo(padre: Node3D, texto: String, posicion: Vector3) -> void:
+	var rotulo := Label3D.new()
+	rotulo.text = texto
+	rotulo.font_size = 22
+	rotulo.pixel_size = 0.0012
+	rotulo.outline_size = 0
+	rotulo.modulate = Color(0.82, 0.86, 0.92)
+	rotulo.position = posicion
+	padre.add_child(rotulo)
 
 
 ## Motores: llamas del núcleo y los propulsores (adentro amarillas, afuera naranjas que brillan),
@@ -1423,6 +1620,11 @@ func _bloque(tamano: Vector3, posicion: Vector3, color: Color, choca: bool, padr
 
 
 ## Punto (u, v) de una cara de cuatro esquinas [abajo-izq, abajo-der, arriba-der, arriba-izq].
+## De −1..1 a −1..1, pero más suave cerca del centro: apuntar fino al medio y girar mucho en los bordes.
+func _curva(valor: float) -> float:
+	return valor * (0.45 + 0.55 * absf(valor))
+
+
 func _punto(e: Array[Vector3], u: float, v: float) -> Vector3:
 	return e[0].lerp(e[1], u).lerp(e[3].lerp(e[2], u), v)
 
