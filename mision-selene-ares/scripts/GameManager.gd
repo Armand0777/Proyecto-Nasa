@@ -43,6 +43,8 @@ var recursos: Dictionary[String, float] = {}
 var carga_elegida: Array[String] = []
 ## Fotos científicas que toma el jugador, para el álbum del cierre.
 var fotos: Array[Image] = []
+## Qué dato de NASA DONKI se usó en la tormenta de la Luna (para el panel de ciencia del cierre).
+var estado_donki := "no se jugó la tormenta"
 
 
 func _ready() -> void:

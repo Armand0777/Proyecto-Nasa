@@ -228,6 +228,7 @@ func _empezar_tormenta() -> void:
 	var dato := _dato_tormenta
 	# La fuerza real de la llamarada decide cuánto escudo hace falta.
 	_meta_escudo = {"X": 80.0, "M": 60.0}.get(str(dato.clase).left(1), 40.0)
+	GameManager.estado_donki = "evento de práctica (sin conexión)" if dato.estado == "PRÁCTICA" else "llamarada clase %s del %s (%s)" % [dato.clase, dato.fecha, dato.estado]
 	if dato.estado == "PRÁCTICA":
 		_evento.text = "Evento de práctica: no hubo conexión con NASA DONKI"
 	else:

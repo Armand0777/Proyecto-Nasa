@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Mision3_Marte.gd" id="1_marte"]
+[ext_resource type="PackedScene" path="res://scenes/fondos/FondoMarte.tscn" id="2_exterior"]
+[ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="3_hud"]
+
+[node name="Mision3_Marte" type="Node3D"]
+script = ExtResource("1_marte")
+
+[node name="Exterior" parent="." instance=ExtResource("2_exterior")]
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="Fundido" type="ColorRect" parent="UI"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Llegada" type="Label" parent="UI"]
+unique_name_in_owner = true
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -700.0
+offset_top = -60.0
+offset_right = 700.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"Titulo"
+theme_override_font_sizes/font_size = 56
+horizontal_alignment = 1
+vertical_alignment = 1
