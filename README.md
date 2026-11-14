@@ -74,7 +74,7 @@ Solo listamos lo que el juego usa de verdad.
 * **Huerto Veggie** de la Estación Espacial: la luz rosada de cultivo del biodomo viene de sus LEDs rojos y azules.
 * **Rovers Curiosity y Perseverance:**
   * el cielo caramelo y el atardecer azul de Marte;
-  * el viento que grabaron los micrófonos de Perseverance;
+  * el viento de Marte que se escucha en la Misión 3 es la **grabación real** del micrófono de Perseverance, y sopla más fuerte en las tormentas de polvo;
   * **MOXIE**, que sacó oxígeno del aire marciano.
   * Fuente: <https://science.nasa.gov/mission/mars-2020-perseverance/>
 * **Rover Opportunity:** en 2018 una tormenta de polvo tapó el Sol durante semanas y lo dejó sin energía.
@@ -128,10 +128,13 @@ mision-selene-ares/                      Proyecto de Godot
 | Fuente **Fredoka** (títulos) | Copyright 2016 The Fredoka Project Authors | SIL Open Font License 1.1 (`ui/fuentes/OFL_Fredoka.txt`) |
 | Fuente **Nunito** (textos) | Copyright 2014 The Nunito Project Authors | SIL Open Font License 1.1 (`ui/fuentes/OFL_Nunito.txt`) |
 | Datos de llamaradas solares | NASA DONKI (CCMC) | Datos públicos de la NASA |
+| Viento de Marte (`audio/efectos/marte_viento.wav`, recorte de 12 s) | NASA/JPL-Caltech/LANL/CNES/CNRS/ISAE-Supaero: micrófono de SuperCam del rover Perseverance, sol 4 (22 feb 2021), de [Sounds from Beyond](https://www.nasa.gov/sounds-from-beyond/) | Material de la NASA, uso según sus [normas de uso de medios](https://www.nasa.gov/nasa-brand-center/images-and-media/) |
+| Sonido del despegue (`audio/efectos/despegue.mp3`) | NASA, "Liftoff", de [Sounds from Beyond](https://www.nasa.gov/sounds-from-beyond/) | Material de la NASA, uso según sus normas de uso de medios |
+| Efectos de interfaz, ciencia ficción e impactos (`audio/efectos/*.ogg`) | [Kenney](https://kenney.nl) (Interface Sounds, Sci-Fi Sounds, Impact Sounds) | CC0 1.0 (dominio público) |
 
 **Hecho por el equipo, sin recursos externos:**
 * Los paisajes, el cohete, el biodomo, las rocas y los cielos se generan con código, en estilo low-poly.
-* El pitido del escáner se genera con código.
+* El pitido del escáner se genera con código, y la alarma de la tormenta (`audio/efectos/alarma.wav`) se generó con código.
 * Mientras no estén las grabaciones del guion de doblaje, la voz de A.R.T.I. es la del sistema operativo o del navegador.
 
 Este proyecto no está afiliado a la NASA ni respaldado por ella. Usa datos públicos de la NASA y nombra sus fuentes, sin logotipos.

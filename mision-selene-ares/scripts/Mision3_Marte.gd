@@ -34,6 +34,7 @@ var _terminar: Button
 var _pedir_ayuda: Button
 var _senal: ProgressBar
 var _deslizadores := {}
+var _viento: AudioStreamPlayer  # Viento real de Marte grabado por el rover Perseverance.
 
 
 func _ready() -> void:
@@ -45,6 +46,7 @@ func _ready() -> void:
 	_entorno = mundo.environment.duplicate()
 	mundo.environment = _entorno
 	_luz = $Exterior/Sol
+	_viento = Sonidos.ambiente(self, "marte_viento.wav", -10.0)
 	_crear_tablero()
 	_tablero.hide()
 	_llegar()
@@ -74,6 +76,7 @@ func _preparar_sol() -> void:
 	tween.tween_property(_entorno, "fog_light_color", Color(0.45, 0.3, 0.2) if tormenta else Color(0.851, 0.627, 0.4), 2.0)
 	tween.tween_property(_luz, "light_energy", 0.45 if tormenta else 1.4, 2.0)
 	tween.tween_property(_entorno, "fog_sky_affect", 0.75 if tormenta else 0.0, 2.0)  # Cielo café opaco.
+	tween.tween_property(_viento, "volume_db", 0.0 if tormenta else -10.0, 2.0)  # La tormenta sopla más fuerte.
 	_actualizar()
 	match _sol:
 		0:

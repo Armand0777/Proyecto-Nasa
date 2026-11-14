@@ -7,4 +7,5 @@ signal usado
 
 
 func interactuar() -> void:
+	Sonidos.tocar("usar.ogg", -4.0, 0.08)
 	usado.emit()

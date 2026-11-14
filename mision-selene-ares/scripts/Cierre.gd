@@ -10,6 +10,7 @@ var _ciencia: PanelContainer
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Sonidos.tocar("logro.ogg")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var fondo := ColorRect.new()
 	fondo.color = Color(0.043, 0.063, 0.149, 0.92)

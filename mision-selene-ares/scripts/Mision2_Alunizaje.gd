@@ -125,10 +125,13 @@ func _actualizar() -> void:
 func _alunizar() -> void:
 	_aterrizar.get_parent().get_parent().hide()
 	_arti.decir("¡Calibración correcta! Iniciando descenso al Polo Sur... Agárrate fuerte.")
+	var motor := Sonidos.tocar("propulsor.ogg", -6.0)
+	create_tween().tween_property(motor, "volume_db", -30.0, 6.0).set_ease(Tween.EASE_IN)
 	var tween := create_tween().set_parallel()
 	tween.tween_property(_camara, "position:y", 2.2, 6.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(_camara, "rotation_degrees:x", 6.0, 6.0)
 	await tween.finished
+	Sonidos.tocar("golpe.ogg")
 	for n in 8:
 		_camara.h_offset = randf_range(-0.06, 0.06)
 		_camara.v_offset = randf_range(-0.06, 0.06)

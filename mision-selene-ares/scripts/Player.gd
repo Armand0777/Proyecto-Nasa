@@ -47,7 +47,18 @@ func _physics_process(delta: float) -> void:
 	velocity.x = direccion.x * velocidad
 	velocity.z = direccion.z * velocidad
 	move_and_slide()
+	_sonar_pasos(delta, entrada)
 	_buscar_objetivo()
+
+
+var _espera_paso := 0.0
+
+## Un paso cada medio segundo mientras camina sobre el suelo.
+func _sonar_pasos(delta: float, entrada: Vector2) -> void:
+	_espera_paso -= delta
+	if is_on_floor() and entrada != Vector2.ZERO and _espera_paso <= 0.0:
+		Sonidos.tocar("paso.ogg", -12.0, 0.12)
+		_espera_paso = 0.5
 
 
 ## Lo que el rayo toca al frente; solo cuenta si se puede usar (tiene interactuar()).

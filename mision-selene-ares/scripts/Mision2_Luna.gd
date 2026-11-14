@@ -226,6 +226,7 @@ func _al_usar(estacion: String) -> void:
 			_terminar_eva(false)
 		"roca":
 			if not _roca_ok:
+				Sonidos.tocar("picar.ogg")
 				_roca_ok = true
 				_actualizar_objetivos()
 				_arti.decir("¡Fragmento de roca lunar extraído con el láser! Los científicos estudian estas rocas para saber cómo se formó la Luna.")
@@ -262,6 +263,7 @@ func _empezar_tormenta() -> void:
 	_evento.show()
 	_aviso_tormenta.show()
 	_alarma.show()
+	Sonidos.tocar("alarma.wav", -3.0)
 	_cerrar_panel()
 	var alerta := "¡ALERTA ROJA, COMANDANTE! Nuestros sensores conectados a la red DONKI de la NASA detectaron una Tormenta de Radiación Solar gigante dirigiéndose hacia la Luna. Impactará en %d segundos." % segundos_tormenta
 	if dato.estado == "PRÁCTICA":
@@ -283,7 +285,10 @@ func _terminar_tormenta() -> void:
 	var escudo_ok := GameManager.recursos["escudo"] >= _meta_escudo
 	var texto := "¡Impacto resistido! El escudo frenó la radiación y las persianas protegieron a las plantas."
 	var audio := "m2_06_tormenta_superada"
-	if not escudo_ok or not _persianas_cerradas:
+	if escudo_ok and _persianas_cerradas:
+		Sonidos.tocar("logro.ogg")
+	else:
+		Sonidos.tocar("golpe.ogg")
 		audio = "m2_06b_tormenta_alcanzo"
 		if not escudo_ok:
 			GameManager.cambiar("soporte_vital", -15.0)
@@ -539,6 +544,7 @@ func _en_suelo(posicion: Vector3) -> Vector3:
 
 
 func _empezar_eva() -> void:
+	Sonidos.tocar("puerta.ogg")
 	_eva = true
 	_jugador.global_position = _en_suelo(_base.position + Vector3(-18.0, 0, 0)) + Vector3(0, 0.3, 0)
 	_jugador.rotation.y = PI / 2.0  # Mirando hacia afuera, lejos del domo.
@@ -553,6 +559,7 @@ func _empezar_eva() -> void:
 
 ## Vuelve al domo. Con «rescate», A.R.T.I. usa el oxígeno de reserva: sin castigo, se guarda lo recogido.
 func _terminar_eva(rescate: bool) -> void:
+	Sonidos.tocar("puerta.ogg")
 	_eva = false
 	_objetivos.hide()
 	_jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0)
@@ -578,6 +585,7 @@ func _ir_a_marte() -> void:
 
 
 func _recoger_hielo(hielo: StaticBody3D) -> void:
+	Sonidos.tocar("picar.ogg", 0.0, 0.1)
 	_hielos.erase(hielo)
 	hielo.queue_free()
 	_hielo_recogido += 1
@@ -616,6 +624,7 @@ func _tomar_foto() -> void:
 	var frente := -camara.global_basis.z
 	var al_domo := (_base.position + Vector3(0, 4, 0) - camara.global_position).normalized()
 	var encuadre: bool =frente.angle_to(DIRECCION_TIERRA.normalized()) < deg_to_rad(20.0) or frente.angle_to(al_domo) < deg_to_rad(20.0)
+	Sonidos.tocar("foto.ogg")
 	_flash.modulate.a = 0.8
 	create_tween().tween_property(_flash, "modulate:a", 0.0, 0.4)
 	if not encuadre:

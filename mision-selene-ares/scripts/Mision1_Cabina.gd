@@ -87,8 +87,10 @@ func _activar(indice: int) -> void:
 	if _despegando or indice < _siguiente:
 		return
 	if indice != _siguiente:
+		Sonidos.tocar("error.ogg")
 		_arti.decir("¡Ese todavía no! Primero %s." % _datos[_siguiente][2])
 		return
+	Sonidos.tocar("interruptor.ogg")
 	_luces[indice].albedo_color = COLOR_LISTO
 	var interruptor := _interruptores[indice]
 	var tween := create_tween()
@@ -112,6 +114,7 @@ func _reiniciar_puzle() -> void:
 	_restante = SEGUNDOS_LIMITE
 	for luz in _luces:
 		luz.albedo_color = COLOR_APAGADO
+	Sonidos.tocar("error.ogg")
 	_arti.decir("¡Se acabó el tiempo! No pasa nada: los astronautas practican muchas veces. Otra vez: presión, calefacción e ignición.")
 
 
@@ -128,7 +131,8 @@ func _despegar() -> void:
 		await get_tree().create_timer(1.0).timeout
 	_cuenta.hide()
 
-	# Temblor y el cielo que se oscurece al subir.
+	# Temblor y el cielo que se oscurece al subir, con el sonido de un despegue real de la NASA.
+	Sonidos.tocar("despegue.mp3")
 	_temblor = 1.0
 	var tween := create_tween()
 	tween.tween_property(_cielo, "albedo_color", CIELO_ALTO, 2.5)
