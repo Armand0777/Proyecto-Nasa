@@ -54,7 +54,8 @@ func _ready() -> void:
 	_arti.decir(
 		"¡Abróchate el cinturón! Mira el tablero frente a ti: verifica la [url=presion]presión de cabina[/url], enciende la calefacción de nuestros peces y abejorros, y presiona el botón rojo de ignición. Haz clic en los interruptores o usa las teclas 1, 2 y 3.",
 		"", "",
-		{"presion": "Es el aire que empuja desde adentro de la cabina. Al subir, afuera casi no hay aire: si la cabina no está bien cerrada y con presión, no podríamos respirar."})
+		{"presion": "Es el aire que empuja desde adentro de la cabina. Al subir, afuera casi no hay aire: si la cabina no está bien cerrada y con presión, no podríamos respirar."},
+		"m1_04_cabina_tablero")
 
 
 func _process(delta: float) -> void:
@@ -135,7 +136,7 @@ func _despegar() -> void:
 	tween.parallel().tween_property(_estrellas, "albedo_color:a", 1.0, 2.0)
 	create_tween().tween_property(self, "_temblor", 0.15, 4.5)
 	await get_tree().create_timer(1.5).timeout
-	_arti.decir("¡Mira la ventana! El cielo se pone oscuro porque cada vez hay menos aire a nuestro alrededor.")
+	_arti.decir("¡Mira la ventana! El cielo se pone oscuro porque cada vez hay menos aire a nuestro alrededor.", "", "", {}, "m1_05_despegue")
 	await tween.finished
 	_temblor = 0.0
 	_camara.h_offset = 0.0

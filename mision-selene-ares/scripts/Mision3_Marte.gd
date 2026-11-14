@@ -80,7 +80,8 @@ func _preparar_sol() -> void:
 			_arti.decir(
 				"¡Lo logramos, estamos en Marte! Aquí las señales de radio tardan hasta 20 minutos en llegar a la Tierra y hay tormentas de polvo que tapan el Sol. Reparte la energía de cada sol entre calefacción, oxígeno y escudo. Consejo: si sobra energía, se guarda en la batería.",
 				"¿Por qué tarda tanto la señal?",
-				"Las ondas de radio viajan a la velocidad de la luz, pero Marte está tan lejos que el mensaje tarda varios minutos. Si algo sale mal, no podemos esperar la respuesta: hay que decidir solos.")
+				"Las ondas de radio viajan a la velocidad de la luz, pero Marte está tan lejos que el mensaje tarda varios minutos. Si algo sale mal, no podemos esperar la respuesta: hay que decidir solos.",
+				{}, "m3_03_llegada_marte")
 		1:
 			_arti.decir(
 				"¡Tormenta de polvo! El polvo tapa el Sol y los paneles casi no cargan. Usa la batería que guardaste y decide qué sistema puede esperar.",

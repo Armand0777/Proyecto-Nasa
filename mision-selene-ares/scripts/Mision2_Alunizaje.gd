@@ -34,7 +34,8 @@ func _ready() -> void:
 	_arti.decir(
 		"¡Despierta, Comandante! Llegamos a la órbita de la Luna. Vamos a aterrizar en el Polo Sur porque ahí hay hielo de agua escondido. Equilibra la batería de descenso antes de bajar: deja los tres sistemas en la zona verde.",
 		"¿Por qué no alcanza la batería para todo?",
-		"La batería tiene un límite: lo que le das a un sistema se lo quitas a otro. Los ingenieros de la NASA hacen este mismo reparto en cada misión.")
+		"La batería tiene un límite: lo que le das a un sistema se lo quitas a otro. Los ingenieros de la NASA hacen este mismo reparto en cada misión.",
+		{}, "m2_01_despertar_orbita")
 
 
 func _crear_panel() -> void:

@@ -146,7 +146,8 @@ func _mostrar_llegada() -> void:
 		"¡Llegamos al [url=biodomo]Biodomo[/url]! Fíjate en tus barras abajo: tienes hambre y sed. Camina a la Mesa de Nutrición para comer una barra de proteína o cosechar una lechuga. ¡Ojo! Si cosechas lechugas de más, bajará el oxígeno del domo hasta que crezcan nuevas.",
 		"¿Por qué bajaría el oxígeno?",
 		"Las plantas y las microalgas hacen el oxígeno que respiramos. Si las cosechamos, hay menos plantas trabajando hasta que crezcan otras.",
-		{"biodomo": "Una casa con techo de vidrio donde viven plantas, peces y abejorros. Ellos limpian el aire y nos dan comida, igual que en la Tierra."})
+		{"biodomo": "Una casa con techo de vidrio donde viven plantas, peces y abejorros. Ellos limpian el aire y nos dan comida, igual que en la Tierra."},
+		"m2_02_entrada_biodomo")
 
 
 func _cada_tres_segundos() -> void:
@@ -161,18 +162,18 @@ func _cada_tres_segundos() -> void:
 			_terminar_eva(true)
 	else:
 		GameManager.cambiar("oxigeno_traje", 10.0)  # Dentro del domo el traje se recarga.
-	_avisar_si_falta("hambre", "¡Tienes mucha hambre! Come en la Mesa de Nutrición o cosecha una lechuga en el huerto.")
+	_avisar_si_falta("hambre", "¡Tienes mucha hambre! Come en la Mesa de Nutrición o cosecha una lechuga en el huerto.", "arti_hambre_baja")
 	_avisar_si_falta("agua", "¡Tienes sed! Ve al Purificador de Agua.")
 	_avisar_si_falta("soporte_vital", "El oxígeno del domo está bajo: deja crecer las plantas antes de cosechar más.")
 
 
 ## A.R.T.I. avisa una vez cuando un recurso baja del 25 %, y otra vez solo si se recupera y vuelve a bajar.
-func _avisar_si_falta(recurso: String, texto: String) -> void:
+func _avisar_si_falta(recurso: String, texto: String, audio := "") -> void:
 	var valor := GameManager.recursos[recurso]
 	if valor < 25.0 and not _avisos_dados.get(recurso, false):
 		_avisos_dados[recurso] = true
 		if not _tormenta:
-			_arti.decir(texto)
+			_arti.decir(texto, "", "", {}, audio)
 	elif valor > 40.0:
 		_avisos_dados[recurso] = false
 
@@ -210,7 +211,8 @@ func _al_usar(estacion: String) -> void:
 			GameManager.cambiar("soporte_vital", 10.0)
 			_arti.decir("¡Válvula abierta! El agua del estanque de los peces cebra lleva abono a las raíces: las plantas crecen mejor y hacen más oxígeno. Y las lombrices convierten las hojas secas en tierra nueva.",
 				"¿Qué es la acuaponía?",
-				"Es criar peces y plantas juntos: los desechos de los peces alimentan a las plantas, y las plantas limpian el agua para los peces. Nada se desperdicia, y en el espacio eso es muy importante.")
+				"Es criar peces y plantas juntos: los desechos de los peces alimentan a las plantas, y las plantas limpian el agua para los peces. Nada se desperdicia, y en el espacio eso es muy importante.",
+				{}, "", "m2_03_acuaponia_ayuda")
 		"microscopio":
 			_arti.decir("Mira: son tardígrados, los «osos de agua». Miden menos de un milímetro y tienen ocho patitas.",
 				"¿Por qué los estudian en el espacio?",
@@ -264,9 +266,11 @@ func _empezar_tormenta() -> void:
 	var alerta := "¡ALERTA ROJA, COMANDANTE! Nuestros sensores conectados a la red DONKI de la NASA detectaron una Tormenta de Radiación Solar gigante dirigiéndose hacia la Luna. Impactará en %d segundos." % segundos_tormenta
 	if dato.estado == "PRÁCTICA":
 		alerta = "¡ALERTA ROJA, COMANDANTE! Simulacro de tormenta solar: hoy no pudimos conectarnos con la NASA, así que practicaremos. Impactará en %d segundos." % segundos_tormenta
+	# La meta no se dice en voz: cambia con cada llamarada y la grabación es una sola (se ve arriba).
 	_arti.decir(alerta,
 		"¿Qué es una tormenta de radiación solar y qué hago?",
-		"Es una explosión gigante en el Sol que lanza partículas invisibles muy peligrosas. Como la Luna no tiene atmósfera ni campo magnético como la Tierra, esa radiación puede dañar nuestro traje, a los abejorros y a las plantas. ¡Corre a la Consola Central, sube el Escudo Antirradiación a %d y cierra las persianas blindadas! (En la vida real hay de minutos a días de aviso; aquí el tiempo va rápido.)" % _meta_escudo)
+		"Es una explosión gigante en el Sol que lanza partículas invisibles muy peligrosas. Como la Luna no tiene atmósfera ni campo magnético como la Tierra, esa radiación puede dañar nuestro traje, a los abejorros y a las plantas. ¡Corre a la Consola Central, sube el Escudo Antirradiación hasta la meta que ves arriba y cierra las persianas blindadas! (En la vida real hay de minutos a días de aviso; aquí el tiempo va rápido.)",
+		{}, "m2_04b_alerta_simulacro" if dato.estado == "PRÁCTICA" else "m2_04_alerta_tormenta", "m2_05_que_es_tormenta")
 
 
 func _terminar_tormenta() -> void:
@@ -278,7 +282,9 @@ func _terminar_tormenta() -> void:
 	_cerrar_panel()
 	var escudo_ok := GameManager.recursos["escudo"] >= _meta_escudo
 	var texto := "¡Impacto resistido! El escudo frenó la radiación y las persianas protegieron a las plantas."
+	var audio := "m2_06_tormenta_superada"
 	if not escudo_ok or not _persianas_cerradas:
+		audio = "m2_06b_tormenta_alcanzo"
 		if not escudo_ok:
 			GameManager.cambiar("soporte_vital", -15.0)
 			GameManager.cambiar("hambre", -10.0)
@@ -290,7 +296,8 @@ func _terminar_tormenta() -> void:
 	_calefaccion = 40.0
 	_arti.decir(texto + " Ya devolví la energía a comunicaciones y calefacción. Cuando quieras, sal por la esclusa para la caminata EVA.",
 		"¿Así protegen a los astronautas de verdad?",
-		"Sí, con masa: paredes con agua, regolito o plástico frenan las partículas. En la nave Orion, los astronautas arman un refugio rodeándose de bolsas con agua y provisiones.")
+		"Sí, con masa: paredes con agua, regolito o plástico frenan las partículas. En la nave Orion, los astronautas arman un refugio rodeándose de bolsas con agua y provisiones.",
+		{}, audio)
 
 
 ## Consola central: pasar energía de comunicaciones y calefacción al escudo. Nada es gratis:
@@ -540,7 +547,8 @@ func _empezar_eva() -> void:
 	_arti.decir(
 		"¡Estás pisando la Luna, Comandante! Vigila la barra azul de Oxígeno de tu traje. Usa tu escáner para encontrar hielo de agua (suena más rápido cuando estás cerca), recoge un fragmento lunar y toma una foto científica con la tecla F antes de que se acabe tu aire.",
 		"¿Por qué hay hielo en la Luna?",
-		"En los cráteres del Polo Sur nunca da la luz del Sol, ¡puede hacer más de 200 grados bajo cero! Ahí el hielo se conserva congelado desde hace millones de años y podemos derretirlo para beber agua y hacer oxígeno.")
+		"En los cráteres del Polo Sur nunca da la luz del Sol, ¡puede hacer más de 200 grados bajo cero! Ahí el hielo se conserva congelado desde hace millones de años y podemos derretirlo para beber agua y hacer oxígeno.",
+		{}, "m2_07_salida_eva", "m2_08_que_es_hielo")
 
 
 ## Vuelve al domo. Con «rescate», A.R.T.I. usa el oxígeno de reserva: sin castigo, se guarda lo recogido.

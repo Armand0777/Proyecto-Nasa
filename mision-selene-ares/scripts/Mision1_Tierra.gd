@@ -48,7 +48,8 @@ func _ready() -> void:
 		"¡Hola, Comandante Junior! Soy A.R.T.I., tu copiloto. Antes de subir al cohete rumbo a la Luna, tenemos un reto de física: cada kilogramo extra necesita mucho [url=combustible]combustible[/url] extra. ¡Elige bien qué llevar en nuestra bodega y en la Bio-Box! Mira la mesa holográfica y pulsa E.",
 		"¿Qué es la Bio-Box?",
 		"Es nuestro mini-ecosistema vivo. En el espacio no podemos llevar vacas ni árboles grandes, así que llevamos microalgas, peces cebra, abejorros y lombrices que limpian el aire y producen comida por nosotros.",
-		{"combustible": "El cohete quema combustible para subir. Si llevamos más kilos, necesita más combustible... ¡y el combustible también pesa! Por eso cada kilo cuenta."})
+		{"combustible": "El cohete quema combustible para subir. Si llevamos más kilos, necesita más combustible... ¡y el combustible también pesa! Por eso cada kilo cuenta."},
+		"m1_01_bienvenida", "m1_03_que_es_biobox")
 
 
 func _process(delta: float) -> void:
