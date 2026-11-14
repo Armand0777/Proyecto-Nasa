@@ -25,6 +25,7 @@ const VISTAS: Array[PackedScene] = [
 @onready var _panel: PanelContainer = %PanelAjustes
 @onready var _boton_listo: Button = %BotonListo
 @onready var _pantalla_completa: Button = %PantallaCompleta
+@onready var _voz_arti: Button = %VozARTI
 @onready var _sensibilidad: HSlider = %Sensibilidad
 @onready var _valor_sensibilidad: Label = %ValorSensibilidad
 @onready var _fundido: ColorRect = %Fundido
@@ -54,6 +55,11 @@ func _ready() -> void:
 	_pantalla_completa.set_pressed_no_signal(Ajustes.pantalla_completa)
 	_mostrar_pantalla_completa()
 	_pantalla_completa.toggled.connect(_al_cambiar_pantalla_completa)
+	_voz_arti.set_pressed_no_signal(Ajustes.voz_arti)
+	_voz_arti.text = "Activada" if Ajustes.voz_arti else "Desactivada"
+	_voz_arti.toggled.connect(func(activar: bool) -> void:
+		Ajustes.voz_arti = activar
+		_voz_arti.text = "Activada" if activar else "Desactivada")
 
 	_aviso.hide()
 	_velo.hide()

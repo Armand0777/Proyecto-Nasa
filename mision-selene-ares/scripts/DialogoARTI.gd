@@ -5,6 +5,12 @@ extends PanelContainer
 
 const LETRAS_POR_SEGUNDO := 40.0
 const COLOR_GUIA := "#2ee6d6"
+## Nombres de voces femeninas comunes en español (Windows, Mac, Android y navegadores).
+const VOCES_FEMENINAS := ["helena", "sabina", "laura", "elvira", "dalia", "paulina", "monica", "mónica", "lucia", "lucía", "female", "mujer"]
+
+## Voz elegida para A.R.T.I. ("" = no hay voces en español en este equipo).
+static var _voz := ""
+static var _voz_buscada := false
 
 @onready var _texto: RichTextLabel = %Texto
 @onready var _boton: Button = %Pregunta
@@ -33,6 +39,27 @@ func decir(texto: String, pregunta := "", respuesta := "", glosario := {}) -> vo
 
 func callar() -> void:
 	hide()
+	DisplayServer.tts_stop()
+
+
+## Lee la frase en voz alta con la voz del sistema o del navegador (texto sin etiquetas).
+func _hablar(texto: String) -> void:
+	if not Ajustes.voz_arti:
+		return
+	if not _voz_buscada:
+		_voz_buscada = true
+		var voces := DisplayServer.tts_get_voices_for_language("es")
+		if not voces.is_empty():
+			_voz = voces[0]
+			for datos in DisplayServer.tts_get_voices():
+				var nombre := str(datos.get("name", "")).to_lower()
+				if voces.has(datos.get("id", "")) and VOCES_FEMENINAS.any(func(n: String) -> bool: return nombre.contains(n)):
+					_voz = datos["id"]
+					break
+	if _voz == "":
+		return
+	var volumen := int(Ajustes.volumen["Master"] * 100.0)
+	DisplayServer.tts_speak(texto, _voz, volumen, 1.1, 1.0, 0, true)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -53,6 +80,7 @@ func _escribir(texto: String) -> void:
 		_tween.kill()
 	_tween = create_tween()
 	_tween.tween_property(_texto, "visible_ratio", 1.0, _texto.get_parsed_text().length() / LETRAS_POR_SEGUNDO)
+	_hablar(_texto.get_parsed_text())
 
 
 ## Un clic mientras escribe muestra la frase completa.

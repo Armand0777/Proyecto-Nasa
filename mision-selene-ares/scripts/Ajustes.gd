@@ -9,6 +9,8 @@ var volumen: Dictionary[String, float] = {"Master": 0.8, "Musica": 0.7, "Efectos
 ## Multiplicador de la velocidad de la cámara con el mouse.
 var sensibilidad_mouse := 1.0
 var pantalla_completa := false
+## Si A.R.T.I. habla en voz alta (usa la voz del sistema o del navegador).
+var voz_arti := true
 
 
 func _ready() -> void:
@@ -44,6 +46,7 @@ func guardar() -> void:
 		archivo.set_value("audio", bus, volumen[bus])
 	archivo.set_value("control", "sensibilidad_mouse", sensibilidad_mouse)
 	archivo.set_value("pantalla", "completa", pantalla_completa)
+	archivo.set_value("audio", "voz_arti", voz_arti)
 	var error := archivo.save(RUTA)
 	if error != OK:
 		push_warning("No se pudieron guardar los ajustes (error %d)." % error)
@@ -57,3 +60,4 @@ func cargar() -> void:
 		volumen[bus] = clampf(float(archivo.get_value("audio", bus, volumen[bus])), 0.0, 1.0)
 	sensibilidad_mouse = clampf(float(archivo.get_value("control", "sensibilidad_mouse", 1.0)), 0.25, 3.0)
 	pantalla_completa = bool(archivo.get_value("pantalla", "completa", false))
+	voz_arti = bool(archivo.get_value("audio", "voz_arti", true))

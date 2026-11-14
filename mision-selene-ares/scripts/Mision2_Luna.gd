@@ -191,6 +191,19 @@ func _al_usar(estacion: String) -> void:
 				_abrir_panel()
 			else:
 				_arti.decir("Todo en orden. Desde aquí controlaremos el escudo si llega una tormenta solar.")
+		"acuaponia":
+			if GameManager.recursos["agua"] < 5.0:
+				_arti.decir("No queda agua para mover. Primero ve al Purificador de Agua.")
+				return
+			GameManager.cambiar("agua", -5.0)
+			GameManager.cambiar("soporte_vital", 10.0)
+			_arti.decir("¡Válvula abierta! El agua del estanque de los peces cebra lleva abono a las raíces: las plantas crecen mejor y hacen más oxígeno. Y las lombrices convierten las hojas secas en tierra nueva.",
+				"¿Qué es la acuaponía?",
+				"Es criar peces y plantas juntos: los desechos de los peces alimentan a las plantas, y las plantas limpian el agua para los peces. Nada se desperdicia, y en el espacio eso es muy importante.")
+		"microscopio":
+			_arti.decir("Mira: son tardígrados, los «osos de agua». Miden menos de un milímetro y tienen ocho patitas.",
+				"¿Por qué los estudian en el espacio?",
+				"Porque resisten muchísimo: frío extremo, falta de agua y mucha radiación. Los científicos de la NASA los estudian para entender cómo un ser vivo puede aguantar el espacio, y así proteger mejor a los astronautas.")
 		"esclusa":
 			if not _tormenta_pasada:
 				_arti.decir("Antes de salir revisemos el biodomo: los sensores de la NASA están vigilando el Sol.")
@@ -355,6 +368,8 @@ func _crear_estaciones() -> void:
 		["nutricion", "Comer una barra de proteína", "Mesa de nutrición", Vector3(3.5, 0, 4.0), Vector3(1.8, 1.0, 1.0), COLOR_ACERO, COLOR_NARANJA],
 		["persianas", "Cerrar las persianas blindadas", "Persianas", Vector3(-5.0, 0, -3.5), Vector3(0.3, 1.5, 0.3), COLOR_ROJO, COLOR_ROJO],
 		["esclusa", "Salir por la esclusa (caminata EVA)", "Esclusa", Vector3(-7.4, 0, 0), Vector3(0.4, 2.2, 1.6), COLOR_ACERO, COLOR_AZUL],
+		["acuaponia", "Abrir la válvula de acuaponía (−5 agua)", "Acuaponía", Vector3(-3.5, 0, 4.5), Vector3(1.6, 1.0, 1.0), COLOR_AZUL, COLOR_AZUL],
+		["microscopio", "Mirar por el microscopio", "Microscopio de tardígrados", Vector3(5.5, 0, -3.5), Vector3(0.6, 1.3, 0.6), COLOR_ACERO, COLOR_AZUL],
 	]
 	for datos in estaciones:
 		var piso := Vector3(datos[3].x, 0.6, datos[3].z)

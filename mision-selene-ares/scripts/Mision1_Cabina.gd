@@ -5,7 +5,7 @@ extends Node3D
 
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 ## Misión 2 del guion. Mientras no exista, al despegar se vuelve al menú.
-const SIGUIENTE_ESCENA := "res://scenes/Mision2_Luna.tscn"
+const SIGUIENTE_ESCENA := "res://scenes/Mision2_Alunizaje.tscn"
 const MENU := "res://scenes/MenuPrincipal.tscn"
 const SEGUNDOS_LIMITE := 30.0
 
