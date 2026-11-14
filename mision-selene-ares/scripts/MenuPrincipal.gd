@@ -2,7 +2,8 @@ extends Control
 ## Pantalla de inicio: Nueva partida y Ajustes. Detrás se turnan tres fondos animados:
 ## Marte, la base de lanzamiento en la Tierra y el biodomo en la Luna.
 
-## Primera escena del guion (Escena 1.1, Hangar). Mientras no exista, se muestra un aviso.
+## Primera escena: la Misión 1 en tierra, que empieza con el prólogo (despertar y tutorial) y
+## sigue sin cortes por el hangar, la pradera y el ascensor del cohete.
 const PRIMERA_ESCENA := "res://scenes/Mision1_Tierra.tscn"
 ## Fondos en el orden en que se turnan: después de Marte sigue el orden de la historia.
 const VISTAS: Array[PackedScene] = [
@@ -13,7 +14,8 @@ const VISTAS: Array[PackedScene] = [
 
 ## Modo Jueces: [texto del botón, escena, atajo dentro de la escena].
 const ATAJOS := [
-	["Misión 1 · Hangar y carga útil", "res://scenes/Mision1_Tierra.tscn", ""],
+	["Prólogo · Despertar criogénico y tutorial", "res://scenes/Mision1_Tierra.tscn", ""],
+	["Misión 1 · Hangar, carga útil y camino al cohete", "res://scenes/Mision1_Tierra.tscn", "hangar"],
 	["Misión 1 · Cabina y despegue", "res://scenes/Mision1_Cabina.tscn", ""],
 	["Misión 2 · Alunizaje", "res://scenes/Mision2_Alunizaje.tscn", ""],
 	["Misión 2 · Biodomo y tormenta solar (NASA DONKI)", "res://scenes/Mision2_Luna.tscn", "tormenta"],
@@ -49,6 +51,9 @@ const ATAJOS := [
 
 var _vista := 0
 var _panel_jueces: PanelContainer
+## Cita de Carl Sagan que sale al pulsar Nueva partida, antes del prólogo.
+var _cita: ColorRect
+var _tween_cita: Tween
 
 
 func _ready() -> void:
@@ -90,6 +95,54 @@ func _ready() -> void:
 	_fundido.modulate.a = 1.0
 	create_tween().tween_property(_fundido, "modulate:a", 0.0, 0.8)
 	_boton_nueva.grab_focus()
+
+
+## Cita de Nueva partida sobre negro: texto en cursiva y su autor. Un clic o una tecla la adelanta.
+func _mostrar_cita() -> void:
+	_cita = ColorRect.new()
+	_cita.color = Color.BLACK
+	_cita.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var centro := CenterContainer.new()
+	centro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_cita.add_child(centro)
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 28)
+	caja.modulate.a = 0.0
+	centro.add_child(caja)
+
+	# Cursiva: la misma letra del tema, inclinada.
+	var cursiva := FontVariation.new()
+	cursiva.base_font = get_theme_default_font()
+	cursiva.variation_transform = Transform2D(Vector2(1.0, 0.0), Vector2(0.22, 1.0), Vector2.ZERO)
+	var frase := Label.new()
+	frase.text = "«En algún lugar, algo increíble está esperando ser descubierto.»"
+	frase.add_theme_font_override("font", cursiva)
+	frase.add_theme_font_size_override("font_size", 52)
+	frase.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	frase.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	frase.custom_minimum_size = Vector2(1300, 0)
+	caja.add_child(frase)
+	var autor := Label.new()
+	autor.text = "— Carl Sagan, científico y colaborador de la NASA"
+	autor.add_theme_font_size_override("font_size", 30)
+	autor.add_theme_color_override("font_color", Color(0.18, 0.902, 0.839))
+	autor.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(autor)
+	add_child(_cita)  # Al final: queda encima de todo, también del fundido.
+
+	_tween_cita = create_tween()
+	_tween_cita.tween_property(caja, "modulate:a", 1.0, 1.5)
+	_tween_cita.tween_interval(4.5)
+	_tween_cita.tween_property(caja, "modulate:a", 0.0, 1.0)
+	await _tween_cita.finished
+	_cita.queue_free()
+	_cita = null
+
+
+func _input(event: InputEvent) -> void:
+	if _cita and event.is_pressed() and not event.is_echo() and (event is InputEventKey or event is InputEventMouseButton):
+		get_viewport().set_input_as_handled()
+		_tween_cita.set_speed_scale(6.0)  # Adelanta la cita sin cortarla de golpe.
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -165,7 +218,10 @@ func _nueva_partida() -> void:
 	_fundido.mouse_filter = Control.MOUSE_FILTER_STOP
 	var tween := create_tween()
 	tween.tween_property(_fundido, "modulate:a", 1.0, 0.5)
-	tween.tween_callback(get_tree().change_scene_to_file.bind(PRIMERA_ESCENA))
+	await tween.finished
+	# Antes de empezar la partida, la cita de Carl Sagan sobre negro.
+	await _mostrar_cita()
+	get_tree().change_scene_to_file(PRIMERA_ESCENA)
 
 
 ## Fundido al azul noche, cambio de lugar y vuelta. Los botones no se mueven.

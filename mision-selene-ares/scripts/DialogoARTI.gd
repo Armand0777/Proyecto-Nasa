@@ -11,6 +11,9 @@ const COLOR_GUIA := "#2ee6d6"
 ## Nombres de voces femeninas comunes en español (Windows, Mac, Android y navegadores).
 const VOCES_FEMENINAS := ["helena", "sabina", "laura", "elvira", "dalia", "paulina", "monica", "mónica", "lucia", "lucía", "female", "mujer"]
 
+## Se emite cuando el jugador toca el botón [?] o pulsa Q (sirve para el tutorial del prólogo).
+signal pregunta_hecha
+
 ## Voz elegida para A.R.T.I. ("" = no hay voces en español en este equipo).
 static var _voz := ""
 static var _voz_buscada := false
@@ -52,6 +55,18 @@ func callar() -> void:
 	DisplayServer.tts_stop()
 
 
+## true mientras la frase todavía se está escribiendo letra por letra.
+func escribiendo() -> bool:
+	return visible and _texto.visible_ratio < 1.0
+
+
+## Muestra de una vez la frase que se está escribiendo.
+func completar() -> void:
+	if _tween:
+		_tween.kill()
+	_texto.visible_ratio = 1.0
+
+
 ## Lee la frase en voz alta: con su grabación si existe, si no con la voz del sistema o del navegador.
 func _hablar(texto: String, audio: String) -> void:
 	_grabacion.stop()
@@ -88,6 +103,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _preguntar() -> void:
 	_boton.hide()
 	_escribir(_respuesta, _audio_respuesta)
+	pregunta_hecha.emit()
 
 
 func _escribir(texto: String, audio := "") -> void:
@@ -103,8 +119,7 @@ func _escribir(texto: String, audio := "") -> void:
 ## Un clic mientras escribe muestra la frase completa.
 func _al_tocar_texto(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and _texto.visible_ratio < 1.0:
-		_tween.kill()
-		_texto.visible_ratio = 1.0
+		completar()
 
 
 func _al_tocar_palabra(clave: Variant) -> void:

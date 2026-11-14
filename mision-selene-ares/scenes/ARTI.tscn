@@ -1,58 +1,142 @@
 [gd_scene format=3]
 
-; A.R.T.I. provisional (cuerpo blanco, cara de pantalla y ojos turquesa) hasta que el Rol 4
-; tenga el modelo animado. Mira hacia -Z: para que mire al jugador, usar look_at().
+; A.R.T.I.: asistente esférica flotante (blanca, cara de pantalla, ojos turquesa, anillo que gira,
+; antena y propulsor de luz). La animación está en scripts/ARTI.gd.
+; Mira hacia -Z: para que mire al jugador, usar look_at() en el nodo raíz.
+
+[ext_resource type="Script" path="res://scripts/ARTI.gd" id="1_arti"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_carcasa"]
 albedo_color = Color(0.933, 0.949, 0.969, 1)
-roughness = 0.5
+roughness = 0.35
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pantalla"]
 albedo_color = Color(0.0431373, 0.0627451, 0.14902, 1)
+roughness = 0.2
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ojos"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_luz"]
 shading_mode = 0
 albedo_color = Color(0.180392, 0.901961, 0.839216, 1)
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_cuerpo"]
-material = SubResource("StandardMaterial3D_carcasa")
-radius = 0.3
-height = 1.3
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_anillo"]
+albedo_color = Color(0.42, 0.478, 0.565, 1)
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sombra"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 0.28)
 
 [sub_resource type="SphereMesh" id="SphereMesh_cabeza"]
 material = SubResource("StandardMaterial3D_carcasa")
-radius = 0.3
-height = 0.6
+radius = 0.32
+height = 0.64
 radial_segments = 16
 rings = 8
 
 [sub_resource type="BoxMesh" id="BoxMesh_cara"]
 material = SubResource("StandardMaterial3D_pantalla")
-size = Vector3(0.38, 0.22, 0.06)
+size = Vector3(0.36, 0.2, 0.06)
 
 [sub_resource type="SphereMesh" id="SphereMesh_ojo"]
-material = SubResource("StandardMaterial3D_ojos")
+material = SubResource("StandardMaterial3D_luz")
 radius = 0.035
 height = 0.07
 
+[sub_resource type="TorusMesh" id="TorusMesh_anillo"]
+material = SubResource("StandardMaterial3D_anillo")
+inner_radius = 0.4
+outer_radius = 0.45
+rings = 24
+ring_segments = 6
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_antena"]
+material = SubResource("StandardMaterial3D_anillo")
+top_radius = 0.012
+bottom_radius = 0.012
+height = 0.16
+radial_segments = 6
+
+[sub_resource type="SphereMesh" id="SphereMesh_punta"]
+material = SubResource("StandardMaterial3D_luz")
+radius = 0.035
+height = 0.07
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_oreja"]
+material = SubResource("StandardMaterial3D_luz")
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.04
+radial_segments = 8
+
+[sub_resource type="SphereMesh" id="SphereMesh_propulsor"]
+material = SubResource("StandardMaterial3D_luz")
+radius = 0.09
+height = 0.09
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_sombra"]
+material = SubResource("StandardMaterial3D_sombra")
+top_radius = 0.3
+bottom_radius = 0.3
+height = 0.01
+radial_segments = 16
+
 [node name="ARTI" type="Node3D"]
+script = ExtResource("1_arti")
 
-[node name="Cuerpo" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
-mesh = SubResource("CapsuleMesh_cuerpo")
+[node name="Sombra" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_sombra")
 
-[node name="Cabeza" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+[node name="Flotador" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
+
+[node name="Cabeza" type="MeshInstance3D" parent="Flotador"]
 mesh = SubResource("SphereMesh_cabeza")
 
-[node name="Cara" type="MeshInstance3D" parent="Cabeza"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.25)
+[node name="Cara" type="MeshInstance3D" parent="Flotador/Cabeza"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -0.3)
 mesh = SubResource("BoxMesh_cara")
 
-[node name="OjoIzquierdo" type="MeshInstance3D" parent="Cabeza/Cara"]
+[node name="OjoIzquierdo" type="MeshInstance3D" parent="Flotador/Cabeza/Cara"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, 0.01, -0.035)
 mesh = SubResource("SphereMesh_ojo")
 
-[node name="OjoDerecho" type="MeshInstance3D" parent="Cabeza/Cara"]
+[node name="OjoDerecho" type="MeshInstance3D" parent="Flotador/Cabeza/Cara"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, 0.01, -0.035)
 mesh = SubResource("SphereMesh_ojo")
+
+[node name="OrejaIzquierda" type="MeshInstance3D" parent="Flotador/Cabeza"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -0.32, 0, 0)
+mesh = SubResource("CylinderMesh_oreja")
+
+[node name="OrejaDerecha" type="MeshInstance3D" parent="Flotador/Cabeza"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.32, 0, 0)
+mesh = SubResource("CylinderMesh_oreja")
+
+[node name="Antena" type="MeshInstance3D" parent="Flotador/Cabeza"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0)
+mesh = SubResource("CylinderMesh_antena")
+
+[node name="Punta" type="MeshInstance3D" parent="Flotador/Cabeza/Antena"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+mesh = SubResource("SphereMesh_punta")
+
+[node name="Propulsor" type="MeshInstance3D" parent="Flotador/Cabeza"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.32, 0)
+mesh = SubResource("SphereMesh_propulsor")
+
+[node name="LuzPropulsor" type="OmniLight3D" parent="Flotador/Cabeza"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.45, 0)
+light_color = Color(0.180392, 0.901961, 0.839216, 1)
+light_energy = 0.6
+omni_range = 1.4
+
+[node name="Anillo" type="MeshInstance3D" parent="Flotador"]
+transform = Transform3D(1, 0, 0, 0, 0.939693, -0.34202, 0, 0.34202, 0.939693, 0, 0, 0)
+mesh = SubResource("TorusMesh_anillo")

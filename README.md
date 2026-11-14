@@ -10,7 +10,8 @@ El jugador es el **Comandante Junior** y viaja de la **Tierra** a la **Luna** y 
 
 | Misión | Qué hace | La decisión que enseña |
 | :--- | :--- | :--- |
-| **1 · Tierra: hangar** | Elige la carga útil del cohete (límite de 100 kg) | No cabe todo: cada kilo necesita más combustible. Lo que lleve define con qué empieza en la Luna. |
+| **Prólogo · el despertar** | Despierta de una prueba de sueño criogénico y recorre el laboratorio con A.R.T.I. | Cuenta la misión y enseña los controles paso a paso (mirar, caminar, saltar, preguntar y usar). El sueño criogénico se presenta como ciencia ficción. |
+| **1 · Tierra: hangar** | Elige la carga útil del cohete (límite de 100 kg) y camina por la pradera hasta el ascensor del cohete | No cabe todo: cada kilo necesita más combustible. Lo que lleve define con qué empieza en la Luna. |
 | **1 · Tierra: cabina** | Activa presión, calefacción de la Bio-Box e ignición, en orden | Los procedimientos de lanzamiento tienen un orden y un tiempo. |
 | **2 · Luna: alunizaje** | Reparte el 100 % de la batería entre frenos, radar y amortiguadores | La batería es limitada: lo que le das a un sistema se lo quitas a otro. |
 | **2 · Luna: biodomo** | Come, cosecha, purifica agua, usa la acuaponía | Cosechar baja el oxígeno; purificar agua gasta electricidad. |
@@ -41,6 +42,7 @@ En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantal
 ### Modo Jueces
 
 En el menú principal, **Modo Jueces** lleva directo a cualquier parte del juego con un clic, sin jugar desde el inicio:
+- el prólogo (también se puede saltar con el botón **Saltar introducción**);
 - el hangar y la cabina;
 - el alunizaje;
 - la tormenta solar, que llega a los 4 segundos;

@@ -23,7 +23,29 @@
 * `m1_02` se unió con `m1_01`, porque en el juego es una sola burbuja.
 * Pistas nuevas:
   * `m2_04b`: alerta de simulacro, cuando no hay conexión con la NASA;
-  * `m2_06b`: cuando la tormenta alcanza al biodomo.
+  * `m2_06b`: cuando la tormenta alcanza al biodomo;
+  * `p0_01` a `p0_12`: el prólogo nuevo (despertar criogénico y tutorial de controles);
+  * `m1_01b`: saludo del hangar cuando se llega desde el prólogo (A.R.T.I. ya se presentó);
+  * `m1_06` a `m1_08`: el camino por la pradera hasta el cohete y el ascensor de la torre.
+
+---
+
+## PRÓLOGO: El Despertar (sueño criogénico y tutorial)
+
+| Archivo de Audio | Escena / Disparador | Guion y Acotación de Actuación |
+| :--- | :--- | :--- |
+| `p0_01_despertar.ogg` | Al abrirse la cápsula criogénica, A.R.T.I. se asoma | *(Muy suave y cariñosa, casi en susurro al principio, como despertando a alguien)* "Comandante... ¿me escuchas? Despacio, no te levantes de golpe. Soy A.R.T.I., tu copiloto. Acabas de despertar de una prueba de sueño criogénico: dormiste tres días en esta cápsula. Es normal sentir mareo y ver todo borroso." |
+| `p0_02_que_es_criogenia.ogg` | Botón `[? ¿Qué es el sueño criogénico?]` | *(Tierna y didáctica)* "Es enfriar el cuerpo con mucho cuidado para que descanse profundo y gaste muy poca comida y oxígeno, como un oso que hiberna en invierno. Ojo: esto todavía es ciencia ficción; los científicos lo están estudiando para los viajes largos." |
+| `p0_03_historia.ogg` | Al sentarse en la cápsula | *(Con orgullo y emoción creciente; "¡Y hoy empieza todo!" muy animada)* "Estamos en el Centro de Entrenamiento de la Misión Selene-Ares. Tú eres Comandante Junior, la persona más joven del programa. Nuestra misión: llevar un biodomo a la Luna y después hasta Marte. ¡Y hoy empieza todo!" |
+| `p0_04_mirar.ogg` | Tutorial, paso 1 (mirar) | *(Gentil y animada)* "Ya se te pasa el mareo. Vamos a revisar que todo funcione: mueve el mouse para mirar a tu alrededor." |
+| `p0_05_caminar.ogg` | Tutorial, paso 2 (caminar) | *(Contenta, como felicitando)* "¡Muy bien! Ahora camina con las teclas W, A, S y D o con las flechas. Sígueme hasta la puerta: la flecha turquesa te muestra el camino." |
+| `p0_06_saltar.ogg` | Tutorial, paso 3 (el carrito en el pasillo) | *(Con sorpresa divertida)* "¡Uy! Un carrito de carga bloquea el pasillo. Salta por encima con la barra espaciadora." |
+| `p0_07_gravedad.ogg` | Tutorial, paso 4 (después del salto) | *(Entusiasta y curiosa)* "¡Gran salto! En la Tierra la gravedad nos jala fuerte hacia el suelo; en la Luna vas a saltar mucho más alto. Si tienes una duda, pregúntame: pulsa Q o el botón de pregunta." |
+| `p0_08_por_que_luna.ogg` | Botón `[? ¿Por qué vamos primero a la Luna?]` | *(Clara y entusiasta)* "Porque está cerca: el viaje dura unos tres días. Ahí practicaremos cómo cultivar comida, conseguir agua y protegernos del Sol. Marte está muchísimo más lejos: el viaje dura unos seis meses. ¡La NASA también quiere aprender en la Luna antes de ir a Marte!" |
+| `p0_09_traje.ogg` | Tutorial, paso 5 (al entrar al laboratorio) | *(Amable, presentando algo especial)* "Este es el laboratorio. Primero, ponte tu traje espacial: está al fondo, junto a la pared. Míralo y pulsa E, o haz clic." |
+| `p0_10_traje_listo.ogg` | Al sellarse el casco del traje | *(Alegre y orgullosa)* "¡Casco sellado! Mira abajo: son tus barras de hambre, agua y oxígeno del traje. Si una se pone roja, ¡hay que cuidarla! Ahora toma tu tablet de comandante: está en la mesa." |
+| `p0_11_tablet_lista.ogg` | Tutorial, paso 6 (al tomar la tablet) | *(Contenta)* "¡Tablet lista! Con ella tomarás fotos científicas durante la misión; yo las guardaré en nuestro álbum." |
+| `p0_12_hangar.ogg` | Tutorial completo | *(Emocionada, invitando a la aventura)* "¡Todo listo, Comandante! Detrás de esa puerta está el hangar con nuestro cohete, el Artemis-IX. Acércate y pulsa E para entrar." |
 
 ---
 
@@ -31,8 +53,12 @@
 
 | Archivo de Audio | Escena / Disparador | Guion y Acotación de Actuación |
 | :--- | :--- | :--- |
-| `m1_01_bienvenida.ogg` | Al iniciar en el Hangar | *(Con voz alegre, cálida y acogedora; desde "Antes de subir", gentil y didáctica)* "¡Hola, Comandante Junior! Soy A.R.T.I., tu copiloto. Antes de subir al cohete rumbo a la Luna, tenemos un reto de física: cada kilogramo extra necesita mucho combustible extra. ¡Elige bien qué llevar en nuestra bodega y en la Bio-Box! Mira la mesa holográfica y pulsa E." |
+| `m1_01b_bienvenida_hangar.ogg` | Al llegar al Hangar desde el prólogo (A.R.T.I. ya se presentó) | *(Con voz alegre; desde "Antes de subir", gentil y didáctica)* "¡Este es el hangar, Comandante! Antes de subir al cohete rumbo a la Luna, tenemos un reto de física: cada kilogramo extra necesita mucho combustible extra. ¡Elige bien qué llevar en nuestra bodega y en la Bio-Box! Mira la mesa holográfica y pulsa E." |
+| `m1_01_bienvenida.ogg` | Al iniciar en el Hangar desde el Modo Jueces | *(Con voz alegre, cálida y acogedora; desde "Antes de subir", gentil y didáctica)* "¡Hola, Comandante Junior! Soy A.R.T.I., tu copiloto. Antes de subir al cohete rumbo a la Luna, tenemos un reto de física: cada kilogramo extra necesita mucho combustible extra. ¡Elige bien qué llevar en nuestra bodega y en la Bio-Box! Mira la mesa holográfica y pulsa E." |
 | `m1_03_que_es_biobox.ogg` | Botón `[? ¿Qué es la Bio-Box?]` | *(Con voz de ternura y entusiasmo)* "Es nuestro mini-ecosistema vivo. En el espacio no podemos llevar vacas ni árboles grandes, así que llevamos microalgas, peces cebra, abejorros y lombrices que limpian el aire y producen comida por nosotros." |
+| `m1_06_camino_cohete.ogg` | Al salir del hangar a la pradera | *(Con asombro, mirando hacia arriba)* "¡Mira qué grande es el Artemis-IX! Es más alto que un edificio de veinte pisos. Sigue el camino y la flecha hasta la rampa: el ascensor de la torre nos llevará hasta la cápsula, allá arriba." |
+| `m1_07_por_que_alto.ogg` | Botón `[? ¿Por qué el cohete es tan alto?]` | *(Didáctica y entusiasta)* "Casi todo el cohete es combustible: lo necesita para escapar de la gravedad de la Tierra. La cápsula donde viajamos es solo la puntita de arriba." |
+| `m1_08_ascensor.ogg` | Al subir en el ascensor de la torre | *(Emocionada, con vértigo divertido)* "¡Arriba vamos! Desde aquí se ve todo el centro espacial: el hangar, la pradera y el camino que hicimos. La cápsula está en la punta del cohete; ahí nos sentaremos para despegar." |
 | `m1_04_cabina_tablero.ogg` | Al sentarse en la cabina | *(Con voz animada y de compañerismo)* "¡Abróchate el cinturón! Mira el tablero frente a ti: verifica la presión de cabina, enciende la calefacción de nuestros peces y abejorros, y presiona el botón rojo de ignición. Haz clic en los interruptores o usa las teclas 1, 2 y 3." |
 | `m1_05_despegue.ogg` | Durante el despegue, mirando la ventana | *(Con voz llena de emoción y asombro)* "¡Mira la ventana! El cielo se pone oscuro porque cada vez hay menos aire a nuestro alrededor." |
 

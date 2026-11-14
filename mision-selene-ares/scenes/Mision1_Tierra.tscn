@@ -1,5 +1,9 @@
 [gd_scene format=3]
 
+; Escena completa de la Misión 1 en tierra: el laboratorio del prólogo (nodo Prologo, detrás del
+; hangar; su pasillo empalma con el del hangar en z = 12.6), el hangar, la pradera y el cohete.
+; Prologo va al final para que el HUD y el jugador ya estén listos cuando arranca.
+
 [ext_resource type="Script" path="res://scripts/Mision1_Tierra.gd" id="1_mision"]
 [ext_resource type="PackedScene" path="res://scenes/fondos/FondoTierra.tscn" id="2_exterior"]
 [ext_resource type="Script" path="res://scripts/Interactuable.gd" id="3_interactuable"]
@@ -7,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="5_player"]
 [ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PanelCarga.tscn" id="7_carga"]
+[ext_resource type="Script" path="res://scripts/Prologo_Despertar.gd" id="8_prologo"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_acero"]
 albedo_color = Color(0.42, 0.478, 0.565, 1)
@@ -35,6 +40,7 @@ script = ExtResource("1_mision")
 
 [node name="Exterior" parent="." instance=ExtResource("2_exterior")]
 cantidad_rocas = 0
+posicion_cohete = Vector2(22, -78)
 
 [node name="Mesa" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -3)
@@ -53,7 +59,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 [node name="Puerta" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.9, 2.1, 1)
 script = ExtResource("3_interactuable")
-texto = "Ir a la cabina"
+texto = "Puerta a la plataforma (primero elige la carga)"
 
 [node name="Forma" type="CollisionShape3D" parent="Puerta"]
 shape = SubResource("BoxShape3D_puerta")
@@ -75,3 +81,7 @@ layer = 2
 
 [node name="PanelCarga" parent="UI" instance=ExtResource("7_carga")]
 unique_name_in_owner = true
+
+[node name="Prologo" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 54.6)
+script = ExtResource("8_prologo")

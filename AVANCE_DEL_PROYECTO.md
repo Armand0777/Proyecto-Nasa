@@ -7,7 +7,7 @@ Este archivo es el **guion definitivo** (`guion_definitivo_mision_selene_ares.md
 - `[ ]` **Falta**.
 - 🟡 **A medias**: hay una parte o una versión más simple; la nota dice qué falta.
 
-**Estado general (14 nov 2026):** el juego se puede jugar **completo de principio a fin**: Menú → Hangar → Cabina → Alunizaje → Biodomo y tormenta solar → Caminata EVA → Marte → Cierre. Todo lo `P0` está hecho y casi todo lo `P1`. Lo que falta es sobre todo pulido visual, sonido, el modelo animado de A.R.T.I. y los extras `P2`.
+**Estado general (14 nov 2026):** el juego se puede jugar **completo de principio a fin**: Menú → Prólogo (despertar y tutorial) → Hangar → Cabina → Alunizaje → Biodomo y tormenta solar → Caminata EVA → Marte → Cierre. Todo lo `P0` está hecho y casi todo lo `P1`. Lo que falta es sobre todo pulido visual, sonido, el modelo animado de A.R.T.I. y los extras `P2`.
 
 ---
 
@@ -34,7 +34,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
   - `marte_viento.wav`: viento **real** de Marte grabado por Perseverance (recorte de 12 s). Suena en Marte y más fuerte en las tormentas.
   - `despegue.mp3`: despegue real de la NASA. Suena en la cabina.
   - `alarma.wav`: sirena generada con código. Suena en la tormenta solar.
-- [ ] **Faltan estos archivos**, que el código ya llama. Mientras no existan, Godot muestra un error en la consola cada vez que se piden (el juego no se cae, solo queda en silencio):
+- [x] **Estos archivos ya están** en `audio/efectos/`, copiados de los paquetes de Kenney (CC0) con el primer sonido de cada tipo (por ejemplo `click_001`). Para cambiar uno, se reemplaza el archivo por otra variante del mismo paquete con el mismo nombre:
 
 | Archivo que falta | Dónde suena | Fuente sugerida (Kenney, CC0) |
 | :--- | :--- | :--- |
@@ -51,7 +51,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | `paso.ogg` | Pasos del jugador | Impact Sounds: `footstep_concrete_*` |
 
 - Los paquetes se descargan gratis en kenney.nl (Interface Sounds, Sci-Fi Sounds, Impact Sounds). Se copia el archivo elegido a `audio/efectos/` con el nombre exacto de la tabla y Godot lo importa solo.
-- [ ] En `marte_viento.wav`, marcar el **bucle** al importar: en Godot, seleccionar el archivo → pestaña Importar → *Loop Mode: Forward* → Reimportar.
+- [x] `marte_viento.wav` ya está marcado en **bucle** (*Loop Mode: Forward* en su `.import`).
 - [x] Créditos de los sonidos ya agregados en el `README.md`.
 - [ ] Revisar en Godot que todo suene bien y con buen volumen (no se alcanzó a probar).
 
@@ -63,8 +63,8 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | :--- | :--- | :--- |
 | Burbuja de A.R.T.I., botón `[?]` y HUD | `P0` | ✅ Hecho |
 | Voz de A.R.T.I. | `P1` | ✅ Hecho (voz del sistema; usa las grabaciones si existen) |
-| Flecha guía | `P1` | ⬜ Falta |
-| Modelo animado de A.R.T.I. (camina) | `P1` | 🟡 Plan B: modelo provisional de pie |
+| Flecha guía | `P1` | 🟡 Hecha (`scripts/FlechaGuia.gd`), pero solo se usa en el prólogo |
+| Modelo animado de A.R.T.I. | `P1` | ✅ Rediseñada como esfera flotante animada (flota, parpadea, gira el anillo) |
 | Escena 1.1: Hangar y carga útil | `P0` | ✅ Hecho |
 | Escena 1.2: Cabina y despegue | `P0` | ✅ Hecho |
 | Escena 2.1: Órbita y alunizaje | `P1` | ✅ Hecho |
@@ -79,6 +79,11 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 ---
 
 ## Extras que no estaban en el guion (ya hechos)
+
+- [x] **Una sola escena, sin cortes:** `scenes/Mision1_Tierra.tscn` tiene todo el inicio. El laboratorio del prólogo es el edificio detrás del hangar (nodo `Prologo`, script `scripts/Prologo_Despertar.gd`) y su pasillo empalma con el del hangar, así se camina de la cápsula criogénica al hangar, la pradera y el ascensor sin fundidos. El único fundido es al pasar a la cabina. Modo Jueces: "Prólogo" empieza en la cápsula y "Hangar" (atajo `hangar`) empieza directo en el hangar.
+- [x] **Pradera viva:** pasto que se mece con el viento, flores de colores, árboles low-poly con tronco sólido, cúpula de nubes 3D, más sol y menos neblina (`crear_naturaleza()` en `scripts/fondos/FondoTierra.gd`, solo en el juego; el menú queda igual).
+- [x] **Prólogo: el despertar** (nodo `Prologo` en `scenes/Mision1_Tierra.tscn`). Cinemática: vista borrosa, párpados que se abren, la cápsula criogénica que se abre con vapor y A.R.T.I. que se asoma y cuenta la misión. Después, tutorial de controles (mirar, caminar, saltar, preguntar con Q y usar con E) caminando por la sala criogénica, un pasillo y el laboratorio. En el laboratorio se pone el **traje espacial** (baja el casco, se sella y recién ahí aparecen las barras), luego toma la **tablet** y sale por la puerta del hangar. Se puede saltar con "Saltar introducción". Sus frases están en `guion_doblaje_arti.md` (`p0_01` a `p0_12`, y `m1_01b` para el saludo del hangar).
+  - 🟡 El traje es un modelo provisional hecho con formas (`_crear_traje()` en `scripts/Prologo_Despertar.gd`); falta cambiarlo por el modelo definitivo.
 
 - [x] **Menú principal** con Nueva partida, Ajustes y Modo Jueces, y un fondo 3D animado que cambia cada 18 s entre Marte, la base de lanzamiento en la Tierra y el biodomo en la Luna.
 - [x] **Ajustes** que se guardan: volúmenes (general, música, efectos), sensibilidad del mouse, pantalla completa y voz de A.R.T.I.
@@ -102,9 +107,9 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - 🟡 Ventanas con rebote al aparecer: algunas lo tienen (menú, carga, cabina), no todas.
 
 ### A.R.T.I. (personaje)
-- 🟡 Modelo provisional `scenes/ARTI.tscn`: cuerpo blanco, cara de pantalla y ojos turquesa. Aparece en el hangar, la cabina y el alunizaje.
-- [ ] Modelo low-poly con esqueleto y animaciones (CC0): quieta, caminar, sentarse, saludar, señalar.
-- [ ] Camina entre puntos fijos y señala la consola o el objeto del que habla.
+- [x] Nuevo diseño: **asistente esférica que flota** (`scenes/ARTI.tscn` + `scripts/ARTI.gd`): esfera blanca con cara de pantalla, ojos turquesa que parpadean, anillo que gira, antena y propulsor de luz. Aparece en el prólogo, el hangar y la cabina.
+- [x] En el prólogo flota de un punto a otro guiando al jugador.
+- [ ] Señalar la consola o el objeto del que habla (por ejemplo con un rayo de luz de su antena).
 - [ ] Gira la cabeza hacia el jugador, parpadea y la boca de luz pulsa al hablar.
 - [ ] Ojos rojos en emergencias.
 - [x] En la caminata EVA habla solo por radio (no sale).
@@ -131,7 +136,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [x] Voz sintetizada; usa la grabación si existe.
 - [ ] Retrato pequeño de A.R.T.I. a la izquierda de la burbuja.
 - [ ] Dibujo simple en la tarjeta de explicación de cada palabra.
-- [ ] **Flecha guía** 3D turquesa que flota y apunta a la consola o sala.
+- 🟡 **Flecha guía** 3D turquesa que flota y apunta a la consola o sala: hecha en `scripts/FlechaGuia.gd` y usada en el prólogo; falta ponerla en las demás escenas.
 
 ### Barras de estado
 - [x] Barras personales abajo: Hambre (naranja), Agua (celeste), Oxígeno del traje (azul).
@@ -151,6 +156,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [x] A.R.T.I. presente (modelo provisional).
 - [x] Diálogo de bienvenida y pregunta `[? ¿Qué es la Bio-Box?]`.
 - [x] **Puzle 1, Inciso A como ventana de selección:** 6 contenedores, límite de 100 kg, báscula que se pone roja al pasarse, y cada tarjeta muestra peso y efecto. Lo elegido decide con qué se empieza en la Luna.
+- [x] **Recorrido continuo:** se entra al hangar por el pasillo que viene del laboratorio del prólogo. Con la carga lista, la puerta de la derecha sale a la pradera; un camino de concreto y la flecha guía llevan a la rampa de la plataforma, y el ascensor de la torre sube hasta la cápsula antes de pasar a la cabina (frases `m1_06` a `m1_08`). El cohete está más cerca del hangar que en el menú (`posicion_cohete` en `Mision1_Tierra.tscn`).
 - [ ] Cada contenedor elegido "salta" a la bodega con un rebote.
 - [ ] A.R.T.I. señala con la mano cada contenedor.
 - [ ] Puzle 1 arrastrando en 3D, Inciso B e Inciso C (`P2`).
@@ -273,6 +279,8 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | `scripts/Player.gd` | Jugador en primera persona. Objetos usables: `scripts/Interactuable.gd`. |
 | `scripts/NasaApi.gd` | Lectura de NASA DONKI con respaldo y modo práctica. |
 | `scripts/MenuPrincipal.gd` | Menú, Ajustes y Modo Jueces. |
+| `scripts/Prologo_Despertar.gd` | Prólogo (nodo dentro de `Mision1_Tierra.tscn`): laboratorio, cinemática del despertar y tutorial de controles. Efecto de los ojos: `shaders/Despertar.gdshader`. |
+| `scripts/FlechaGuia.gd` | Flecha guía turquesa reutilizable (`apuntar(posicion)` / `ocultar()`). |
 | `scripts/Mision1_Tierra.gd`, `PanelCarga.gd` | Hangar y Puzle 1. |
 | `scripts/Mision1_Cabina.gd` | Cabina y Puzle 2. |
 | `scripts/Mision2_Alunizaje.gd` | Alunizaje y Puzle 3. |

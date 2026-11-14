@@ -16,6 +16,7 @@ const COLOR_SEGURIDAD := Color(1.0, 0.478, 0.102)
 
 var _baliza: MeshInstance3D
 var _tiempo := 0.0
+var _nubes: Node3D
 
 
 func _ready() -> void:
@@ -28,6 +29,8 @@ func _process(delta: float) -> void:
 	super(delta)
 	_tiempo += delta
 	_baliza.visible = fmod(_tiempo, 1.2) < 0.6  # Luz roja de aviso que parpadea.
+	if _nubes:
+		_nubes.rotate_y(delta * 0.003)  # La cúpula de nubes avanza muy despacio.
 
 
 ## Pasto casi plano, colinas bajas a lo lejos y plano donde está la plataforma.
@@ -88,10 +91,11 @@ func _crear_torre(padre: Node3D, posicion: Vector3) -> void:
 	var alto := 78.0
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var columna := _caja(Vector3(0.6, alto, 0.6))
+	# Las columnas bajan 5 m más, hasta el piso de la plataforma (la torre empieza a 7 m de alto).
+	var columna := _caja(Vector3(0.6, alto + 5.0, 0.6))
 	for x in [-3.0, 3.0]:
 		for z in [-3.0, 3.0]:
-			st.append_from(columna, 0, Transform3D(Basis.IDENTITY, Vector3(x, alto * 0.5, z)))
+			st.append_from(columna, 0, Transform3D(Basis.IDENTITY, Vector3(x, (alto - 5.0) * 0.5, z)))
 	var viga_x := _caja(Vector3(6.6, 0.4, 0.4))
 	var viga_z := _caja(Vector3(0.4, 0.4, 6.6))
 	for y in range(6, int(alto), 6):
@@ -156,6 +160,195 @@ func _crear_vapor(padre: Node3D) -> void:
 	vapor.color_ramp = aparicion
 	vapor.position = Vector3(0, 6.0, 0)
 	padre.add_child(vapor)
+
+
+## Pasto con viento, flores, árboles y una cúpula de nubes 3D. Solo en el juego (el menú no lo
+## necesita). «zonas»: rectángulos (x, z) donde no va nada, como el hangar; «desde» y «hasta»:
+## los extremos del camino al cohete, que queda libre.
+func crear_naturaleza(zonas: Array[Rect2], desde: Vector2, hasta: Vector3) -> void:
+	var fin := Vector2(hasta.x, hasta.z)
+	var libre := func(x: float, z: float, margen: float) -> bool:
+		var p := Vector2(x, z)
+		for zona in zonas:
+			if zona.grow(margen).has_point(p):
+				return false
+		if Geometry2D.get_closest_point_to_segment(p, desde, fin).distance_to(p) < 1.7 + margen:
+			return false
+		return p.distance_to(posicion_cohete) > 34.0 + margen
+	_crear_pasto(libre, (desde + fin) * 0.5)
+	_crear_arboles(libre)
+	_crear_nubes()
+
+
+## Matas de pasto y flores alrededor del camino, en un círculo que va del hangar al cohete.
+func _crear_pasto(libre: Callable, centro: Vector2) -> void:
+	var material := ShaderMaterial.new()
+	material.shader = preload("res://shaders/Pasto.gdshader")
+	var azar := RandomNumberGenerator.new()
+	azar.seed = 21
+	var colores_flor := [Color(1.0, 0.85, 0.2), Color(1, 1, 1), Color(1.0, 0.55, 0.75), Color(0.7, 0.55, 1.0)]
+	# [malla, cuántas, radio del círculo, ¿son flores?]
+	for datos in [[_malla_mata(), 9000, 80.0, false], [_malla_flor(), 900, 70.0, true]]:
+		var es_flor: bool = datos[3]
+		var cantidad: int = datos[1]
+		var radio: float = datos[2]
+		var transformaciones: Array[Transform3D] = []
+		var colores: Array[Color] = []
+		while transformaciones.size() < cantidad:
+			var angulo := azar.randf() * TAU
+			var distancia := sqrt(azar.randf()) * radio
+			var x := centro.x + cos(angulo) * distancia
+			var z := centro.y + sin(angulo) * distancia
+			if not libre.call(x, z, 0.0):
+				continue
+			var escala := azar.randf_range(0.7, 1.5)
+			var base := Basis(Vector3.UP, azar.randf() * TAU).scaled(Vector3.ONE * escala)
+			transformaciones.append(Transform3D(base, Vector3(x, _altura_en_malla(x, z), z)))
+			colores.append(colores_flor[azar.randi() % colores_flor.size()] if es_flor else Color.WHITE * azar.randf_range(0.82, 1.12))
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.use_colors = true
+		multi.mesh = datos[0]
+		multi.instance_count = transformaciones.size()
+		for i in transformaciones.size():
+			multi.set_instance_transform(i, transformaciones[i])
+			multi.set_instance_color(i, colores[i])
+		var nodo := MultiMeshInstance3D.new()
+		nodo.multimesh = multi
+		nodo.material_override = material
+		nodo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(nodo)
+
+
+## Una mata: tres hojas finas, oscuras abajo y claras en la punta.
+func _malla_mata() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_normal(Vector3.UP)
+	for i in 3:
+		var angulo := TAU * i / 3.0
+		var lado := Vector3(cos(angulo), 0, sin(angulo)) * 0.07
+		var punta := Vector3(cos(angulo + 1.2) * 0.06, 0.4, sin(angulo + 1.2) * 0.06)
+		st.set_color(COLOR_PASTO.darkened(0.3))
+		st.add_vertex(-lado)
+		st.add_vertex(lado)
+		st.set_color(COLOR_PASTO.lightened(0.3))
+		st.add_vertex(punta)
+	return st.commit()
+
+
+## Una flor: un tallo y una corola de dos rombos cruzados (el color lo pone cada flor).
+func _malla_flor() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_normal(Vector3.UP)
+	st.set_color(COLOR_PASTO)
+	for punto in [Vector3(-0.012, 0, 0), Vector3(0.012, 0, 0), Vector3(0, 0.3, 0)]:
+		st.add_vertex(punto)
+	st.set_color(Color.WHITE)
+	for eje in [Vector3(1, 0, 0), Vector3(0, 0, 1)]:
+		var a: Vector3 = eje * 0.07
+		var arriba := Vector3(0, 0.37, 0)
+		var abajo := Vector3(0, 0.27, 0)
+		var centro := Vector3(0, 0.32, 0)
+		for tri in [[centro - a, arriba, centro + a], [centro - a, centro + a, abajo]]:
+			for punto in tri:
+				st.add_vertex(punto)
+	return st.commit()
+
+
+## Árboles low-poly (pinos y árboles frondosos) repartidos por la pradera, con su tronco sólido.
+func _crear_arboles(libre: Callable) -> void:
+	var azar := RandomNumberGenerator.new()
+	azar.seed = 5
+	var tipos := [_malla_pino(), _malla_frondoso()]
+	var listas: Array = [[], []]
+	var cuerpos := StaticBody3D.new()
+	add_child(cuerpos)
+	var intentos := 0
+	while listas[0].size() + listas[1].size() < 110 and intentos < 3000:
+		intentos += 1
+		var angulo := azar.randf() * TAU
+		var distancia := azar.randf_range(18.0, 190.0)
+		var x := cos(angulo) * distancia
+		var z := sin(angulo) * distancia - 30.0
+		if not libre.call(x, z, 3.0):
+			continue
+		var y := _altura_en_malla(x, z)
+		var escala := azar.randf_range(0.8, 1.5)
+		var base := Basis(Vector3.UP, azar.randf() * TAU).scaled(Vector3.ONE * escala)
+		listas[azar.randi() % 2].append(Transform3D(base, Vector3(x, y, z)))
+		var tronco := CollisionShape3D.new()
+		tronco.shape = CylinderShape3D.new()
+		tronco.shape.radius = 0.35 * escala
+		tronco.shape.height = 3.0
+		tronco.position = Vector3(x, y + 1.5, z)
+		cuerpos.add_child(tronco)
+	for i in 2:
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = tipos[i]
+		multi.instance_count = listas[i].size()
+		for j in listas[i].size():
+			multi.set_instance_transform(j, listas[i][j])
+		var nodo := MultiMeshInstance3D.new()
+		nodo.multimesh = multi
+		nodo.material_override = _material
+		add_child(nodo)
+
+
+func _malla_pino() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var verde := Color(0.17, 0.4, 0.22)
+	st.append_from(malla_plana(_cilindro(0.18, 0.26, 1.6, 6), Color(0.42, 0.29, 0.18)), 0, Transform3D(Basis.IDENTITY, Vector3(0, 0.8, 0)))
+	for datos in [[1.7, 2.4, 2.4], [1.3, 2.0, 3.6], [0.9, 1.6, 4.6]]:
+		st.append_from(malla_plana(_cilindro(0.0, datos[0], datos[1], 7), verde.lightened(datos[2] * 0.02)), 0, Transform3D(Basis.IDENTITY, Vector3(0, datos[2], 0)))
+	return st.commit()
+
+
+func _malla_frondoso() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.append_from(malla_plana(_cilindro(0.2, 0.3, 2.2, 6), Color(0.45, 0.31, 0.19)), 0, Transform3D(Basis.IDENTITY, Vector3(0, 1.1, 0)))
+	var copa := _esfera(8, 5)
+	copa.radius = 1.5
+	copa.height = 2.6
+	for datos in [[Vector3(0, 3.2, 0), 1.0, 0.0], [Vector3(0.9, 2.7, 0.4), 0.7, 0.08], [Vector3(-0.7, 2.8, -0.5), 0.75, 0.04]]:
+		var forma := Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * datos[1]), datos[0])
+		st.append_from(malla_plana(copa, Color(0.3, 0.55, 0.24).lightened(datos[2])), 0, forma)
+	return st.commit()
+
+
+## Cúpula de nubes: nubes low-poly blancas, hechas de esferas, en un anillo alto alrededor.
+func _crear_nubes() -> void:
+	_nubes = Node3D.new()
+	add_child(_nubes)
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.vertex_color_is_srgb = true
+	material.roughness = 1.0
+	material.emission_enabled = true
+	material.emission = Color(0.42, 0.46, 0.54)  # El lado de la sombra no queda gris oscuro.
+	var bola := _esfera(9, 5)
+	var azar := RandomNumberGenerator.new()
+	azar.seed = 13
+	for n in 26:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for b in azar.randi_range(5, 8):
+			var radio := azar.randf_range(6.0, 12.0)
+			var forma := Transform3D(Basis.IDENTITY.scaled(Vector3(radio, radio * 0.6, radio)), Vector3(azar.randf_range(-16, 16), azar.randf_range(-2, 4), azar.randf_range(-7, 7)))
+			st.append_from(malla_plana(bola, Color(1, 1, 1)), 0, forma)
+		var nube := MeshInstance3D.new()
+		nube.mesh = st.commit()
+		nube.material_override = material
+		nube.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var angulo := TAU * n / 26.0 + azar.randf_range(-0.1, 0.1)
+		var distancia := azar.randf_range(170.0, 360.0)
+		nube.position = Vector3(cos(angulo) * distancia, azar.randf_range(70.0, 135.0), sin(angulo) * distancia)
+		nube.rotation.y = azar.randf() * TAU
+		_nubes.add_child(nube)
 
 
 ## Edificio grande de ensamblaje a lo lejos (como el hangar de la Misión 1).
