@@ -81,7 +81,10 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 ## Extras que no estaban en el guion (ya hechos)
 
 - [x] **Una sola escena, sin cortes:** `scenes/Mision1_Tierra.tscn` tiene todo el inicio. El laboratorio del prólogo es el edificio detrás del hangar (nodo `Prologo`, script `scripts/Prologo_Despertar.gd`) y su pasillo empalma con el del hangar, así se camina de la cápsula criogénica al hangar, la pradera y el ascensor sin fundidos. El único fundido es al pasar a la cabina. Modo Jueces: "Prólogo" empieza en la cápsula y "Hangar" (atajo `hangar`) empieza directo en el hangar.
-- [x] **Pradera viva:** pasto que se mece con el viento, flores de colores, árboles low-poly con tronco sólido, cúpula de nubes 3D, más sol y menos neblina (`crear_naturaleza()` en `scripts/fondos/FondoTierra.gd`, solo en el juego; el menú queda igual).
+- [x] **Estilo Ghibli en la Tierra:** cielo celeste vivo, sol cálido, sombras azuladas, colores saturados con brillo suave y bruma celeste (`_mejorar_ambiente()` en `Mision1_Tierra.gd`). Sombreado tipo dibujo (toon) en todo el material low-poly (`material_plano()`), y textura propia del suelo pintada a mano (`shaders/SueloPintado.gdshader`).
+- [x] **Pradera viva:** pasto de hojas curvas que se aparta al pasar el jugador y A.R.T.I., viento en olas que cruzan la pradera, flores en manchones, arbustos, piedras con musgo, árboles de 3 formas (pino, roble, delgado) cuyas copas se mecen y con tronco sólido, y cúpula de nubes 3D (`crear_naturaleza()` en `scripts/fondos/FondoTierra.gd`, shaders `Pasto` y `Arbol`; solo en el juego, el menú queda igual). Aire limpio, sin brillo (glow) ni bruma fuerte.
+- [x] **Rendimiento:** la vegetación va en bloques que solo se dibujan cerca de la cámara (pasto 48 m, flores 40 m, piedras 70 m, arbustos 120 m, árboles 260 m). El exterior está apagado mientras se está en el laboratorio, y el laboratorio se apaga cuando se entra al hangar (se cierra la puerta del pasillo detrás).
+- [x] **Cabina nueva, despegue al espacio, separación de etapas y pilotaje** en la misma escena (ver Escena 1.2).
 - [x] **Prólogo: el despertar** (nodo `Prologo` en `scenes/Mision1_Tierra.tscn`). Cinemática: vista borrosa, párpados que se abren, la cápsula criogénica que se abre con vapor y A.R.T.I. que se asoma y cuenta la misión. Después, tutorial de controles (mirar, caminar, saltar, preguntar con Q y usar con E) caminando por la sala criogénica, un pasillo y el laboratorio. En el laboratorio se pone el **traje espacial** (baja el casco, se sella y recién ahí aparecen las barras), luego toma la **tablet** y sale por la puerta del hangar. Se puede saltar con "Saltar introducción". Sus frases están en `guion_doblaje_arti.md` (`p0_01` a `p0_12`, y `m1_01b` para el saludo del hangar).
   - 🟡 El traje es un modelo provisional hecho con formas (`_crear_traje()` en `scripts/Prologo_Despertar.gd`); falta cambiarlo por el modelo definitivo.
 
@@ -162,12 +165,19 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [ ] Puzle 1 arrastrando en 3D, Inciso B e Inciso C (`P2`).
 - [ ] Sonido: eco de hangar, zumbido de hologramas, avisos por altavoz.
 
-### Escena 1.2: Cabina y despegue (`scenes/Mision1_Cabina.tscn`)
-- [x] Cabina en penumbra con ventanilla de cielo azul.
+### Escena 1.2: Cápsula y despegue (nodo `Cabina` en `scenes/Mision1_Tierra.tscn`, script `scripts/Cabina.gd`)
+- [x] **Sin cortes desde el hangar:** el ascensor sube hasta una pasarela con barandas (no hay cómo caerse) que lleva a la escotilla; al entrar, la cámara pasa por la escotilla hasta el asiento.
+- [x] **Cabina tipo Orion:** 8 paredes que se angostan hacia arriba, 4 ventanas con el exterior real (torre, pradera, cielo), tablero con 3 pantallas (capa de la atmósfera, altitud y velocidad, motores y combustible), asientos y luz en el techo. Se mira moviendo el mouse, sin capturarlo.
 - [x] **Puzle 2, Inciso A:** 3 interruptores (presión azul, calefacción naranja, ignición roja) en orden, con clic o teclas 1-2-3, y 30 s; luz verde al activarlos. Sin castigo si se acaba el tiempo.
-- [x] Cuenta regresiva `3, 2, 1... ¡Despegue!`, luz ámbar que gira y temblor de cámara.
-- [x] La ventanilla pasa de azul a azul oscuro y a negro con estrellas.
-- 🟡 A.R.T.I. sentada a la derecha con cinturón: hay modelo provisional, no sentado ni señalando.
+- [x] Cuenta regresiva `3, 2, 1... ¡Despegue!`.
+- [x] **Despegue:** llamas, luz y humo en la plataforma; toma desde el suelo viendo subir el cohete con su estela; adentro tiembla (más fuerte en Max-Q) y la torre queda atrás; se atraviesa una capa de nubes (todo blanco un momento).
+- [x] **Atmósfera y espacio:** el cielo pasa de celeste a negro, aparecen las estrellas y la Tierra grande con su curva y el borde azul de la atmósfera; toma desde afuera con la llama que se abre porque casi no hay aire; el ruido se apaga; banner y explicación de la línea de Kármán (100 km). Las pantallas muestran altura, velocidad aproximada y capa (troposfera, estratosfera, mesosfera, termosfera). El tiempo va mucho más rápido que en la vida real.
+- [x] Rendimiento: arriba de las nubes se apagan la pradera, el hangar y la base; queda solo la vista del espacio.
+- [x] A.R.T.I. flota a la derecha dentro de la cápsula y sube con el cohete.
+- [x] **Separación de etapas** (el jugador la confirma con Espacio o el botón amarillo; si tarda, A.R.T.I. le recuerda y a los 30 s lo hace ella): propulsores a unos 45 km (y la torre de escape se suelta sola), etapa central después del apagado de motores principales (MECO, a unos 160 km), empujón de la etapa superior hacia la Luna (inyección translunar, la Tierra se aleja y la velocidad llega a unos 39.000 km/h) y separación de la etapa superior. Cada pieza se ve caer o alejarse en una toma desde afuera y después se borra (rendimiento). Piezas del cohete: `Nucleo`, `PropulsorIzquierdo`, `PropulsorDerecho`, `EtapaSuperior`, `Capsula`, `TorreEscape`.
+- [x] **Cápsula sola:** abre 4 paneles solares en X (se ven también por las ventanas).
+- [x] **Pilotaje:** el jugador gira la cápsula con WASD o flechas hasta tener la Luna dentro del círculo y enciende el motor con Espacio para corregir el rumbo; si le cuesta, a los 40 s A.R.T.I. le ayuda a girar. Después se pasa a la Misión 2, que empieza con "¡Despierta, Comandante!".
+- [x] Modo Jueces: "Separación de etapas y rumbo a la Luna" (atajo `etapas`) empieza ya en el espacio, justo antes de soltar los propulsores.
 - 🟡 Sonido: el despegue real de la NASA está conectado (ver sección de sonidos). Faltan los pitidos del tablero y la voz de Control de Misión.
 - [ ] Puzle 2, Inciso B: alinear una onda de radio (`P2`).
 
@@ -282,7 +292,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | `scripts/Prologo_Despertar.gd` | Prólogo (nodo dentro de `Mision1_Tierra.tscn`): laboratorio, cinemática del despertar y tutorial de controles. Efecto de los ojos: `shaders/Despertar.gdshader`. |
 | `scripts/FlechaGuia.gd` | Flecha guía turquesa reutilizable (`apuntar(posicion)` / `ocultar()`). |
 | `scripts/Mision1_Tierra.gd`, `PanelCarga.gd` | Hangar y Puzle 1. |
-| `scripts/Mision1_Cabina.gd` | Cabina y Puzle 2. |
+| `scripts/Cabina.gd` | Cápsula (nodo dentro de `Mision1_Tierra.tscn`): pasarela, Puzle 2, despegue y salida al espacio. Shader de la Tierra desde arriba: `shaders/TierraEspacio.gdshader`. |
 | `scripts/Mision2_Alunizaje.gd` | Alunizaje y Puzle 3. |
 | `scripts/Mision2_Luna.gd` | Biodomo, tormenta y EVA (Puzles 4, 5 y 6). |
 | `scripts/Mision3_Marte.gd` | Marte y Puzle 8. |

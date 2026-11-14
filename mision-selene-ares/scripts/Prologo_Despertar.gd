@@ -137,7 +137,7 @@ var _tween_arti: Tween
 func _ready() -> void:
 	_material = Fondo.material_plano()
 	_construir_laboratorio()
-	if GameManager.atajo == "hangar":
+	if GameManager.atajo in ["hangar", "cabina", "etapas"]:
 		_desactivar()
 		return
 	GameManager.planeta_actual = GameManager.Planeta.TIERRA

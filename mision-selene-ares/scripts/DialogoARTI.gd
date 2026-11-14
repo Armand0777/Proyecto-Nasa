@@ -35,6 +35,8 @@ func _ready() -> void:
 	_texto.meta_clicked.connect(_al_tocar_palabra)
 	_texto.gui_input.connect(_al_tocar_texto)
 	_boton.pressed.connect(_preguntar)
+	# Sin foco de teclado: así Espacio o Enter no vuelven a apretar este botón (se pregunta con clic o Q).
+	_boton.focus_mode = Control.FOCUS_NONE
 
 
 ## Muestra una frase. Con «pregunta» aparece el botón [?]; al tocarlo (o con Q) A.R.T.I. dice «respuesta».

@@ -16,7 +16,8 @@ const VISTAS: Array[PackedScene] = [
 const ATAJOS := [
 	["Prólogo · Despertar criogénico y tutorial", "res://scenes/Mision1_Tierra.tscn", ""],
 	["Misión 1 · Hangar, carga útil y camino al cohete", "res://scenes/Mision1_Tierra.tscn", "hangar"],
-	["Misión 1 · Cabina y despegue", "res://scenes/Mision1_Cabina.tscn", ""],
+	["Misión 1 · Cápsula y despegue al espacio", "res://scenes/Mision1_Tierra.tscn", "cabina"],
+	["Misión 1 · Separación de etapas y rumbo a la Luna", "res://scenes/Mision1_Tierra.tscn", "etapas"],
 	["Misión 2 · Alunizaje", "res://scenes/Mision2_Alunizaje.tscn", ""],
 	["Misión 2 · Biodomo y tormenta solar (NASA DONKI)", "res://scenes/Mision2_Luna.tscn", "tormenta"],
 	["Misión 2 · Caminata EVA en la Luna", "res://scenes/Mision2_Luna.tscn", "eva"],

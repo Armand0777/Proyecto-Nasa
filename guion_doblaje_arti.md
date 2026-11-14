@@ -26,7 +26,9 @@
   * `m2_06b`: cuando la tormenta alcanza al biodomo;
   * `p0_01` a `p0_12`: el prólogo nuevo (despertar criogénico y tutorial de controles);
   * `m1_01b`: saludo del hangar cuando se llega desde el prólogo (A.R.T.I. ya se presentó);
-  * `m1_06` a `m1_08`: el camino por la pradera hasta el cohete y el ascensor de la torre.
+  * `m1_06` a `m1_08`: el camino por la pradera hasta el cohete y el ascensor de la torre;
+  * `m1_09` a `m1_15`: la pasarela, el despegue, Max-Q, la llama que se abre, el silencio y la línea de Kármán;
+  * `m1_16` a `m1_27`: la separación de las etapas (propulsores, torre de escape, etapa central y etapa superior), el empujón hacia la Luna, los paneles solares y el pilotaje de la cápsula.
 
 ---
 
@@ -60,7 +62,26 @@
 | `m1_07_por_que_alto.ogg` | Botón `[? ¿Por qué el cohete es tan alto?]` | *(Didáctica y entusiasta)* "Casi todo el cohete es combustible: lo necesita para escapar de la gravedad de la Tierra. La cápsula donde viajamos es solo la puntita de arriba." |
 | `m1_08_ascensor.ogg` | Al subir en el ascensor de la torre | *(Emocionada, con vértigo divertido)* "¡Arriba vamos! Desde aquí se ve todo el centro espacial: el hangar, la pradera y el camino que hicimos. La cápsula está en la punta del cohete; ahí nos sentaremos para despegar." |
 | `m1_04_cabina_tablero.ogg` | Al sentarse en la cabina | *(Con voz animada y de compañerismo)* "¡Abróchate el cinturón! Mira el tablero frente a ti: verifica la presión de cabina, enciende la calefacción de nuestros peces y abejorros, y presiona el botón rojo de ignición. Haz clic en los interruptores o usa las teclas 1, 2 y 3." |
-| `m1_05_despegue.ogg` | Durante el despegue, mirando la ventana | *(Con voz llena de emoción y asombro)* "¡Mira la ventana! El cielo se pone oscuro porque cada vez hay menos aire a nuestro alrededor." |
+| `m1_09_pasarela.ogg` | Al llegar arriba con el ascensor | *(Animada y protectora)* "¡Llegamos arriba! Camina por la pasarela hasta la escotilla de la cápsula y pulsa E para entrar. Las barandas te cuidan: no hay peligro." |
+| `m1_10_despegue.ogg` | Ya en el aire, adentro de la cápsula | *(Gritando de alegría por encima del ruido)* "¡Despegamos! Mira por la ventana derecha: la torre se queda atrás y el suelo se hace pequeñito." |
+| `m1_11_max_q.ogg` | En Max-Q (el momento de más temblor) | *(Firme y emocionada, con el temblor)* "¡Max-Q! Es el momento en que el aire empuja más fuerte contra el cohete. Por eso tiembla tanto. ¡Agárrate!" |
+| `m1_12_llama.ogg` | Toma desde afuera, arriba de las nubes | *(Asombrada)* "¿Ves cómo se abre la llama de los motores? Allá arriba casi no hay aire que la apriete." |
+| `m1_05_despegue.ogg` | De vuelta adentro, mirando la ventana | *(Con voz llena de emoción y asombro)* "¡Mira la ventana! El cielo se pone oscuro porque cada vez hay menos aire a nuestro alrededor." |
+| `m1_13_silencio.ogg` | A unos 60 km de altura | *(Bajando la voz, maravillada)* "¿Notas que el ruido se apaga? El sonido necesita aire para viajar, y aquí arriba casi no queda." |
+| `m1_14_karman.ogg` | Al cruzar los 100 km | *(Triunfal y emocionada)* "¡Cruzamos la línea de Kármán, a cien kilómetros de altura! Oficialmente estamos en el espacio, Comandante. Mira abajo: se ve la curva de la Tierra y el borde azul de su atmósfera." |
+| `m1_15_que_es_karman.ogg` | Botón `[? ¿Qué es la línea de Kármán?]` | *(Didáctica y curiosa)* "Es una línea imaginaria a cien kilómetros de altura que muchos científicos usan para marcar dónde termina la atmósfera y empieza el espacio. No se ve, ¡pero ya la pasamos!" |
+| `m1_16_separar_propulsores.ogg` | Los propulsores se quedan sin combustible (a unos 45 km) | *(Clara y con energía, dando una orden importante)* "¡Los propulsores laterales ya gastaron su combustible y ahora son peso de más! Suéltalos: pulsa Espacio o el botón amarillo de separación." |
+| `m1_17_propulsores_fuera.ogg` | Al soltar los propulsores | *(Contenta y aliviada)* "¡Separación confirmada! Los propulsores caen al océano: ya hicieron su trabajo." |
+| `m1_18_torre_escape.ogg` | La torre de escape se suelta sola | *(Explicando con calma)* "La torre de escape también se suelta sola: solo servía para salvarnos si algo fallaba en el despegue." |
+| `m1_19_meco.ogg` | Apagado de los motores principales (MECO) | *(Atenta y precisa)* "¡Apagado de motores principales! La etapa central ya nos subió hasta casi la órbita. Suéltala: pulsa Espacio o el botón de separación." |
+| `m1_20_etapa_central_fuera.ogg` | Al soltar la etapa central | *(Despidiéndose con cariño)* "¡Adiós, etapa central! Ahora solo quedamos la etapa superior y nuestra cápsula." |
+| `m1_21_inyeccion.ogg` | La etapa superior enciende su motor | *(Emocionada, anunciando algo grande)* "Ahora la etapa superior enciende su motor para darnos el gran empujón hacia la Luna. Los científicos lo llaman inyección translunar." |
+| `m1_22_por_que_empujon.ogg` | Botón `[? ¿Por qué hace falta un empujón tan grande?]` | *(Didáctica y asombrada)* "Para alejarnos tanto de la Tierra hay que ir rapidísimo: ¡casi cuarenta mil kilómetros por hora! Con esa velocidad, la nave puede llegar hasta la Luna." |
+| `m1_23_separar_etapa_superior.ogg` | Después del empujón hacia la Luna | *(Orgullosa, entregando el mando)* "¡Ya vamos camino a la Luna! Suelta la etapa superior: pulsa Espacio o el botón de separación. Desde ahora, la cápsula es toda tuya." |
+| `m1_24_paneles_solares.ogg` | Al abrirse los paneles solares | *(Maravillada)* "¡Se abren los paneles solares! Desde ahora nuestra energía viene del Sol." |
+| `m1_25_pilotar.ogg` | Empieza el pilotaje | *(Animando, con confianza)* "Ahora pilotas tú, Comandante. Gira la cápsula con W, A, S y D, o con las flechas, hasta que la Luna quede dentro del círculo." |
+| `m1_26_encender_motor.ogg` | La Luna queda en el círculo | *(Feliz y clara)* "¡Bien apuntado! Pulsa Espacio para encender el motor y corregir el rumbo." |
+| `m1_27_rumbo_corregido.ogg` | Después del encendido, antes de la Misión 2 | *(Tierna y tranquila, como antes de dormir)* "¡Rumbo corregido! El viaje a la Luna dura unos tres días. Descansa un poco: yo cuido la nave." |
 
 ---
 

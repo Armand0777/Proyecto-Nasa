@@ -13,7 +13,7 @@ uniform vec3 tinte : source_color = vec3(0.56, 0.89, 1.0);
 void fragment() {
 	vec2 uv = SCREEN_UV;
 	// Desenfoque: promedio de 7 × 7 puntos, más separados cuanto más borroso.
-	vec2 paso = SCREEN_PIXEL_SIZE * 9.0 * borroso;
+	vec2 paso = SCREEN_PIXEL_SIZE * 4.0 * borroso;
 	vec3 suma = vec3(0.0);
 	float pesos = 0.0;
 	for (int i = -3; i <= 3; i++) {
@@ -25,8 +25,8 @@ void fragment() {
 	}
 	vec3 color = suma / pesos;
 	// Vista doble: una copia corrida que se junta al despertar del todo.
-	vec3 doble = texture(pantalla, uv + vec2(0.018, 0.007) * borroso).rgb;
-	color = mix(color, doble, 0.3 * borroso);
+	vec3 doble = texture(pantalla, uv + vec2(0.008, 0.003) * borroso).rgb;
+	color = mix(color, doble, 0.18 * borroso);
 	color = mix(color, color * tinte + vec3(0.04, 0.06, 0.09), 0.45 * borroso);
 
 	// Párpados: una abertura con forma de ojo que crece desde el centro.

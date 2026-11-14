@@ -69,12 +69,15 @@ func _lugar_libre(_x: float, _z: float) -> bool:
 
 # --- Ayudas para armar mallas low-poly ---
 
-## Material para mallas de caras planas pintadas con colores de vértice.
+## Material para mallas de caras planas pintadas con colores de vértice. Sombreado tipo dibujo
+## (toon): cada cara queda iluminada o en sombra, sin brillos, como en una ilustración.
 static func material_plano() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
 	material.vertex_color_is_srgb = true
 	material.roughness = 1.0
+	material.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
+	material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return material
 

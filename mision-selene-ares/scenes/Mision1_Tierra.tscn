@@ -1,7 +1,8 @@
 [gd_scene format=3]
 
 ; Escena completa de la Misión 1 en tierra: el laboratorio del prólogo (nodo Prologo, detrás del
-; hangar; su pasillo empalma con el del hangar en z = 12.6), el hangar, la pradera y el cohete.
+; hangar; su pasillo empalma con el del hangar en z = 12.6), el hangar, la pradera, el cohete y
+; la cápsula con el despegue al espacio (nodo Cabina).
 ; Prologo va al final para que el HUD y el jugador ya estén listos cuando arranca.
 
 [ext_resource type="Script" path="res://scripts/Mision1_Tierra.gd" id="1_mision"]
@@ -12,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PanelCarga.tscn" id="7_carga"]
 [ext_resource type="Script" path="res://scripts/Prologo_Despertar.gd" id="8_prologo"]
+[ext_resource type="Script" path="res://scripts/Cabina.gd" id="9_cabina"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_acero"]
 albedo_color = Color(0.42, 0.478, 0.565, 1)
@@ -81,6 +83,9 @@ layer = 2
 
 [node name="PanelCarga" parent="UI" instance=ExtResource("7_carga")]
 unique_name_in_owner = true
+
+[node name="Cabina" type="Node3D" parent="."]
+script = ExtResource("9_cabina")
 
 [node name="Prologo" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 54.6)

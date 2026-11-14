@@ -13,6 +13,7 @@ El jugador es el **Comandante Junior** y viaja de la **Tierra** a la **Luna** y 
 | **Prólogo · el despertar** | Despierta de una prueba de sueño criogénico y recorre el laboratorio con A.R.T.I. | Cuenta la misión y enseña los controles paso a paso (mirar, caminar, saltar, preguntar y usar). El sueño criogénico se presenta como ciencia ficción. |
 | **1 · Tierra: hangar** | Elige la carga útil del cohete (límite de 100 kg) y camina por la pradera hasta el ascensor del cohete | No cabe todo: cada kilo necesita más combustible. Lo que lleve define con qué empieza en la Luna. |
 | **1 · Tierra: cabina** | Activa presión, calefacción de la Bio-Box e ignición, en orden | Los procedimientos de lanzamiento tienen un orden y un tiempo. |
+| **1 · Despegue y etapas** | Cruza las capas de la atmósfera hasta la línea de Kármán, suelta los propulsores, la etapa central y la etapa superior, y apunta la cápsula a la Luna | Un cohete suelta lo que ya no necesita para ser más liviano; el último tramo lo hace solo la cápsula. |
 | **2 · Luna: alunizaje** | Reparte el 100 % de la batería entre frenos, radar y amortiguadores | La batería es limitada: lo que le das a un sistema se lo quitas a otro. |
 | **2 · Luna: biodomo** | Come, cosecha, purifica agua, usa la acuaponía | Cosechar baja el oxígeno; purificar agua gasta electricidad. |
 | **2 · Luna: tormenta solar** | Pasa energía de comunicaciones y calefacción al escudo y cierra las persianas | Proteger a la tripulación cuesta: sin comunicaciones no hay señal y sin calefacción las plantas pasan frío. |
@@ -36,6 +37,8 @@ Perder nunca castiga: si un recurso se acaba, A.R.T.I. ayuda con una reserva y e
 | Ver qué significa una palabra en turquesa | Clic sobre la palabra |
 | Interruptores de la cabina | Clic o teclas **1, 2 y 3** |
 | Tomar la foto científica (caminata EVA) | **F** |
+| Separar una etapa del cohete / encender el motor de la cápsula | **Espacio** o el botón amarillo del tablero |
+| Girar la cápsula hacia la Luna | **W A S D** o flechas |
 
 En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantalla completa y la voz de A.R.T.I.
 
@@ -43,7 +46,8 @@ En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantal
 
 En el menú principal, **Modo Jueces** lleva directo a cualquier parte del juego con un clic, sin jugar desde el inicio:
 - el prólogo (también se puede saltar con el botón **Saltar introducción**);
-- el hangar y la cabina;
+- el hangar, y la cápsula con el despegue;
+- la separación de las etapas y el rumbo a la Luna (empieza ya en el espacio);
 - el alunizaje;
 - la tormenta solar, que llega a los 4 segundos;
 - la caminata EVA, que empieza afuera;

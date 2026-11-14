@@ -9,7 +9,7 @@ extends Node3D
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
-const SIGUIENTE_ESCENA := "res://scenes/Mision1_Cabina.tscn"
+## La cabina y el despegue están en esta misma escena (nodo Cabina); de ahí se pasa a la Luna.
 
 ## Colores del guion para el hangar.
 const COLOR_PARED := Color(0.957, 0.965, 0.98)
@@ -26,8 +26,8 @@ const RAMPA_X := 12.0
 const RAMPA_DESDE_Z := 22.0
 const RAMPA_LARGO := 10.0
 const ASCENSOR := Vector3(12.0, 2.0, 5.0)
-## Hasta dónde sube el ascensor (a la altura del brazo que llega a la cápsula).
-const ALTURA_CAPSULA := 60.0
+## Hasta dónde sube el ascensor: su piso queda a 58.2 m, a la altura de la pasarela y del piso de la cápsula.
+const ALTURA_CAPSULA := 58.0
 ## Dónde aparece el jugador si viene del prólogo: en el pasillo que llega del laboratorio.
 const INICIO_PASILLO := Vector3(0.0, 0.7, 10.5)
 
@@ -52,6 +52,9 @@ var _fundido: ColorRect
 var _tween_arti: Tween
 var _arti_viajando := false
 var _iniciado := false
+var _zona: Node3D  # Lo construido del hangar; se apaga en el espacio (rendimiento).
+var _puerta_atras: Node3D  # Puerta corrediza entre el hangar y el pasillo del laboratorio.
+var _lab_apagado := false
 
 
 func _ready() -> void:
@@ -65,9 +68,14 @@ func _ready() -> void:
 	$Exterior/Pivote/Camara.current = false
 	_plataforma = $Exterior/Plataforma
 	_material = Fondo.material_plano()
+	# Todo lo construido del hangar (paredes, luces, letreros, camino) va en una zona que se apaga en el espacio.
+	_zona = Node3D.new()
+	_zona.name = "ZonaHangar"
+	add_child(_zona)
 	# El prólogo (laboratorio detrás del hangar) ya se armó: sus nodos están listos antes que este.
 	var prologo := $Prologo
 	var con_prologo: bool = prologo.activo
+	var atajo := GameManager.atajo
 	GameManager.atajo = ""
 
 	_mejorar_ambiente()
@@ -89,17 +97,40 @@ func _ready() -> void:
 
 	if con_prologo:
 		# Mientras dura el prólogo, el hangar espera; empieza cuando se llega por el pasillo.
+		# Rendimiento: el exterior (pradera, cohete, sol) no se ve desde el laboratorio: se apaga.
+		_encender(_exterior, false)
 		prologo.terminado.connect(_empezar_hangar)
 	else:
+		# Directo al hangar (o a la cabina): la puerta de atrás ya está cerrada y el laboratorio apagado.
+		_puerta_atras.position.x = 0.0
+		_encender(prologo, false)
+		_lab_apagado = true
+		if atajo == "cabina" or atajo == "etapas":
+			# Modo Jueces: ya sentado en la cápsula, listo para el Puzle 2 y el despegue, o ya en el
+			# espacio justo antes de soltar los propulsores.
+			_iniciado = true
+			_etapa = Etapa.ASCENSOR
+			if atajo == "cabina":
+				$Cabina.empezar_sentado()
+			else:
+				$Cabina.empezar_en_espacio()
+			return
 		$Player/Camara.make_current()
 		_mirar_plano(_arti, _jugador.position)
 		_empezar_hangar(false, false)
+
+
+## Rendimiento: muestra u oculta una zona entera y prende o apaga su proceso.
+func _encender(zona: Node3D, encendida: bool) -> void:
+	zona.visible = encendida
+	zona.process_mode = Node.PROCESS_MODE_INHERIT if encendida else Node.PROCESS_MODE_DISABLED
 
 
 ## Empieza la Escena 1.1. «saltado»: se saltó el prólogo y hay que poner al jugador en el pasillo.
 ## «desde_prologo»: A.R.T.I. ya se presentó en el prólogo, así que solo presenta el hangar.
 func _empezar_hangar(saltado: bool, desde_prologo := true) -> void:
 	_iniciado = true
+	_encender(_exterior, true)
 	if saltado:
 		_jugador.global_position = INICIO_PASILLO
 		_jugador.rotation.y = 0.0
@@ -124,6 +155,14 @@ func _process(delta: float) -> void:
 	_hologramas.rotate_y(delta * 0.6)
 	if not _iniciado:
 		return  # Durante el prólogo, A.R.T.I. y el jugador los maneja el prólogo.
+	# Ya dentro del hangar: se cierra la puerta del pasillo y el laboratorio se apaga (rendimiento).
+	if not _lab_apagado and _jugador.global_position.z < 3.0:
+		_lab_apagado = true
+		Sonidos.tocar("puerta.ogg", -4.0)
+		var cerrar := create_tween().set_trans(Tween.TRANS_SINE)
+		cerrar.tween_property(_puerta_atras, "position:x", 0.0, 0.9)
+		cerrar.tween_callback(_encender.bind($Prologo, false))
+	_exterior.call("actualizar_pasto", _jugador.global_position, _arti.global_position)
 	_arti.set("moviendose", _arti_viajando)
 	if not _arti_viajando and _etapa != Etapa.ASCENSOR:
 		_mirar_suave(_arti, _jugador.global_position, delta)
@@ -214,13 +253,18 @@ func _subir_ascensor() -> void:
 	viaje.tween_property(_jugador, "global_position:y", _jugador.global_position.y + subida, 9.0)
 	viaje.tween_property(_arti, "global_position:y", _arti.global_position.y + subida, 9.0)
 	await viaje.finished
+	# Arriba: se camina por la pasarela hasta la escotilla (lo maneja el nodo Cabina).
 	Sonidos.tocar("puerta.ogg", -2.0)
-	await get_tree().create_timer(1.0).timeout
-	var fundido := create_tween()
-	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.0)
-	await fundido.finished
-	_dialogo.callar()
-	get_tree().change_scene_to_file(SIGUIENTE_ESCENA)
+	_jugador.set_physics_process(true)
+	$HUD/Mira.show()
+	$Cabina.arriba()
+
+
+## Arriba de las nubes en el despegue: la pradera, el cohete en la base y el hangar ya no se ven.
+## Rendimiento: se apagan del todo (los llama la cabina).
+func ocultar_tierra() -> void:
+	_encender(_exterior, false)
+	_encender(_zona, false)
 
 
 # --- A.R.T.I. ---
@@ -304,18 +348,47 @@ func _construir_pasillo_entrada() -> void:
 	_bloque(Vector3(0.6, 0.02, 8.4), Vector3(0, 0.61, 8.4), COLOR_AMARILLO.darkened(0.2), false)
 	_luz(Vector3(0, 3.5, 8.4), 1.0, 7.0)
 	_letrero("HANGAR · ARTEMIS-IX", Vector3(0, 3.3, 4.42), 0.0, 40, COLOR_AMARILLO)
+	# Puerta corrediza del pasillo: abierta (metida en la pared) hasta que se entra al hangar.
+	_puerta_atras = Node3D.new()
+	_puerta_atras.position = Vector3(2.1, 2.1, 4.2)
+	add_child(_puerta_atras)
+	_bloque(Vector3(2.0, 3.0, 0.15), Vector3.ZERO, COLOR_ACERO, true, _puerta_atras)
+	_bloque(Vector3(0.08, 2.0, 0.17), Vector3.ZERO, COLOR_AMARILLO, false, _puerta_atras)
 
 
-## Más sol y menos neblina en la pradera. El ambiente se copia para no cambiar el del menú.
+## Estilo Ghibli en la pradera: cielo celeste vivo, sol cálido y dorado, sombras suaves y azuladas,
+## colores saturados, un brillo suave y bruma celeste a lo lejos. El ambiente y el cielo se copian
+## para no cambiar los del menú.
 func _mejorar_ambiente() -> void:
 	var mundo: WorldEnvironment = $Exterior/WorldEnvironment
 	var ambiente: Environment = mundo.environment.duplicate()
-	ambiente.fog_density = 0.0007
-	ambiente.ambient_light_energy = 0.8
-	ambiente.ambient_light_color = Color(0.7, 0.78, 0.88)
+	# Cielo celeste intenso con nubes blancas.
+	var cielo: Sky = ambiente.sky.duplicate()
+	var pintura: ShaderMaterial = cielo.sky_material.duplicate()
+	pintura.set_shader_parameter("color_cenit", Color(0.1, 0.48, 0.98))
+	pintura.set_shader_parameter("color_horizonte", Color(0.62, 0.87, 1.0))
+	pintura.set_shader_parameter("cantidad_nubes", 0.45)
+	cielo.sky_material = pintura
+	ambiente.sky = cielo
+	# Sombras azuladas y suaves: la luz ambiente es del color del cielo.
+	ambiente.ambient_light_color = Color(0.6, 0.76, 1.0)
+	ambiente.ambient_light_energy = 0.95
+	# Aire limpio: apenas un toque de bruma celeste muy lejos, para que todo se vea nítido.
+	ambiente.fog_light_color = Color(0.72, 0.87, 1.0)
+	ambiente.fog_density = 0.00035
+	ambiente.fog_sun_scatter = 0.1
+	# Colores vivos sin filtros encima (sin brillo/glow, que desenfocaba).
+	ambiente.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	ambiente.tonemap_exposure = 1.05
+	ambiente.adjustment_enabled = true
+	ambiente.adjustment_saturation = 1.15
+	ambiente.adjustment_contrast = 1.04
+	ambiente.glow_enabled = false
 	mundo.environment = ambiente
+	# Sol cálido de tarde temprana.
 	var sol: DirectionalLight3D = $Exterior/Sol
-	sol.light_energy = 1.3
+	sol.light_color = Color(1.0, 0.92, 0.76)
+	sol.light_energy = 1.45
 	sol.directional_shadow_max_distance = 140.0
 
 
@@ -428,7 +501,9 @@ func _en_plataforma(local: Vector3) -> Vector3:
 
 
 ## Bloque de caras planas con color; si «choca», también tiene colisión.
-func _bloque(tamano: Vector3, posicion: Vector3, color: Color, choca: bool, padre: Node3D = self) -> MeshInstance3D:
+func _bloque(tamano: Vector3, posicion: Vector3, color: Color, choca: bool, padre: Node3D = null) -> MeshInstance3D:
+	if padre == null:
+		padre = _zona
 	var malla := MeshInstance3D.new()
 	malla.mesh = Fondo.malla_plana(Fondo._caja(tamano), color)
 	malla.material_override = _material
@@ -451,7 +526,7 @@ func _luz(posicion: Vector3, energia: float, alcance: float) -> void:
 	luz.light_energy = energia
 	luz.omni_range = alcance
 	luz.position = posicion
-	add_child(luz)
+	_zona.add_child(luz)
 
 
 func _letrero(texto: String, posicion: Vector3, giro_y: float, tamano: int, color: Color) -> Label3D:
@@ -464,7 +539,7 @@ func _letrero(texto: String, posicion: Vector3, giro_y: float, tamano: int, colo
 	letrero.pixel_size = 0.004
 	letrero.position = posicion
 	letrero.rotation.y = giro_y
-	add_child(letrero)
+	_zona.add_child(letrero)
 	return letrero
 
 
