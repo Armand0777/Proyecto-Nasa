@@ -534,6 +534,8 @@ func _crear_nubes() -> void:
 		nube.position = Vector3(cos(angulo) * distancia, azar.randf_range(70.0, 135.0), sin(angulo) * distancia)
 		nube.rotation.y = azar.randf() * TAU
 		_nubes.add_child(nube)
+	# Rendimiento: las 26 nubes en una sola malla (la cúpula sigue girando entera).
+	preload("res://scripts/Decoracion.gd").fusionar(_nubes)
 
 
 ## Edificio grande de ensamblaje a lo lejos (como el hangar de la Misión 1).

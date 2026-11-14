@@ -92,6 +92,7 @@ func _ready() -> void:
 	_construir_ascensor()
 	_crear_colisiones_exterior()
 	_decorar_exterior()
+	Decoracion.fusionar(_zona)  # Rendimiento: paredes, piso y decoración del hangar en pocas mallas.
 	_exterior.call("crear_naturaleza", _zonas_sin_plantas(), Vector2(9.0, 1.0), _en_plataforma(Vector3(RAMPA_X, 0, RAMPA_DESDE_Z + RAMPA_LARGO)))
 	_crear_fundido(not con_prologo)
 	_flecha = FlechaGuia.new()
@@ -104,8 +105,11 @@ func _ready() -> void:
 
 	if con_prologo:
 		# Mientras dura el prólogo, el hangar espera; empieza cuando se llega por el pasillo.
-		# Rendimiento: el exterior (pradera, cohete, sol) no se ve desde el laboratorio: se apaga.
+		# Rendimiento: el exterior (pradera, cohete, sol) y el hangar no se ven desde el laboratorio: se
+		# apagan. El hangar se prende cuando se abre la puerta del laboratorio que da a su pasillo.
 		_encender(_exterior, false)
+		_encender(_zona, false)
+		prologo.puerta_hangar_abierta.connect(_encender.bind(_zona, true))
 		prologo.terminado.connect(_empezar_hangar)
 	else:
 		# Directo al hangar (o a la cabina): la puerta de atrás ya está cerrada y el laboratorio apagado.
@@ -138,6 +142,7 @@ func _encender(zona: Node3D, encendida: bool) -> void:
 func _empezar_hangar(saltado: bool, desde_prologo := true) -> void:
 	_iniciado = true
 	_encender(_exterior, true)
+	_encender(_zona, true)
 	if saltado:
 		_jugador.global_position = INICIO_PASILLO
 		_jugador.rotation.y = 0.0
@@ -448,6 +453,8 @@ func _decorar_exterior() -> void:
 		Decoracion.pararrayos(raiz, punto, 92.0, m)
 	Decoracion.tubo(raiz, mastiles[0] + Vector3(0, 92, 0), mastiles[1] + Vector3(0, 92, 0), 0.06, Decoracion.OSCURO, m, false)
 
+	Decoracion.fusionar(raiz)  # Rendimiento: toda la decoración de afuera en pocas mallas.
+
 	for zona in [[manga, 1.5], [antenas[0], 3.0], [antenas[1], 3.0], [camion, 4.5], [torre, 5.0], [tanque, 8.0]]:
 		var centro: Vector3 = zona[0]
 		var radio: float = zona[1]
@@ -497,7 +504,9 @@ func _mejorar_ambiente() -> void:
 	sol.light_color = Color(1.0, 0.93, 0.8)
 	sol.light_energy = 1.25
 	sol.shadow_blur = 1.5
-	sol.directional_shadow_max_distance = 140.0
+	# Rendimiento: 2 cortes de sombra en vez de 4 (la mitad de pasadas) y hasta 100 m.
+	sol.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sol.directional_shadow_max_distance = 100.0
 	# Sombreado suave en vez del de dibujo: la luz se degrada sobre paredes y piso y se notan los volúmenes.
 	for material: StandardMaterial3D in [_material, $Prologo._material, $Cabina._material, _exterior.get("_material")]:
 		material.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
@@ -638,7 +647,8 @@ func _luz(posicion: Vector3, energia: float, alcance: float, sombra := false) ->
 	var luz := OmniLight3D.new()
 	luz.light_color = Color(1.0, 0.91, 0.76)
 	luz.light_energy = energia
-	luz.shadow_enabled = sombra
+	luz.shadow_enabled = sombra and Ajustes.sombras_lamparas
+	luz.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID  # 2 pasadas de sombra en vez de 6.
 	luz.omni_range = alcance
 	luz.position = posicion
 	_zona.add_child(luz)

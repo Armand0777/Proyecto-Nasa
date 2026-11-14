@@ -22,6 +22,11 @@ Este archivo es el **guion definitivo** (`guion_definitivo_mision_selene_ares.md
    - Los colores salen de la paleta del guion (sección 0). Turquesa `#2EE6D6` = "esto se puede tocar"; rojo `#FF3B5C` solo en emergencias.
    - Cada frase que dice A.R.T.I. debe ser **idéntica** a la de `guion_doblaje_arti.md` (las grabaciones se buscan por nombre de pista).
    - Nunca mostrar un dato inventado como si fuera real de la NASA.
+   - **Rendimiento (el juego va a la web):** lo que más pesa son las llamadas de dibujo. Todo lo fijo
+     de una zona se junta en pocas mallas con `Decoracion.fusionar(nodo, [lo que se mueve])`; lo que
+     se mueve, se abre o se toma se pasa en esa lista. Las lámparas no llevan sombra
+     (`Ajustes.sombras_lamparas`): cada una con sombra baja una sala de ~135 a ~55 cuadros por segundo.
+     Lo que no se ve se apaga con `_encender(zona, false)`.
 
 ---
 

@@ -173,6 +173,9 @@ func _ready() -> void:
 	_material = Fondo.material_plano()
 	_construir_pasarela()
 	_construir_interior()
+	# Rendimiento: el interior de la cápsula solo se dibuja con la cámara cerca (desde el suelo no se ve).
+	for pieza: GeometryInstance3D in _interior.find_children("*", "GeometryInstance3D", true, false):
+		pieza.visibility_range_end = 25.0
 	_construir_motores()
 	_construir_paneles()
 	_construir_capa_nubes()

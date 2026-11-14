@@ -268,6 +268,42 @@ static func manga_viento(padre: Node3D, posicion: Vector3, giro_y: float, materi
 	_choque(grupo, Vector3(0.3, 6.0, 0.3), Vector3(0, 3.0, 0))
 
 
+# --- Rendimiento ---
+
+## Junta todas las mallas fijas que hay dentro de «raiz» en una sola por material: cientos de piezas
+## pasan a ser unas pocas llamadas de dibujo, que es lo que más pesa en la versión web.
+## «dejar»: nodos que se mueven, se esconden o se borran después (puertas, tapas, objetos que se toman);
+## sus mallas y las de sus hijos quedan como están. Las colisiones y los letreros no se tocan.
+static func fusionar(raiz: Node3D, dejar: Array = []) -> void:
+	var grupos := {}  # [material, sombra, ¿ArrayMesh?] -> SurfaceTool
+	var hacia_raiz := raiz.global_transform.affine_inverse()
+	for nodo in raiz.find_children("*", "MeshInstance3D", true, false):
+		var malla := nodo as MeshInstance3D
+		if malla.mesh == null or malla.material_override == null or _dentro_de(malla, raiz, dejar):
+			continue
+		var clave := [malla.material_override, malla.cast_shadow, malla.mesh is ArrayMesh]
+		if not grupos.has(clave):
+			grupos[clave] = SurfaceTool.new()
+		for superficie in malla.mesh.get_surface_count():
+			grupos[clave].append_from(malla.mesh, superficie, hacia_raiz * malla.global_transform)
+		malla.queue_free()  # Sin remove_child: puede llamarse desde un _ready.
+	for clave in grupos:
+		var unida := MeshInstance3D.new()
+		unida.mesh = grupos[clave].commit()
+		unida.material_override = clave[0]
+		unida.cast_shadow = clave[1]
+		raiz.add_child(unida)
+
+
+## true si «nodo» o alguno de sus padres (hasta «raiz») está en «dejar» o está oculto.
+static func _dentro_de(nodo: Node, raiz: Node, dejar: Array) -> bool:
+	while nodo != raiz and nodo != null:
+		if nodo in dejar or (nodo is Node3D and not nodo.visible):
+			return true
+		nodo = nodo.get_parent()
+	return false
+
+
 static func _pieza(padre: Node3D, malla: PrimitiveMesh, color: Color, posicion: Vector3, material: Material) -> MeshInstance3D:
 	var nodo := MeshInstance3D.new()
 	nodo.mesh = Fondo.malla_plana(malla, color)

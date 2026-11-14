@@ -11,6 +11,10 @@ var sensibilidad_mouse := 1.0
 var pantalla_completa := false
 ## Si A.R.T.I. habla en voz alta (usa la voz del sistema o del navegador).
 var voz_arti := true
+## Sombras de las lámparas de los interiores. Son lo más caro de dibujar (una sala baja de ~170 a
+## ~65 cuadros por segundo), así que van apagadas; la sombra del Sol queda siempre.
+## shortcut: sin opción en el menú; si algún día se quiere «calidad alta», este es el interruptor.
+var sombras_lamparas := false
 
 
 func _ready() -> void:

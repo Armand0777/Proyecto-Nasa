@@ -12,6 +12,8 @@ extends Node3D
 
 ## Se emite al llegar al hangar (o al saltar la introducción); entonces empieza la Escena 1.1.
 signal terminado(saltado: bool)
+## Se emite al abrirse la puerta que da al pasillo del hangar (el hangar se prende para verse).
+signal puerta_hangar_abierta
 
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
@@ -76,6 +78,7 @@ const GLOSARIO := {
 var activo := true
 var _material: StandardMaterial3D
 var _material_pared: ShaderMaterial  # Paredes, piso y techo con paneles (Decoracion.material_pared).
+var _planetas: Array[Node3D] = []  # Giran: no se juntan con lo fijo.
 var _paso := Paso.CINE
 var _saliendo := false
 var _tiempo := 0.0
@@ -495,6 +498,7 @@ func _al_usar_hangar() -> void:
 		return
 	_paso = Paso.FIN
 	_tarjeta.hide()
+	puerta_hangar_abierta.emit()
 	Sonidos.tocar("puerta.ogg", -2.0)
 	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_puerta_hangar, "position:x", 2.6, 1.0)
 	_apuntar(Vector3(0.0, 1.85, Z_PUERTA_HANGAR - 4.0))
@@ -687,6 +691,8 @@ func _construir_laboratorio() -> void:
 	_construir_pasillo()
 	_construir_sala_mision()
 	_decorar()
+	# Rendimiento: todo lo fijo en pocas mallas; quedan aparte lo que se mueve, se abre o se toma.
+	Decoracion.fusionar(self, [_bisagra_tapa, _puerta_crio, _puerta_lab, _puerta_hangar, _traje, _tablet] + _planetas)
 
 
 ## Para que ninguna pared quede lisa: tubos, rejillas, estantes, tableros, extintores, plantas y
@@ -827,6 +833,7 @@ func _construir_sala_mision() -> void:
 		planeta.position = base + Vector3(0, 1.5, 0)
 		planeta.name = "Planeta"
 		add_child(planeta)
+		_planetas.append(planeta)
 		create_tween().set_loops().tween_property(planeta, "rotation:y", TAU, 14.0).from(0.0)
 		var letrero := _letrero(datos[0], base + Vector3(0, 2.15, 0), 0.0, 36)
 		letrero.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
@@ -995,7 +1002,8 @@ func _luz(posicion: Vector3, color: Color, energia: float, alcance: float, sombr
 	var luz := OmniLight3D.new()
 	luz.light_color = color
 	luz.light_energy = energia
-	luz.shadow_enabled = sombra
+	luz.shadow_enabled = sombra and Ajustes.sombras_lamparas
+	luz.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID  # 2 pasadas de sombra en vez de 6.
 	luz.omni_range = alcance
 	luz.position = posicion
 	add_child(luz)
