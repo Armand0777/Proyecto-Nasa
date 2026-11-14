@@ -188,12 +188,13 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 ### Escena 2.1: Órbita y alunizaje (`scenes/Mision2_Alunizaje.tscn`)
 - [x] Despertar con fundido desde negro, en órbita sobre el Polo Sur.
 - [x] **Puzle 3, Inciso A:** 3 deslizadores unidos que siempre suman 100 % (propulsores, radar, amortiguadores), con zona verde y botón de aterrizar.
-- [x] Descenso de la cámara y sacudida al tocar el suelo.
+- [x] **Descenso pilotado** con la gravedad real (1,62 m/s²): Espacio frena, A/D mueven de lado hasta el círculo verde; indicadores de altura, velocidad, zona y combustible. La calibración define el combustible, el tamaño de la zona y el golpe que aguantan los amortiguadores. Si se toca muy rápido o fuera de la zona, se reintenta; desde el segundo intento A.R.T.I. puede aterrizar sola.
+- [x] Módulo de aterrizaje low-poly con llama, propulsores de lado, luz del motor y sacudida al tocar el suelo.
 - [x] Explicación de la palabra *regolito*.
 - 🟡 Los deslizadores son horizontales (el guion los pedía verticales).
-- [ ] Polvo que sale disparado al tocar suelo y cae rápido sin formar nube.
+- [x] Polvo que sale disparado de lado al acercarse al suelo y cae rápido sin formar nube.
 - [ ] Pitido lento de radar.
-- [ ] Puzle 3, Inciso B: aterrizaje vertical con altímetro (`P2`).
+- [x] Puzle 3, Inciso B: aterrizaje vertical con altímetro (`P2`): es el descenso pilotado.
 
 ### Escena 2.2: Biodomo (`scenes/Mision2_Luna.tscn`)
 - [x] Cúpula con vidrio, luz rosada de cultivo y la Tierra en el cielo.

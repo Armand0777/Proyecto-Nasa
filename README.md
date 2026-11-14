@@ -14,7 +14,7 @@ El jugador es el **Comandante Junior** y viaja de la **Tierra** a la **Luna** y 
 | **1 · Tierra: hangar** | Elige la carga útil del cohete (límite de 100 kg) y camina por la pradera hasta el ascensor del cohete | No cabe todo: cada kilo necesita más combustible. Lo que lleve define con qué empieza en la Luna. |
 | **1 · Tierra: cabina** | Activa presión, calefacción de la Bio-Box e ignición, en orden | Los procedimientos de lanzamiento tienen un orden y un tiempo. |
 | **1 · Despegue y etapas** | Cruza las capas de la atmósfera hasta la línea de Kármán, suelta los propulsores, la etapa central y la etapa superior, y apunta la cápsula a la Luna | Un cohete suelta lo que ya no necesita para ser más liviano; el último tramo lo hace solo la cápsula. |
-| **2 · Luna: alunizaje** | Reparte el 100 % de la batería entre frenos, radar y amortiguadores | La batería es limitada: lo que le das a un sistema se lo quitas a otro. |
+| **2 · Luna: alunizaje** | Reparte el 100 % de la batería entre frenos, radar y amortiguadores, y después pilota el descenso hasta el círculo verde | La batería es limitada: lo que le das a un sistema se lo quitas a otro. Y se nota al bajar: el combustible, el tamaño de la zona y el golpe que aguanta salen de ese reparto. |
 | **2 · Luna: biodomo** | Come, cosecha, purifica agua, usa la acuaponía | Cosechar baja el oxígeno; purificar agua gasta electricidad. |
 | **2 · Luna: tormenta solar** | Pasa energía de comunicaciones y calefacción al escudo y cierra las persianas | Proteger a la tripulación cuesta: sin comunicaciones no hay señal y sin calefacción las plantas pasan frío. |
 | **2 · Luna: caminata EVA** | Busca hielo con el escáner, extrae una roca y toma una foto | El oxígeno del traje se acaba: hay que planear la salida. |
@@ -39,6 +39,7 @@ Perder nunca castiga: si un recurso se acaba, A.R.T.I. ayuda con una reserva y e
 | Tomar la foto científica (caminata EVA) | **F** |
 | Separar una etapa del cohete / encender el motor de la cápsula | **Espacio** o el botón amarillo del tablero |
 | Girar la cápsula hacia la Luna | **W A S D** o flechas |
+| Pilotar el descenso a la Luna | **Espacio** (o **W**) frena · **A** y **D** (o **← →**) mueven el módulo de lado |
 
 En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantalla completa y la voz de A.R.T.I.
 
@@ -90,7 +91,7 @@ Solo listamos lo que el juego usa de verdad.
   * los cráteres del Polo Sur, que nunca reciben luz del Sol y guardan hielo.
 
 **Lo que está ajustado para jugar, y lo decimos:**
-* La gravedad es más fuerte que la real para que los controles sean cómodos. La real es 1,62 m/s² en la Luna y 3,72 m/s² en Marte.
+* Al caminar, la gravedad es más fuerte que la real para que los controles sean cómodos. La real es 1,62 m/s² en la Luna y 3,72 m/s² en Marte. En el descenso a la Luna sí se usa la real.
 * La Tierra se ve más grande en el cielo de la Luna y de Marte que en la realidad.
 * El tiempo va más rápido. Por ejemplo, en la vida real una tormenta solar se avisa con minutos o días de anticipación.
 * Los kilos de la carga útil son números de juego.
