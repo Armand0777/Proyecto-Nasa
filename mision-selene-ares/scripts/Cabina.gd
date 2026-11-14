@@ -152,6 +152,7 @@ var _estrellas: Node3D
 var _material_estrellas: StandardMaterial3D
 var _luna: MeshInstance3D
 var _ambiente: Environment
+var _luz_ambiente_suelo := 0.4  # Luz ambiente en tierra; al subir baja hasta la del espacio.
 var _cielo: ShaderMaterial
 var _pantallas: Array[Label3D] = []
 
@@ -424,6 +425,7 @@ func _despegar() -> void:
 func _preparar_ascenso() -> void:
 	var mundo: WorldEnvironment = _exterior.get_node("WorldEnvironment")
 	_ambiente = mundo.environment
+	_luz_ambiente_suelo = _ambiente.ambient_light_energy
 	_cielo = _ambiente.sky.sky_material
 	_cohete.reparent(_raiz, true)
 	_altura_base = _cohete.global_position.y
@@ -780,7 +782,7 @@ func _actualizar_ascenso(delta: float) -> void:
 	var oscuro := smoothstep(0.08, 0.5, f)
 	_cielo.set_shader_parameter("color_cenit", CIELO_CENIT.lerp(Color(0.0, 0.0, 0.015), oscuro))
 	_cielo.set_shader_parameter("color_horizonte", CIELO_HORIZONTE.lerp(Color(0.12, 0.3, 0.65), smoothstep(0.0, 0.25, f)).lerp(Color(0.0, 0.0, 0.02), smoothstep(0.35, 0.85, f)))
-	_ambiente.ambient_light_energy = lerpf(0.95, 0.3, oscuro)
+	_ambiente.ambient_light_energy = lerpf(_luz_ambiente_suelo, 0.3, oscuro)
 	_material_estrellas.albedo_color.a = smoothstep(0.3, 0.75, f)
 	# Las llamas titilan; la principal se abre al subir (menos aire alrededor).
 	if _motor_principal:
@@ -1031,7 +1033,7 @@ func _construir_interior() -> void:
 	aro.position = Vector3(0, ALTO - 0.03, 0)
 	_interior.add_child(aro)
 	var luz := OmniLight3D.new()
-	luz.light_energy = 0.9
+	luz.light_energy = 0.7
 	luz.omni_range = 4.5
 	luz.position = Vector3(0, 2.1, 0)
 	_interior.add_child(luz)

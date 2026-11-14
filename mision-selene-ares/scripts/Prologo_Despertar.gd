@@ -16,11 +16,12 @@ signal terminado(saltado: bool)
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
+const Decoracion := preload("res://scripts/Decoracion.gd")
 
 ## Colores del guion: interior blanco y luz azul fría de la criogenia (sección 3.1).
 const COLOR_PARED := Color(0.867, 0.902, 0.941)
 const COLOR_FRIO := Color(0.561, 0.89, 1.0)
-const COLOR_PISO := Color(0.169, 0.184, 0.227)
+const COLOR_PISO := Color(0.27, 0.29, 0.33)  # Gris medio: con poca luz ambiente el azul oscuro se veía negro.
 const COLOR_ACERO := Color(0.42, 0.478, 0.565)
 const COLOR_NOCHE := Color(0.043, 0.063, 0.149)
 const COLOR_TURQUESA := Color(0.18, 0.902, 0.839)
@@ -74,6 +75,7 @@ const GLOSARIO := {
 ## false cuando se entra directo al hangar (Modo Jueces): el laboratorio queda, pero sin prólogo.
 var activo := true
 var _material: StandardMaterial3D
+var _material_pared: ShaderMaterial  # Paredes, piso y techo con paneles (Decoracion.material_pared).
 var _paso := Paso.CINE
 var _saliendo := false
 var _tiempo := 0.0
@@ -136,6 +138,7 @@ var _tween_arti: Tween
 
 func _ready() -> void:
 	_material = Fondo.material_plano()
+	_material_pared = Decoracion.material_pared()
 	_construir_laboratorio()
 	if GameManager.atajo in ["hangar", "cabina", "etapas"]:
 		_desactivar()
@@ -683,6 +686,42 @@ func _construir_laboratorio() -> void:
 	_construir_criogenia()
 	_construir_pasillo()
 	_construir_sala_mision()
+	_decorar()
+
+
+## Para que ninguna pared quede lisa: tubos, rejillas, estantes, tableros, extintores, plantas y
+## carteles con datos reales. Criogenia: x ±4.9, z −7.9..3.9 · pasillo: x ±1.4 · laboratorio: x ±5.9,
+## z −33.9..−22.1. Piso en y = 0 y techo en ALTO.
+func _decorar() -> void:
+	var m := _material
+	var tubo_claro := Color(0.86, 0.88, 0.91)
+	var tubo_frio := COLOR_FRIO.darkened(0.35)
+	# Sala criogénica.
+	Decoracion.tubo(self, Vector3(-4.75, 2.85, -7.8), Vector3(-4.75, 2.85, 3.8), 0.08, tubo_claro, m)
+	Decoracion.tubo(self, Vector3(-4.8, 2.62, -7.8), Vector3(-4.8, 2.62, 3.8), 0.045, tubo_frio, m)
+	Decoracion.rejilla(self, Vector3(0, 2.55, 3.88), PI, Vector2(1.2, 0.5), m)
+	Decoracion.estante(self, Vector3(-4.88, 0, -5.0), PI / 2.0, m, 3)
+	Decoracion.extintor(self, Vector3(1.7, 0, -7.88), 0.0, m)
+	Decoracion.tablero(self, Vector3(4.88, 1.5, 2.0), -PI / 2.0, ALTO, m)
+	Decoracion.planta(self, Vector3(-4.3, 0, 3.3), m)
+	Decoracion.cartel(self, Vector3(-4.88, 1.6, -1.0), PI / 2.0, "EN EL ESPACIO", "Sin gravedad, músculos y huesos se debilitan: los astronautas hacen ejercicio unas 2 horas al día.", m)
+	Decoracion.cartel(self, Vector3(4.88, 1.7, -2.0), -PI / 2.0, "EL SOL", "Su luz tarda unos 8 minutos en llegar a la Tierra.", m)
+	# Pasillo.
+	Decoracion.tubo(self, Vector3(1.2, 2.95, -8.2), Vector3(1.2, 2.95, -21.8), 0.06, tubo_claro, m)
+	Decoracion.tubo(self, Vector3(1.0, 3.05, -8.2), Vector3(1.0, 3.05, -21.8), 0.035, COLOR_AMARILLO.darkened(0.3), m)
+	Decoracion.rejilla(self, Vector3(1.38, 0.35, -12.0), -PI / 2.0, Vector2(0.6, 0.3), m)
+	Decoracion.extintor(self, Vector3(-1.38, 0, -20.6), PI / 2.0, m)
+	Decoracion.cartel(self, Vector3(-1.38, 1.6, -11.5), PI / 2.0, "LA LUNA", "Está a unos 384.000 km: un cohete tarda unos 3 días en llegar.", m)
+	Decoracion.cartel(self, Vector3(1.38, 1.6, -19.0), -PI / 2.0, "MARTE", "Un día allá dura 24 h 39 min: ¡casi como aquí!", m)
+	# Laboratorio de la misión.
+	Decoracion.tubo(self, Vector3(5.75, 2.85, -22.3), Vector3(5.75, 2.85, -33.8), 0.08, tubo_claro, m)
+	Decoracion.estante(self, Vector3(5.88, 0, -32.6), -PI / 2.0, m, 4)
+	Decoracion.tablero(self, Vector3(3.4, 1.5, -33.88), 0.0, ALTO, m)
+	Decoracion.extintor(self, Vector3(-1.9, 0, -33.88), 0.0, m)
+	Decoracion.rejilla(self, Vector3(-3.5, 2.6, -33.88), 0.0, Vector2(1.0, 0.5), m)
+	Decoracion.planta(self, Vector3(5.3, 0, -22.7), m)
+	Decoracion.planta(self, Vector3(-5.3, 0, -22.7), m)
+	Decoracion.cartel(self, Vector3(-3.5, 1.7, -22.12), PI, "LA TIERRA", "Es el único planeta conocido con océanos de agua líquida en su superficie.", m)
 
 
 func _construir_criogenia() -> void:
@@ -695,7 +734,7 @@ func _construir_criogenia() -> void:
 	_letrero("LABORATORIO DE CRIOGENIA", Vector3(0, 2.8, Z_PUERTA_CRIO + 0.12), 0.0, 48)
 	_puerta_crio = _puerta(Z_PUERTA_CRIO, 2.0)
 	for x in [-2.6, 2.6]:
-		_luz(Vector3(x, 2.9, -2.0), COLOR_FRIO, 1.3, 9.0)
+		_luz(Vector3(x, 2.9, -2.0), COLOR_FRIO, 1.3, 9.0, true)
 		_panel_luz(Vector3(x, ALTO - 0.02, -2.0), Vector2(1.6, 0.5), COLOR_FRIO)
 	_luz(Vector3(0, 0.95, 0.1), COLOR_FRIO, 0.5, 2.0)  # Luz dentro de la cápsula.
 
@@ -743,7 +782,7 @@ func _construir_pasillo() -> void:
 ## Laboratorio: la tablet en la mesa, la Tierra, la Luna y Marte en pedestales y la pantalla de la misión.
 func _construir_sala_mision() -> void:
 	for x in [-3.0, 3.0]:
-		_luz(Vector3(x, 2.9, -28.0), Color(1.0, 0.94, 0.85), 1.4, 9.0)
+		_luz(Vector3(x, 2.9, -28.0), Color(1.0, 0.94, 0.85), 1.4, 9.0, true)
 		_panel_luz(Vector3(x, ALTO - 0.02, -28.0), Vector2(1.6, 1.6), Color.WHITE)
 
 	# Mesa con la tablet de comandante.
@@ -918,7 +957,7 @@ func _abrir_puerta(puerta: StaticBody3D) -> void:
 func _bloque(tamano: Vector3, posicion: Vector3, color: Color, choca := true) -> MeshInstance3D:
 	var malla := MeshInstance3D.new()
 	malla.mesh = Fondo.malla_plana(Fondo._caja(tamano), color)
-	malla.material_override = _material
+	malla.material_override = _material_pared if color in [COLOR_PARED, COLOR_PISO] else _material
 	malla.position = posicion
 	add_child(malla)
 	if choca:
@@ -951,10 +990,12 @@ func _letrero(texto: String, posicion: Vector3, giro_y := 0.0, tamano := 48, col
 	return letrero
 
 
-func _luz(posicion: Vector3, color: Color, energia: float, alcance: float) -> void:
+## «sombra»: solo en las lámparas principales; cada lámpara con sombra cuesta mucho en la versión web.
+func _luz(posicion: Vector3, color: Color, energia: float, alcance: float, sombra := false) -> void:
 	var luz := OmniLight3D.new()
 	luz.light_color = color
 	luz.light_energy = energia
+	luz.shadow_enabled = sombra
 	luz.omni_range = alcance
 	luz.position = posicion
 	add_child(luz)
@@ -962,9 +1003,12 @@ func _luz(posicion: Vector3, color: Color, energia: float, alcance: float) -> vo
 
 ## Panel de luz del techo: un rectángulo que brilla (no ilumina; la luz la pone _luz()).
 func _panel_luz(posicion: Vector3, tamano: Vector2, color: Color) -> void:
+	# Brilla con emisión (más que blanco): con el tono de cámara realista, un blanco plano se ve gris.
 	var brillo := StandardMaterial3D.new()
-	brillo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	brillo.albedo_color = color.lightened(0.4)
+	brillo.albedo_color = Color.BLACK
+	brillo.emission_enabled = true
+	brillo.emission = color.lightened(0.4)
+	brillo.emission_energy_multiplier = 2.5
 	var panel := MeshInstance3D.new()
 	panel.mesh = Fondo._caja(Vector3(tamano.x, 0.03, tamano.y))
 	panel.material_override = brillo
