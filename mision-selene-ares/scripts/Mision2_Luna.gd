@@ -65,11 +65,19 @@ var _pitido: AudioStreamPlayer
 var _espera_pitido := 0.0
 var _objetivos: Label
 var _flash: ColorRect
+var _atajo := ""
 
 
 func _ready() -> void:
 	GameManager.planeta_actual = GameManager.Planeta.LUNA
 	GameManager.reiniciar(LLEGADA)
+	# Modo Jueces: la tormenta llega enseguida, o se empieza directo en la caminata EVA.
+	_atajo = GameManager.atajo
+	GameManager.atajo = ""
+	if _atajo == "tormenta":
+		segundos_antes_de_tormenta = 4.0
+	elif _atajo == "eva":
+		_tormenta_pasada = true
 	# Lo que se cargó en el hangar se nota aquí.
 	for id in GameManager.carga_elegida:
 		var efectos: Dictionary = GameManager.CARGA[id].efectos
@@ -131,6 +139,9 @@ func _mostrar_llegada() -> void:
 	tween.tween_property(_fundido, "modulate:a", 0.0, 1.0)
 	tween.tween_property(_llegada, "modulate:a", 0.0, 1.0)
 	await tween.finished
+	if _atajo == "eva":
+		_empezar_eva()
+		return
 	_arti.decir(
 		"¡Llegamos al [url=biodomo]Biodomo[/url]! Fíjate en tus barras abajo: tienes hambre y sed. Camina a la Mesa de Nutrición para comer una barra de proteína o cosechar una lechuga. ¡Ojo! Si cosechas lechugas de más, bajará el oxígeno del domo hasta que crezcan nuevas.",
 		"¿Por qué bajaría el oxígeno?",

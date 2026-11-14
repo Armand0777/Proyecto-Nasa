@@ -11,6 +11,17 @@ const VISTAS: Array[PackedScene] = [
 	preload("res://scenes/fondos/FondoLuna.tscn"),
 ]
 
+## Modo Jueces: [texto del botón, escena, atajo dentro de la escena].
+const ATAJOS := [
+	["Misión 1 · Hangar y carga útil", "res://scenes/Mision1_Tierra.tscn", ""],
+	["Misión 1 · Cabina y despegue", "res://scenes/Mision1_Cabina.tscn", ""],
+	["Misión 2 · Alunizaje", "res://scenes/Mision2_Alunizaje.tscn", ""],
+	["Misión 2 · Biodomo y tormenta solar (NASA DONKI)", "res://scenes/Mision2_Luna.tscn", "tormenta"],
+	["Misión 2 · Caminata EVA en la Luna", "res://scenes/Mision2_Luna.tscn", "eva"],
+	["Misión 3 · Marte y sus tormentas de polvo", "res://scenes/Mision3_Marte.tscn", ""],
+	["Cierre · Insignia y ciencia real de la NASA", "res://scenes/ui/Cierre.tscn", ""],
+]
+
 ## Cuánto tiempo se queda cada fondo antes de pasar al siguiente.
 @export var segundos_por_vista := 18.0
 
@@ -37,12 +48,15 @@ const VISTAS: Array[PackedScene] = [
 }
 
 var _vista := 0
+var _panel_jueces: PanelContainer
 
 
 func _ready() -> void:
 	_boton_nueva.pressed.connect(_nueva_partida)
 	_boton_ajustes.pressed.connect(_abrir_ajustes)
 	_boton_listo.pressed.connect(_cerrar_ajustes)
+	%ModoJueces.pressed.connect(_abrir_jueces)
+	_crear_panel_jueces()
 
 	for bus in _volumenes:
 		var deslizador: HSlider = _volumenes[bus][0]
@@ -82,6 +96,64 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _panel.visible and event.is_action_pressed("ui_cancel"):
 		_cerrar_ajustes()
 		get_viewport().set_input_as_handled()
+	elif _panel_jueces.visible and event.is_action_pressed("ui_cancel"):
+		_cerrar_jueces()
+		get_viewport().set_input_as_handled()
+
+
+## Modo Jueces: cada parte del juego a un clic, para revisarla sin jugar todo desde el inicio.
+func _crear_panel_jueces() -> void:
+	_panel_jueces = PanelContainer.new()
+	_panel_jueces.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	_panel_jueces.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_panel_jueces.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 12)
+	_panel_jueces.add_child(caja)
+	var titulo := Label.new()
+	titulo.text = "Modo Jueces: ir directo a..."
+	titulo.theme_type_variation = &"Titulo"
+	titulo.add_theme_font_size_override("font_size", 44)
+	caja.add_child(titulo)
+	for atajo in ATAJOS:
+		var boton := Button.new()
+		boton.text = atajo[0]
+		boton.custom_minimum_size = Vector2(760, 0)
+		boton.add_theme_font_size_override("font_size", 28)
+		boton.pressed.connect(_ir_a.bind(atajo[1], atajo[2]))
+		caja.add_child(boton)
+	var volver := Button.new()
+	volver.text = "Volver (Esc)"
+	volver.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	volver.pressed.connect(_cerrar_jueces)
+	caja.add_child(volver)
+	_panel_jueces.hide()
+	# Antes del fundido, para que el fundido lo tape al cambiar de escena.
+	add_child(_panel_jueces)
+	move_child(_panel_jueces, _fundido.get_index())
+
+
+func _abrir_jueces() -> void:
+	_aviso.hide()
+	_botones.hide()
+	_velo.show()
+	_panel_jueces.show()
+	_panel_jueces.get_child(0).get_child(1).grab_focus()
+
+
+func _cerrar_jueces() -> void:
+	_panel_jueces.hide()
+	_velo.hide()
+	_botones.show()
+	%ModoJueces.grab_focus()
+
+
+func _ir_a(escena: String, atajo: String) -> void:
+	GameManager.atajo = atajo
+	_fundido.mouse_filter = Control.MOUSE_FILTER_STOP
+	var tween := create_tween()
+	tween.tween_property(_fundido, "modulate:a", 1.0, 0.5)
+	tween.tween_callback(get_tree().change_scene_to_file.bind(escena))
 
 
 func _nueva_partida() -> void:

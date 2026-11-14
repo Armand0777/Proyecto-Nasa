@@ -45,6 +45,8 @@ var carga_elegida: Array[String] = []
 var fotos: Array[Image] = []
 ## Qué dato de NASA DONKI se usó en la tormenta de la Luna (para el panel de ciencia del cierre).
 var estado_donki := "no se jugó la tormenta"
+## Modo Jueces: a qué parte saltar dentro de una escena ("tormenta" o "eva"); la escena lo borra al usarlo.
+var atajo := ""
 
 
 func _ready() -> void:
