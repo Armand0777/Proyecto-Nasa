@@ -9,6 +9,9 @@
 script = ExtResource("1_luna")
 
 [node name="Exterior" parent="." instance=ExtResource("2_exterior")]
+tamano_terreno = 4000.0
+celdas = 111
+montanas = true
 
 [node name="Base" type="Node3D" parent="."]
 

@@ -178,6 +178,12 @@ var _luna: MeshInstance3D
 var _ambiente: Environment
 var _luz_ambiente_suelo := 0.4  # Luz ambiente en tierra; al subir baja hasta la del espacio.
 var _cielo: ShaderMaterial
+## Cielo negro del espacio (con el Sol y la Vía Láctea); reemplaza al de la Tierra al salir del aire.
+var _cielo_espacio: ShaderMaterial
+var _suelo_cielo := Color(0.36, 0.45, 0.33)  # Color del «suelo» del cielo de la Tierra (se apaga al subir).
+var _radio_luna_cielo := 0.025  # La Luna pálida del cielo de día (se apaga al subir: después se ve la de verdad).
+## Hacia dónde está el Sol en el espacio (mundo); lo usan los shaders de la Tierra y la Luna.
+var _direccion_sol := Vector3.UP
 var _pantallas: Array[Label3D] = []
 
 # Interfaz.
@@ -186,11 +192,8 @@ var _cuenta: Label
 var _panel_altitud: PanelContainer
 var _altitud_label: Label
 var _aviso_accion: Label
+## Ayuda de las tomas desde afuera: con el mouse (o el dedo) se mira alrededor del cohete.
 var _ayuda_maniobra: Label
-# Maniobra en las tomas desde afuera: el jugador inclina y gira el cohete (vuelve solo al soltar).
-var _maniobra := Vector2.ZERO
-var _maniobrando := false
-var _sin_maniobra := Transform3D()  # Dónde estaría el cohete sin la maniobra.
 var _banner: Label
 var _mira_piloto: Panel
 var _marca_luna: Panel
@@ -211,11 +214,11 @@ func _ready() -> void:
 	_construir_espacio()
 	_crear_interfaz()
 	_camara.fov = 85.0  # Más ancho: se ve más espacio por las ventanas.
-	_camara.far = 9000.0
+	_camara.far = 30000.0
 	_camara.position = OJOS
 	_interior.add_child(_camara)
 	_camara_ext.fov = 60.0
-	_camara_ext.far = 9000.0
+	_camara_ext.far = 30000.0
 	add_child(_camara_ext)
 	_flecha = FlechaGuia.new()
 	add_child(_flecha)
@@ -234,7 +237,7 @@ func _process(delta: float) -> void:
 		ControlesTactiles.mostrar_boton("usar", mirando)
 		ControlesTactiles.mostrar_boton("accion", _aviso_accion.visible, "ENCENDER" if _esperando_encendido else "SEPARAR")
 		ControlesTactiles.mostrar_boton("camara", _puede_cambiar_camara())
-		if _toma == "libre":
+		if _toma == "libre" or _toma == "persecucion":
 			ControlesTactiles.usar_mirada(true)
 			_girar_orbita(ControlesTactiles.tomar_mirada())
 		elif mirando:
@@ -273,7 +276,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var giro: float = 0.0025 * Ajustes.sensibilidad_mouse
 			if _puede_mirar():
 				_girar_mirada(event.relative * giro)
-			elif _toma == "libre":
+			elif _toma == "libre" or _toma == "persecucion":
 				_girar_orbita(event.relative * giro)
 			return
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -719,6 +722,12 @@ func _preparar_ascenso() -> void:
 	_ambiente = mundo.environment
 	_luz_ambiente_suelo = _ambiente.ambient_light_energy
 	_cielo = _ambiente.sky.sky_material
+	var suelo: Variant = _cielo.get_shader_parameter("color_suelo")
+	if suelo is Color:
+		_suelo_cielo = suelo
+	var radio: Variant = _cielo.get_shader_parameter("radio_luna")
+	if radio is float:
+		_radio_luna_cielo = radio
 	_cohete.reparent(_raiz, true)
 	_altura_base = _cohete.global_position.y
 	_motor.show()
@@ -1116,7 +1125,6 @@ func _pausa(segundos: float) -> void:
 
 ## Altura del cohete, pantallas, temblor, cielo, llamas, sonido, la Tierra, las estrellas y las tomas.
 func _actualizar_ascenso(delta: float) -> void:
-	_quitar_maniobra()  # Cada cuadro se parte del cohete «de verdad» y la maniobra se vuelve a poner al final.
 	var f := clampf(_km / 100.0, 0.0, 1.0)
 	if not _en_espacio:
 		_cohete.global_position.y = _altura_base + SUBIDA_FISICA * (_km / 12.0)
@@ -1145,6 +1153,14 @@ func _actualizar_ascenso(delta: float) -> void:
 	var oscuro := smoothstep(0.08, 0.5, f)
 	_cielo.set_shader_parameter("color_cenit", CIELO_CENIT.lerp(Color(0.0, 0.0, 0.015), oscuro))
 	_cielo.set_shader_parameter("color_horizonte", CIELO_HORIZONTE.lerp(Color(0.12, 0.3, 0.65), smoothstep(0.0, 0.25, f)).lerp(Color(0.0, 0.0, 0.02), smoothstep(0.35, 0.85, f)))
+	# Abajo del horizonte no queda pasto: se ve el espacio (la Tierra es la esfera grande).
+	_cielo.set_shader_parameter("color_suelo", _suelo_cielo.lerp(Color(0.0, 0.0, 0.01), oscuro))
+	_cielo.set_shader_parameter("radio_luna", _radio_luna_cielo * (1.0 - smoothstep(0.1, 0.4, f)))
+	if _km >= 85.0 and _en_espacio and _ambiente.sky.sky_material != _cielo_espacio:
+		var cielo := Sky.new()  # Uno nuevo: el del fondo del menú queda igual.
+		cielo.sky_material = _cielo_espacio
+		cielo.radiance_size = Sky.RADIANCE_SIZE_32
+		_ambiente.sky = cielo
 	_ambiente.ambient_light_energy = lerpf(_luz_ambiente_suelo, 0.3, oscuro)
 	_material_estrellas.albedo_color.a = smoothstep(0.3, 0.75, f)
 	# Las llamas titilan; la principal se abre al subir (menos aire alrededor).
@@ -1174,10 +1190,13 @@ func _actualizar_ascenso(delta: float) -> void:
 	if _toma == "suelo":
 		_camara_ext.look_at(_cohete.global_position + Vector3(0, 35.0, 0))
 	elif _toma == "persecucion":
-		var giro := _toma_desplazamiento.rotated(Vector3.UP, (_tiempo - _toma_inicio) * 0.06)
+		# Gira sola despacio y, además, el jugador la mueve alrededor del cohete con el mouse.
+		var giro := _toma_desplazamiento.rotated(Vector3.UP, (_tiempo - _toma_inicio) * 0.06 + _orbita.x)
+		var lado := giro.cross(Vector3.UP)
+		if lado.length() > 0.01:
+			giro = giro.rotated(lado.normalized(), _orbita.y)
 		_camara_ext.global_position = _cohete.to_global(giro)
 		_camara_ext.look_at(_cohete.to_global(Vector3(0, _toma_alto, 0)), _cohete.global_basis.y)
-		_maniobrar(delta)
 	elif _toma == "libre":
 		_ubicar_camara_libre()
 
@@ -1231,9 +1250,9 @@ func _pasar_al_espacio() -> void:
 
 
 func _toma_afuera(desplazamiento: Vector3, alto: float) -> void:
-	_quitar_maniobra()
 	_ayuda_maniobra.show()
 	_toma = "persecucion"
+	_orbita = Vector2.ZERO
 	_toma_desplazamiento = desplazamiento
 	_toma_alto = alto
 	_toma_inicio = _tiempo
@@ -1242,7 +1261,6 @@ func _toma_afuera(desplazamiento: Vector3, alto: float) -> void:
 
 
 func _toma_adentro() -> void:
-	_quitar_maniobra()
 	_ayuda_maniobra.hide()
 	_toma = ""
 	_vista_exterior(false)
@@ -2198,16 +2216,41 @@ func _construir_espacio() -> void:
 	esfera.height = RADIO_TIERRA * 2.0
 	esfera.radial_segments = 128
 	esfera.rings = 64
+	# El Sol del espacio: del mismo lado que el de la pradera, pero más alto (30°), así ilumina bien
+	# la Tierra de abajo y se ve en el cielo al mirar alrededor del cohete.
+	var sol_tierra: DirectionalLight3D = _exterior.get_node("Sol")
+	var hacia_sol := sol_tierra.global_basis.z
+	hacia_sol.y = 0.0
+	hacia_sol = hacia_sol.normalized() if hacia_sol.length() > 0.01 else Vector3.FORWARD
+	_direccion_sol = (hacia_sol * cos(deg_to_rad(30.0)) + Vector3.UP * sin(deg_to_rad(30.0))).normalized()
 	var material := ShaderMaterial.new()
 	material.shader = preload("res://shaders/TierraEspacio.gdshader")
-	for datos in [["continentes", 2.0, 4, 51], ["nubes", 5.0, 3, 52]]:
-		material.set_shader_parameter(datos[0], _ruido(datos[3], datos[1], datos[2], null))
+	material.set_shader_parameter("continentes", _ruido(51, 2.0, 5, null, 512))
+	material.set_shader_parameter("nubes", _ruido(52, 4.0, 5, null, 512))
+	material.set_shader_parameter("direccion_sol", _direccion_sol)
 	_tierra = MeshInstance3D.new()
 	_tierra.mesh = esfera
 	_tierra.material_override = material
 	_tierra.rotation.x = PI / 2.0
 	_tierra.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_espacio.add_child(_tierra)
+	# Halo azul de la atmósfera: una capa apenas más grande que la Tierra.
+	var capa := SphereMesh.new()
+	capa.radius = RADIO_TIERRA / 0.988
+	capa.height = capa.radius * 2.0
+	capa.radial_segments = 96
+	capa.rings = 48
+	var aire := ShaderMaterial.new()
+	aire.shader = preload("res://shaders/AtmosferaTierra.gdshader")
+	aire.set_shader_parameter("direccion_sol", _direccion_sol)
+	aire.set_shader_parameter("proporcion", 0.988)
+	var atmosfera := MeshInstance3D.new()
+	atmosfera.mesh = capa
+	atmosfera.material_override = aire
+	atmosfera.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_tierra.add_child(atmosfera)
+	_cielo_espacio = ShaderMaterial.new()
+	_cielo_espacio.shader = preload("res://shaders/CieloEspacio.gdshader")
 
 	# Estrellas: siguen la posición de la cápsula (no su giro), así parecen estar en el infinito.
 	_material_estrellas = StandardMaterial3D.new()
@@ -2233,20 +2276,17 @@ func _construir_espacio() -> void:
 	_espacio.add_child(estrellas)
 	_estrellas = estrellas
 
-	# La Luna: gris con mares más oscuros; un poco de brillo propio para que nunca se vea negra.
+	# La Luna: gris con sus «mares» oscuros y cráteres, iluminada por el Sol (se ven sus fases).
 	var luna := SphereMesh.new()
 	luna.radius = 70.0
 	luna.height = 140.0
-	luna.radial_segments = 32
-	luna.rings = 16
-	var mares := Gradient.new()
-	mares.set_color(0, Color(0.42, 0.42, 0.45))
-	mares.set_color(1, Color(0.86, 0.86, 0.84))
-	var piedra := StandardMaterial3D.new()
-	piedra.albedo_texture = _ruido(61, 3.0, 4, mares)
-	piedra.uv1_scale = Vector3(2.0, 1.0, 1.0)
-	piedra.emission_enabled = true
-	piedra.emission = Color(0.12, 0.12, 0.13)
+	luna.radial_segments = 64
+	luna.rings = 32
+	var piedra := ShaderMaterial.new()
+	piedra.shader = preload("res://shaders/LunaEspacio.gdshader")
+	piedra.set_shader_parameter("mares", _ruido(61, 2.0, 3, null))
+	piedra.set_shader_parameter("crateres", _ruido(62, 8.0, 5, null, 512))
+	piedra.set_shader_parameter("direccion_sol", _direccion_sol)
 	_luna = MeshInstance3D.new()
 	_luna.mesh = luna
 	_luna.material_override = piedra
@@ -2255,22 +2295,22 @@ func _construir_espacio() -> void:
 	_espacio.add_child(_luna)
 
 	var sol := DirectionalLight3D.new()
-	sol.light_energy = 1.5
+	sol.light_energy = 1.6
 	sol.light_color = Color(1.0, 0.97, 0.92)
 	_espacio.add_child(sol)
-	var sol_tierra: DirectionalLight3D = _exterior.get_node("Sol")
-	sol.global_basis = sol_tierra.global_basis  # La misma dirección que el sol de la pradera.
+	sol.global_basis = Basis.looking_at(-_direccion_sol, Vector3.UP)  # La luz viaja desde el Sol.
 
 
-## Textura de ruido de 256 × 256 que se repite sin costuras (con «colores», pintada con ese degradado).
-func _ruido(semilla: int, frecuencia: float, octavas: int, colores: Gradient) -> NoiseTexture2D:
+## Textura de ruido de «lado» × «lado» que se repite sin costuras (con «colores», pintada con ese degradado).
+## «frecuencia» es cuántas manchas grandes entran en la textura (no depende del tamaño).
+func _ruido(semilla: int, frecuencia: float, octavas: int, colores: Gradient, lado := 256) -> NoiseTexture2D:
 	var ruido := FastNoiseLite.new()
 	ruido.seed = semilla
-	ruido.frequency = frecuencia / 256.0
+	ruido.frequency = frecuencia / float(lado)
 	ruido.fractal_octaves = octavas
 	var textura := NoiseTexture2D.new()
-	textura.width = 256
-	textura.height = 256
+	textura.width = lado
+	textura.height = lado
 	textura.seamless = true
 	textura.generate_mipmaps = true
 	textura.noise = ruido
@@ -2378,7 +2418,7 @@ func _crear_interfaz() -> void:
 	_aviso_accion.hide()
 
 	_ayuda_maniobra = _etiqueta(capa, 26, Color(0.85, 0.9, 1.0))
-	_ayuda_maniobra.text = "W A S D o flechas: mueve el cohete"
+	_ayuda_maniobra.text = "Arrastra el dedo para mirar alrededor del cohete" if ControlesTactiles.activo else "Mueve el mouse para mirar alrededor del cohete"
 	_ayuda_maniobra.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_ayuda_maniobra.offset_left = -500.0
 	_ayuda_maniobra.offset_right = 500.0
@@ -2452,25 +2492,3 @@ func _etiqueta(padre: Node, tamano: int, color: Color) -> Label:
 	etiqueta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	padre.add_child(etiqueta)
 	return etiqueta
-
-
-## En las tomas desde afuera se puede mover el cohete con W, A, S, D o las flechas: se inclina y
-## gira alrededor de lo que mira la cámara, y vuelve solo al soltar. No cambia el viaje: es para
-## sentir que uno lo maneja. La cámara sigue al cohete «sin maniobra», así el movimiento se ve.
-func _maniobrar(delta: float) -> void:
-	var entrada := Vector2(Input.get_axis("izquierda", "derecha"), Input.get_axis("atras", "adelante"))
-	_maniobra = _maniobra.lerp(entrada, minf(1.0, delta * 2.5))
-	_sin_maniobra = _cohete.global_transform
-	_maniobrando = true
-	var giro := _sin_maniobra.basis * Basis.from_euler(Vector3(-_maniobra.y * 0.35, -_maniobra.x * 0.4, -_maniobra.x * 0.25))
-	var centro := _sin_maniobra * Vector3(0, _toma_alto, 0)
-	_cohete.global_transform = Transform3D(giro, centro - giro * Vector3(0, _toma_alto, 0))
-
-
-## Devuelve el cohete a donde estaría sin la maniobra (al cambiar de toma y al empezar cada cuadro).
-func _quitar_maniobra() -> void:
-	if _maniobrando:
-		_cohete.global_transform = _sin_maniobra
-		_maniobrando = false
-	if _toma != "persecucion":
-		_maniobra = Vector2.ZERO

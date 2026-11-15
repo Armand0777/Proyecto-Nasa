@@ -8,6 +8,9 @@
 script = ExtResource("1_alunizaje")
 
 [node name="Exterior" parent="." instance=ExtResource("2_exterior")]
+tamano_terreno = 4000.0
+celdas = 111
+montanas = true
 segundos_por_vuelta = 600.0
 
 [node name="UI" type="CanvasLayer" parent="."]

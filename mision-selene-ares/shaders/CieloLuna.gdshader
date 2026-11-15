@@ -5,10 +5,11 @@ shader_type sky;
 // Cielo de la Luna en el Polo Sur.
 // Datos reales: sin atmósfera el cielo es negro también de día, y desde el Polo Sur la Tierra
 // se ve siempre cerca del horizonte. Desde la Luna la Tierra se ve unas 4 veces más grande que
-// la Luna llena vista desde la Tierra; aquí se dibuja todavía más grande, para verla de cerca.
+// la Luna llena vista desde la Tierra; aquí se dibuja todavía más grande, para verla de cerca,
+// y un poco más alta (26°) para que asome por encima de las montañas que rodean el Polo Sur.
 
 uniform vec3 color_suelo : source_color = vec3(0.22, 0.22, 0.24);
-uniform vec3 direccion_tierra = vec3(0.631, 0.191, -0.752);
+uniform vec3 direccion_tierra = vec3(0.578, 0.438, -0.689);
 uniform float radio_tierra = 0.09;
 uniform float densidad_estrellas : hint_range(0.95, 0.999) = 0.982;
 

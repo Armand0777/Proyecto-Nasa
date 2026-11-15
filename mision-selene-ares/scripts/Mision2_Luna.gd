@@ -31,7 +31,7 @@ const COLOR_TIERRA := Color(0.545, 0.369, 0.235)
 const SIGUIENTE_ESCENA := "res://scenes/Mision3_Marte.tscn"
 const MENU := "res://scenes/MenuPrincipal.tscn"
 ## Dirección de la Tierra en el cielo lunar (la misma del shader CieloLuna).
-const DIRECCION_TIERRA := Vector3(0.631, 0.191, -0.752)
+const DIRECCION_TIERRA := Vector3(0.578, 0.438, -0.689)  # Igual que en CieloLuna.gdshader.
 const COLOR_HIELO := Color(0.749, 0.953, 1.0)
 
 @export var segundos_antes_de_tormenta := 45.0

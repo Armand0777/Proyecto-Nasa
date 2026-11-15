@@ -12,6 +12,12 @@ const COLOR_ALGAS := Color(0.61, 0.88, 0.36)
 
 @export var posicion_domo := Vector2(17.0, -47.0)
 @export var radio_domo := 9.0
+## true: el terreno termina en una cordillera alta alrededor (como los macizos que rodean el Polo Sur,
+## por ejemplo el Monte Mouton). Así, aunque se mire desde muy alto (el alunizaje), nunca se ve dónde
+## se acaba el suelo: siempre hay Luna hasta el horizonte. Usarlo con un terreno grande (unos 4 km).
+@export var montanas := false
+## Altura de las montañas del borde, en metros.
+@export var alto_montanas := 760.0
 
 ## Cráteres: x, z, radio y profundidad.
 var _crateres: Array[Vector4] = []
@@ -20,10 +26,12 @@ var _crateres: Array[Vector4] = []
 func _ready() -> void:
 	var azar := RandomNumberGenerator.new()
 	azar.seed = semilla + 100
-	for n in 16:
+	# Con montañas el terreno es más grande: más cráteres, y algunos grandes en la llanura.
+	var lejos_crateres := tamano_terreno * 0.3 if montanas else 260.0
+	for n in (34 if montanas else 16):
 		var angulo := azar.randf() * TAU
-		var centro := Vector2(cos(angulo), sin(angulo)) * azar.randf_range(30.0, 260.0)
-		var radio := azar.randf_range(6.0, 30.0)
+		var centro := Vector2(cos(angulo), sin(angulo)) * azar.randf_range(30.0, lejos_crateres)
+		var radio := azar.randf_range(6.0, 30.0) * (1.0 + 2.0 * smoothstep(300.0, lejos_crateres, centro.length()))
 		# Ni encima del biodomo ni debajo de la cámara.
 		if centro.distance_to(posicion_domo) > radio + radio_domo + 20.0 and centro.length() > radio + 8.0:
 			_crateres.append(Vector4(centro.x, centro.y, radio, radio * 0.22))
@@ -63,7 +71,21 @@ func _altura(x: float, z: float) -> float:
 		if d < 1.6:
 			var hoyo := -c.w * (1.0 - d * d) if d < 1.0 else 0.0
 			h += hoyo + c.w * 0.35 * exp(-pow((d - 1.0) / 0.18, 2.0))
+	if montanas:
+		h += _montanas(x, z, punto.length())
 	return h * smoothstep(radio_domo + 3.0, radio_domo + 18.0, punto.distance_to(posicion_domo))
+
+
+## Cordillera del borde: sube desde un poco antes de la mitad hasta el borde del terreno, con picos y
+## valles. En el borde siempre es más alta que la cámara del alunizaje (~430 m), así no se ve el final.
+func _montanas(x: float, z: float, distancia: float) -> float:
+	var mitad := tamano_terreno * 0.5
+	var subida := smoothstep(mitad * 0.42, mitad * 0.86, distancia)
+	if subida <= 0.0:
+		return 0.0
+	var picos := 0.86 + 0.22 * _ruido.get_noise_2d(x * 0.22, z * 0.22)  # Picos anchos.
+	var crestas := 1.0 - absf(_ruido.get_noise_2d(x * 0.9 + 400.0, z * 0.9))  # Crestas filosas.
+	return subida * alto_montanas * (picos + 0.12 * crestas)
 
 
 func _color_suelo(centro: Vector3, variacion: float) -> Color:
