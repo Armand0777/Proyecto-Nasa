@@ -75,6 +75,18 @@ El proyecto usa el renderer **Compatibility**, el que permite exportar a la web.
 
 **Prueba automática:** `scenes/pruebas/PruebaNasaApi.tscn` comprueba el lector de datos de DONKI y escribe "OK" si todo está bien.
 
+### Publicar en la web (Vercel)
+
+1. **Plantillas de exportación (una sola vez por computadora):** en Godot, *Editor → Gestionar plantillas de exportación → Descargar e instalar*. Sin ellas no se puede exportar.
+2. **Exportar:** *Proyecto → Exportar → Web → Exportar proyecto*. Queda en `build/web/`.
+3. **Subir:** desde la carpeta del repositorio (hace falta [Node.js](https://nodejs.org); la primera vez pide iniciar sesión en Vercel):
+   ```
+   powershell -ExecutionPolicy Bypass -File despliegue\subir_a_vercel.ps1
+   ```
+   El script copia la exportación a `build/mision-selene-ares/` con `despliegue/vercel.json` (página ya lista, Vercel no la arma) y la sube como proyecto «mision-selene-ares». Al final muestra el enlace público. Para actualizar, se repiten los pasos 2 y 3.
+
+La exportación es sin hilos, así que no necesita encabezados especiales en el servidor. Ojo: la exportación incluye `data/clave_nasa.txt`, así que en la web la clave de api.nasa.gov se puede sacar del juego; si eso preocupa, quitarla del filtro de exportación (sin ella se usa `DEMO_KEY`).
+
 ---
 
 ## Ciencia real de la NASA en el juego

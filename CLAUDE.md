@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `convertir_modelos.gd` produce los `*-juego.res` (árboles/pasto); `convertir_estacion.gd` produce `modelos/estacion/estacion-juego.scn`. Las instrucciones están al inicio de cada script.
 - Exportar: presets en `export_presets.cfg` — Web → `build/web/index.html` (sin hilos, para itch.io), Android → `build/android/`. `build/` no se sube al repo.
 - Servir la versión web localmente: configuración `juego-web` de `.claude/launch.json` (python http.server en el puerto 8060 sobre `build/web`).
+- Publicar en Vercel: exportar Web y correr `powershell -ExecutionPolicy Bypass -File despliegue/subir_a_vercel.ps1` (copia `build/web` a `build/mision-selene-ares` con `despliegue/vercel.json` y hace `vercel deploy --prod`). Pasos completos en el README. Subir publica el juego: solo si el usuario lo pide.
 
 ## Arquitectura
 
