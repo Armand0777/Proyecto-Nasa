@@ -51,6 +51,18 @@ func decir(texto: String, pregunta := "", respuesta := "", glosario := {}, audio
 	_escribir(texto, audio)
 
 
+## Lleva la burbuja arriba a la izquierda, más angosta (en la cabina, abajo está el tablero).
+func arriba_izquierda() -> void:
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	grow_horizontal = Control.GROW_DIRECTION_END
+	grow_vertical = Control.GROW_DIRECTION_END
+	_texto.custom_minimum_size.x = 500.0  # Más angosta: no choca con los paneles de arriba al centro.
+	offset_left = 40.0
+	offset_top = 40.0
+	offset_right = 600.0
+	offset_bottom = 160.0
+
+
 func callar() -> void:
 	hide()
 	_grabacion.stop()

@@ -41,7 +41,7 @@ const ESCOTILLA := 4
 ## Bisagra del brazo de acceso en la torre (x, z en coordenadas de la plataforma, a la altura del piso).
 const BISAGRA_BRAZO := Vector2(9.0, 5.0)
 ## Ojos de Comandante Junior en su asiento (coordenadas de la cápsula).
-const OJOS := Vector3(0.0, 1.05, 0.55)
+const OJOS := Vector3(0.0, 1.05, 0.25)  # Adelante, al alcance del tablero: es el puesto de piloto.
 ## Inclinación de la mirada al pilotar: el centro de la pantalla queda en medio de la ventana.
 const MIRADA_PILOTO := 0.25
 ## Cuánto sube de verdad el cohete en la escena antes de pasar a la vista del espacio.
@@ -144,8 +144,6 @@ var _tiempo_alineado := 0.0
 var _motor: Node3D
 var _motor_principal := false
 var _llamas: Array[Node3D] = []
-var _material_llama: StandardMaterial3D
-var _material_nucleo_llama: StandardMaterial3D
 var _llama_superior: Node3D
 var _llama_capsula: Node3D
 var _luz_motor: OmniLight3D
@@ -170,6 +168,11 @@ var _cuenta: Label
 var _panel_altitud: PanelContainer
 var _altitud_label: Label
 var _aviso_accion: Label
+var _ayuda_maniobra: Label
+# Maniobra en las tomas desde afuera: el jugador inclina y gira el cohete (vuelve solo al soltar).
+var _maniobra := Vector2.ZERO
+var _maniobrando := false
+var _sin_maniobra := Transform3D()  # Dónde estaría el cohete sin la maniobra.
 var _banner: Label
 var _mira_piloto: Panel
 var _marca_luna: Panel
@@ -317,6 +320,7 @@ func _preparar_cabina() -> void:
 	_hud.get_node("Mira").hide()
 	_hud.get_node("Aviso").hide()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_dialogo.arriba_izquierda()  # En la cabina, abajo está el tablero: los mensajes van arriba a la izquierda.
 	_vista_exterior(false)
 
 
@@ -324,7 +328,7 @@ func _meter_arti(inmediato: bool) -> void:
 	if _tween_arti:
 		_tween_arti.kill()
 	_arti.reparent(_interior, true)
-	var lugar := Vector3(1.0, 0.0, 0.2)
+	var lugar := Vector3(1.05, 0.0, 0.6)  # En el asiento de copiloto (derecha, un poco atrás): no tapa la vista.
 	var mirar := func() -> void: _arti.look_at(_interior.to_global(Vector3(OJOS.x, 0.0, OJOS.z)))
 	if inmediato:
 		_arti.position = lugar
@@ -782,6 +786,7 @@ func _pausa(segundos: float) -> void:
 
 ## Altura del cohete, pantallas, temblor, cielo, llamas, sonido, la Tierra, las estrellas y las tomas.
 func _actualizar_ascenso(delta: float) -> void:
+	_quitar_maniobra()  # Cada cuadro se parte del cohete «de verdad» y la maniobra se vuelve a poner al final.
 	var f := clampf(_km / 100.0, 0.0, 1.0)
 	if not _en_espacio:
 		_cohete.global_position.y = _altura_base + SUBIDA_FISICA * (_km / 12.0)
@@ -808,13 +813,14 @@ func _actualizar_ascenso(delta: float) -> void:
 	# Las llamas titilan; la principal se abre al subir (menos aire alrededor).
 	if _motor_principal:
 		var abierta := 1.0 + 2.6 * smoothstep(10.0, 80.0, _km)
-		for llama in _llamas:
-			var titila := randf_range(0.9, 1.1)
-			llama.scale = Vector3(abierta * titila, (1.0 + 0.4 * (abierta - 1.0)) * titila, abierta * titila)
-		_luz_motor.light_energy = randf_range(5.0, 7.0)
-	for llama in [_llama_superior, _llama_capsula]:
+		for i in _llamas.size():
+			var titila := _titileo(i)
+			_llamas[i].scale = Vector3(abierta * titila, (1.0 + 0.4 * (abierta - 1.0)) * (0.92 + 0.16 * titila), abierta * titila)
+		_luz_motor.light_energy = 6.0 * _titileo(7)
+	for i in 2:
+		var llama: Node3D = [_llama_superior, _llama_capsula][i]
 		if is_instance_valid(llama) and llama.visible:
-			llama.scale = Vector3.ONE * randf_range(0.88, 1.12)
+			llama.scale = Vector3.ONE * _titileo(3 + i)
 	if is_instance_valid(_sonido_motor):
 		_sonido_motor.volume_db = lerpf(0.0, -32.0, clampf(_km / 70.0, 0.0, 1.0))
 	# La Tierra grande se aleja y gira despacio bajo la cápsula; las estrellas la acompañan.
@@ -830,6 +836,14 @@ func _actualizar_ascenso(delta: float) -> void:
 		var giro := _toma_desplazamiento.rotated(Vector3.UP, (_tiempo - _toma_inicio) * 0.06)
 		_camara_ext.global_position = _cohete.to_global(giro)
 		_camara_ext.look_at(_cohete.to_global(Vector3(0, _toma_alto, 0)), _cohete.global_basis.y)
+		_maniobrar(delta)
+
+
+## Titileo suave de una llama (entre ~0.9 y ~1.1): sumas de senos, distinto para cada «semilla».
+## Antes era un número al azar por cuadro y se veía como un temblor nervioso.
+func _titileo(semilla: int) -> float:
+	var t := _tiempo + semilla * 1.7
+	return 1.0 + 0.06 * sin(t * 31.0) + 0.04 * sin(t * 17.0 + 1.3)
 
 
 func _velocidad(km: float) -> float:
@@ -874,6 +888,8 @@ func _pasar_al_espacio() -> void:
 
 
 func _toma_afuera(desplazamiento: Vector3, alto: float) -> void:
+	_quitar_maniobra()
+	_ayuda_maniobra.show()
 	_toma = "persecucion"
 	_toma_desplazamiento = desplazamiento
 	_toma_alto = alto
@@ -883,6 +899,8 @@ func _toma_afuera(desplazamiento: Vector3, alto: float) -> void:
 
 
 func _toma_adentro() -> void:
+	_quitar_maniobra()
+	_ayuda_maniobra.hide()
 	_toma = ""
 	_vista_exterior(false)
 	_camara.make_current()
@@ -1344,7 +1362,7 @@ func _etiqueta_3d(texto: String, posicion: Vector3) -> void:
 
 
 func _construir_asientos() -> void:
-	for datos in [[Vector3(0, 0, 0.8), 0.0, true], [Vector3(-1.05, 0, 0.55), 0.45, false], [Vector3(1.05, 0, 0.55), -0.45, false]]:
+	for datos in [[Vector3(0, 0, 0.5), 0.0, true], [Vector3(-1.05, 0, 0.55), 0.45, false], [Vector3(1.05, 0, 0.55), -0.45, false]]:
 		var asiento := Node3D.new()
 		asiento.position = datos[0]
 		asiento.rotation.y = datos[1]
@@ -1430,11 +1448,11 @@ func _construir_detalles() -> void:
 
 	# Mandos de las manos junto al asiento: el derecho gira la cápsula y el izquierdo la mueve.
 	for x in [-0.38, 0.38]:
-		_bloque(Vector3(0.09, 0.06, 0.4), Vector3(x, 0.56, 0.62), oscuro, false, _interior)
-		_bloque(Vector3(0.1, 0.04, 0.12), Vector3(x, 0.61, 0.5), metal.darkened(0.3), false, _interior)
-		_bloque(Vector3(0.03, 0.1, 0.03), Vector3(x, 0.68, 0.5), metal, false, _interior)
-		_bloque(Vector3(0.05, 0.08, 0.05), Vector3(x, 0.76, 0.5), COLOR_NOCHE, false, _interior)
-		_led(_interior, Vector3(x, 0.805, 0.5), ambar, 0.022)
+		_bloque(Vector3(0.09, 0.06, 0.4), Vector3(x, 0.56, 0.32), oscuro, false, _interior)
+		_bloque(Vector3(0.1, 0.04, 0.12), Vector3(x, 0.61, 0.2), metal.darkened(0.3), false, _interior)
+		_bloque(Vector3(0.03, 0.1, 0.03), Vector3(x, 0.68, 0.2), metal, false, _interior)
+		_bloque(Vector3(0.05, 0.08, 0.05), Vector3(x, 0.76, 0.2), COLOR_NOCHE, false, _interior)
+		_led(_interior, Vector3(x, 0.805, 0.2), ambar, 0.022)
 
 	# Luz azul suave del tablero (sin sombra: es barata).
 	var brillo := OmniLight3D.new()
@@ -1530,18 +1548,11 @@ func _construir_motores() -> void:
 	_motor = Node3D.new()
 	_cohete.add_child(_motor)
 	_motor.hide()
-	_material_llama = StandardMaterial3D.new()
-	_material_llama.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material_llama.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_material_llama.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_material_llama.albedo_color = Color(1.0, 0.5, 0.12, 0.8)
-	_material_llama.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_material_nucleo_llama = StandardMaterial3D.new()
-	_material_nucleo_llama.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material_nucleo_llama.albedo_color = Color(1.0, 0.93, 0.6)
-	# Orden: núcleo, propulsor izquierdo, propulsor derecho.
+	# Orden: núcleo, propulsor izquierdo, propulsor derecho. Los propulsores (combustible sólido)
+	# tienen llama más larga y amarilla; el núcleo, más azulada y con diamantes de choque.
 	for x in [0.0, -6.3, 6.3]:
-		_llamas.append(_crear_llama(_motor, Vector3(x, 7.0, 0), 2.2 if is_zero_approx(x) else 1.5, 11.0))
+		var centro := is_zero_approx(x)
+		_llamas.append(_crear_llama(_motor, Vector3(x, 7.0, 0), 2.2 if centro else 1.5, 16.0 if centro else 20.0, not centro))
 	_luz_motor = OmniLight3D.new()
 	_luz_motor.light_color = Color(1.0, 0.62, 0.25)
 	_luz_motor.omni_range = 60.0
@@ -1566,19 +1577,77 @@ func _construir_motores() -> void:
 	_cohete.add_child(_estela)
 
 
-## Una llama que sale hacia abajo desde «posicion»: un cono naranja que brilla y uno amarillo adentro.
-func _crear_llama(padre: Node3D, posicion: Vector3, ancho: float, largo: float) -> Node3D:
+## Una llama que sale hacia abajo desde «posicion» (shader Llama): un resplandor ancho y corto, la
+## llama naranja y un núcleo casi blanco, más chispas de fuego que salen disparadas hacia atrás.
+## «solido»: motor de combustible sólido (más amarillo y humeante, sin diamantes de choque).
+func _crear_llama(padre: Node3D, posicion: Vector3, ancho: float, largo: float, solido := false) -> Node3D:
 	var llama := Node3D.new()
 	llama.position = posicion
 	padre.add_child(llama)
-	for datos in [[ancho, largo, _material_llama], [ancho * 0.5, largo * 0.55, _material_nucleo_llama]]:
+	var capas := [
+		# [ancho arriba, ancho en la punta, largo, color cerca, color lejos, intensidad, diamantes]
+		[ancho * 1.5, ancho * 0.9, largo * 0.45, Color(1.0, 0.62, 0.22), Color(0.95, 0.3, 0.05), 0.3, 0.0],
+		[ancho, ancho * 0.25, largo, Color(1.0, 0.78, 0.35), Color(1.0, 0.38, 0.06), 0.85, 0.0 if solido else 0.7],
+		[ancho * 0.55, 0.05, largo * 0.5, Color(1.0, 0.98, 0.88), Color(1.0, 0.82, 0.4), 1.0, 0.0],
+	]
+	for datos in capas:
 		var cono := MeshInstance3D.new()
-		cono.mesh = Fondo._cilindro(datos[0], 0.1, datos[1], 10)
-		cono.material_override = datos[2]
-		cono.position.y = -datos[1] / 2.0
+		cono.mesh = Fondo._cilindro(datos[0], datos[1], datos[2], 14)
+		var material := ShaderMaterial.new()
+		material.shader = preload("res://shaders/Llama.gdshader")
+		material.set_shader_parameter("largo", datos[2])
+		material.set_shader_parameter("color_cerca", datos[3])
+		material.set_shader_parameter("color_lejos", datos[4])
+		material.set_shader_parameter("intensidad", datos[5])
+		material.set_shader_parameter("diamantes", datos[6])
+		cono.material_override = material
+		cono.position.y = -datos[2] / 2.0
 		cono.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		llama.add_child(cono)
+	llama.add_child(_crear_chispas(ancho, largo))
 	return llama
+
+
+## Chispas de fuego: puntos brillantes que salen de la tobera hacia atrás y se apagan rápido.
+func _crear_chispas(ancho: float, largo: float) -> CPUParticles3D:
+	var chispas := CPUParticles3D.new()
+	chispas.amount = 40
+	chispas.lifetime = 0.45
+	chispas.local_coords = true
+	chispas.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	chispas.emission_sphere_radius = ancho * 0.5
+	chispas.direction = Vector3.DOWN
+	chispas.spread = 8.0
+	chispas.gravity = Vector3.ZERO
+	chispas.initial_velocity_min = largo * 2.0
+	chispas.initial_velocity_max = largo * 3.0
+	chispas.scale_amount_min = 0.5
+	chispas.scale_amount_max = 1.2
+	var color := Gradient.new()
+	color.set_color(0, Color(1.0, 0.95, 0.7))
+	color.set_color(1, Color(0.8, 0.2, 0.0, 0.0))
+	color.add_point(0.4, Color(1.0, 0.55, 0.15))
+	chispas.color_ramp = color
+	var punto := GradientTexture2D.new()  # Redondas y difusas, no cuadraditos.
+	punto.fill = GradientTexture2D.FILL_RADIAL
+	punto.fill_from = Vector2(0.5, 0.5)
+	punto.fill_to = Vector2(1.0, 0.5)
+	var borde := Gradient.new()
+	borde.set_color(0, Color.WHITE)
+	borde.set_color(1, Color(1, 1, 1, 0))
+	punto.gradient = borde
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.vertex_color_use_as_albedo = true
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	material.albedo_texture = punto
+	var cuadro := QuadMesh.new()
+	cuadro.size = Vector2.ONE * ancho * 0.45
+	cuadro.material = material
+	chispas.mesh = cuadro
+	return chispas
 
 
 ## Cuatro paneles solares en X alrededor del módulo gris de la cápsula. Están ocultos y plegados
@@ -1868,6 +1937,15 @@ func _crear_interfaz() -> void:
 	_aviso_accion.offset_bottom = 200.0
 	_aviso_accion.hide()
 
+	_ayuda_maniobra = _etiqueta(capa, 26, Color(0.85, 0.9, 1.0))
+	_ayuda_maniobra.text = "W A S D o flechas: mueve el cohete"
+	_ayuda_maniobra.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_ayuda_maniobra.offset_left = -500.0
+	_ayuda_maniobra.offset_right = 500.0
+	_ayuda_maniobra.offset_top = -190.0
+	_ayuda_maniobra.offset_bottom = -150.0
+	_ayuda_maniobra.hide()
+
 	_banner = _etiqueta(capa, 58, COLOR_AMARILLO)
 	_banner.theme_type_variation = &"Titulo"
 	_banner.set_anchors_preset(Control.PRESET_CENTER)
@@ -1934,3 +2012,25 @@ func _etiqueta(padre: Node, tamano: int, color: Color) -> Label:
 	etiqueta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	padre.add_child(etiqueta)
 	return etiqueta
+
+
+## En las tomas desde afuera se puede mover el cohete con W, A, S, D o las flechas: se inclina y
+## gira alrededor de lo que mira la cámara, y vuelve solo al soltar. No cambia el viaje: es para
+## sentir que uno lo maneja. La cámara sigue al cohete «sin maniobra», así el movimiento se ve.
+func _maniobrar(delta: float) -> void:
+	var entrada := Vector2(Input.get_axis("izquierda", "derecha"), Input.get_axis("atras", "adelante"))
+	_maniobra = _maniobra.lerp(entrada, minf(1.0, delta * 2.5))
+	_sin_maniobra = _cohete.global_transform
+	_maniobrando = true
+	var giro := _sin_maniobra.basis * Basis.from_euler(Vector3(-_maniobra.y * 0.35, -_maniobra.x * 0.4, -_maniobra.x * 0.25))
+	var centro := _sin_maniobra * Vector3(0, _toma_alto, 0)
+	_cohete.global_transform = Transform3D(giro, centro - giro * Vector3(0, _toma_alto, 0))
+
+
+## Devuelve el cohete a donde estaría sin la maniobra (al cambiar de toma y al empezar cada cuadro).
+func _quitar_maniobra() -> void:
+	if _maniobrando:
+		_cohete.global_transform = _sin_maniobra
+		_maniobrando = false
+	if _toma != "persecucion":
+		_maniobra = Vector2.ZERO
