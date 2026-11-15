@@ -17,18 +17,26 @@ const COLOR_ALGAS := Color(0.61, 0.88, 0.36)
 ## se acaba el suelo: siempre hay Luna hasta el horizonte. Usarlo con un terreno grande (unos 4 km).
 @export var montanas := false
 ## Altura de las montañas del borde, en metros.
-@export var alto_montanas := 760.0
+@export var alto_montanas := 480.0
 ## Cuánto baja el borde del terreno detrás de las montañas: así se mete debajo de la Luna redonda
 ## del alunizaje (vista desde la órbita, la cordillera parece el borde de un gran cráter).
-@export var hundir_borde := 260.0
+@export var hundir_borde := 90.0
+## Radio de la Luna redonda del alunizaje (Mision2_Alunizaje.RADIO_LUNA): con montañas, el terreno
+## sigue su curva.
+const RADIO_LUNA := 30000.0
 
 ## Material de las persianas del domo (shader Cortinas: «cobertura» 0 abiertas, 1 cerradas).
 var cortinas: ShaderMaterial
 ## Cráteres: x, z, radio y profundidad.
 var _crateres: Array[Vector4] = []
+## Ruido suave (una sola capa) para los macizos: formas redondeadas, sin picos.
+var _ruido_montes := FastNoiseLite.new()
 
 
 func _ready() -> void:
+	_ruido_montes.seed = semilla + 300
+	_ruido_montes.frequency = 0.003
+	_ruido_montes.fractal_type = FastNoiseLite.FRACTAL_NONE
 	var azar := RandomNumberGenerator.new()
 	azar.seed = semilla + 100
 	# Con montañas el terreno es más grande: más cráteres, y algunos grandes en la llanura.
@@ -63,6 +71,7 @@ func _pintar_regolito() -> void:
 		textura.generate_mipmaps = true
 		textura.noise = ruido
 		material.set_shader_parameter(datos[0], textura)
+	material.set_shader_parameter("crateres", preload("res://texturas/crateres_luna.res"))
 	_terreno.material_override = material
 
 
@@ -78,21 +87,27 @@ func _altura(x: float, z: float) -> float:
 			h += hoyo + c.w * 0.35 * exp(-pow((d - 1.0) / 0.18, 2.0))
 	if montanas:
 		h += _montanas(x, z, punto.length())
-	return h * smoothstep(radio_domo + 3.0, radio_domo + 18.0, punto.distance_to(posicion_domo))
+	h *= smoothstep(radio_domo + 3.0, radio_domo + 18.0, punto.distance_to(posicion_domo))
+	# El suelo sigue la curva de la Luna redonda del alunizaje: así su borde se funde con ella.
+	return h - punto.length_squared() / (2.0 * RADIO_LUNA) if montanas else h
 
 
-## Cordillera alrededor: sube desde un poco antes de la mitad, tiene picos y crestas, y detrás baja
-## hasta meterse debajo del suelo de la Luna redonda. Desde abajo (más bajo que los picos) nunca se
-## ve dónde termina el terreno; desde la órbita, se ve como el borde de un gran cráter.
+## Macizos alrededor (como el Monte Mouton y los que rodean el cráter Shackleton): montañas sueltas
+## y redondeadas (en la Luna no hay viento ni agua; millones de años de impactos las fueron
+## gastando), con valles entre ellas. Del lado de afuera bajan en pendiente hasta meterse justo debajo
+## de la Luna redonda: desde la órbita se ven como montañas sobre la Luna, no como un muro.
 func _montanas(x: float, z: float, distancia: float) -> float:
 	var mitad := tamano_terreno * 0.5
-	var subida := smoothstep(mitad * 0.42, mitad * 0.7, distancia)
+	var subida := smoothstep(mitad * 0.24, mitad * 0.6, distancia)
 	if subida <= 0.0:
 		return 0.0
-	var bajada := smoothstep(mitad * 0.8, mitad * 0.99, distancia)
-	var picos := 0.86 + 0.22 * _ruido.get_noise_2d(x * 0.22, z * 0.22)  # Picos anchos.
-	var crestas := 1.0 - absf(_ruido.get_noise_2d(x * 0.9 + 400.0, z * 0.9))  # Crestas filosas.
-	return subida * (1.0 - bajada) * alto_montanas * (picos + 0.12 * crestas) - bajada * hundir_borde
+	var bajada := smoothstep(mitad * 0.6, mitad * 0.99, distancia)
+	var direccion := Vector2(x, z) / maxf(distancia, 1.0)
+	var macizo := smoothstep(-0.2, 0.35, _ruido_montes.get_noise_2d(direccion.x * 420.0, direccion.y * 420.0))  # Dónde hay montaña.
+	var bulto := 0.6 + 0.4 * _ruido_montes.get_noise_2d(x * 0.35 + 500.0, z * 0.35)  # Cumbres redondeadas.
+	var arrugas := 0.06 * _ruido.get_noise_2d(x * 0.5, z * 0.5)  # Un poco de detalle, sin picos filosos.
+	var alto := alto_montanas * macizo * macizo * (bulto + arrugas)
+	return subida * (1.0 - bajada) * alto - bajada * hundir_borde
 
 
 func _color_suelo(centro: Vector3, variacion: float) -> Color:
