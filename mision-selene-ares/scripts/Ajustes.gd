@@ -4,7 +4,10 @@ extends Node
 
 const RUTA := "user://ajustes.cfg"
 ## Los textos en inglés, por partes del juego (scripts/textos/). Cada archivo tiene un diccionario TEXTOS.
-const TEXTOS_INGLES := [preload("res://scripts/textos/Ingles_Menus.gd")]
+const TEXTOS_INGLES := [
+	preload("res://scripts/textos/Ingles_Menus.gd"), preload("res://scripts/textos/Ingles_Comunes.gd"),
+	preload("res://scripts/textos/Ingles_Tierra.gd"), preload("res://scripts/textos/Ingles_Cabina.gd"),
+]
 
 ## Se emite al cambiar de idioma (para lo que no se traduce solo).
 signal idioma_cambiado

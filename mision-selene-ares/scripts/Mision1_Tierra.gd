@@ -175,7 +175,7 @@ func _empezar_hangar(saltado: bool, desde_prologo := true) -> void:
 		saludo = "¡Este es el hangar, Comandante!"
 		audio = "m1_01b_bienvenida_hangar"
 	_dialogo.decir(
-		saludo + " Antes de subir al cohete rumbo a la Luna, tenemos un reto de física: cada kilogramo extra necesita mucho [url=combustible]combustible[/url] extra. ¡Elige bien qué llevar en nuestra bodega y en la Bio-Box! Mira la mesa holográfica y pulsa E.",
+		tr(saludo) + tr(" Antes de subir al cohete rumbo a la Luna, tenemos un reto de física: cada kilogramo extra necesita mucho [url=combustible]combustible[/url] extra. ¡Elige bien qué llevar en nuestra bodega y en la Bio-Box! Mira la mesa holográfica y pulsa E."),
 		"¿Qué es la Bio-Box?",
 		"Es nuestro mini-ecosistema vivo. En el espacio no podemos llevar vacas ni árboles grandes, así que llevamos microalgas, peces cebra, abejorros y lombrices que limpian el aire y producen comida por nosotros.",
 		{"combustible": "El cohete quema combustible para subir. Si llevamos más kilos, necesita más combustible... ¡y el combustible también pesa! Por eso cada kilo cuenta."},
@@ -233,7 +233,7 @@ func _al_cargar(ids: Array[String]) -> void:
 		comentario = "Sin microalgas, el oxígeno del biodomo bajará más rápido."
 	elif not ids.has("baterias"):
 		comentario = "Sin baterías extra, habrá que cuidar mucho la electricidad."
-	_dialogo.decir("¡Carga lista! %s Cuando quieras, sal por la puerta de la derecha: caminaremos hasta el cohete. (Haz clic para volver a moverte.)" % comentario)
+	_dialogo.decir(tr("¡Carga lista! %s Cuando quieras, sal por la puerta de la derecha: caminaremos hasta el cohete. (Haz clic para volver a moverte.)") % tr(comentario))
 	_puerta.texto = "Salir hacia el cohete"
 	_flecha.apuntar(_puerta.global_position + Vector3(-0.6, 1.0, 0))
 	_arti_ir(Vector3(6.4, 0.6, 2.4))
@@ -752,7 +752,7 @@ func _mover_ascensor(subida: float) -> void:
 		var hasta: Vector3 = puntos[i][1]
 		_cables_ascensor[i].position = (desde + hasta) / 2.0
 		_cables_ascensor[i].scale.y = maxf(hasta.y - desde.y, 0.01)
-	_altura_ascensor.text = "ALTURA\n%d m" % roundi(_ascensor.position.y + 0.2)
+	_altura_ascensor.text = tr("ALTURA\n%d m") % roundi(_ascensor.position.y + 0.2)
 
 
 ## Canastas de escape, como en la plataforma de lanzamiento de Artemis: en la cara de la torre que no

@@ -140,12 +140,12 @@ func _info(id: String) -> Dictionary:
 		return GameManager.OBJETOS[id]
 	if GameManager.CARGA.has(id):
 		var carga: Dictionary = GameManager.CARGA[id]
-		return {"nombre": carga.nombre, "tipo": "Bodega de la nave · %d kg" % carga.kg, "icono": id, "texto": "Lo cargaste en el hangar. " + carga.texto + "."}
+		return {"nombre": carga.nombre, "tipo": tr("Bodega de la nave · %d kg") % carga.kg, "icono": id, "texto": tr("Lo cargaste en el hangar. ") + tr(carga.texto) + "."}
 	return {}
 
 
 func _actualizar() -> void:
-	_lugar.text = "Comandante Junior · %s" % LUGARES[GameManager.planeta_actual]
+	_lugar.text = tr("Comandante Junior · %s") % tr(LUGARES[GameManager.planeta_actual])
 	# Equipo puesto y el traje en 3D.
 	for id in _ranuras:
 		_llenar(_ranuras[id], id if GameManager.puesto.has(id) else "", 1)
@@ -165,7 +165,7 @@ func _actualizar() -> void:
 			total += lista[i][1]
 		else:
 			_llenar(_celdas[i], "", 0)
-	_titulo_mochila.text = "MOCHILA · %d %s" % [total, "objeto" if total == 1 else "objetos"]
+	_titulo_mochila.text = tr("MOCHILA · %d %s") % [total, tr("objeto" if total == 1 else "objetos")]
 	# Bodega de la nave.
 	var kilos := 0
 	for i in _celdas_carga.size():
@@ -176,7 +176,7 @@ func _actualizar() -> void:
 	if GameManager.carga_elegida.is_empty():
 		_titulo_bodega.text = "BODEGA DE LA NAVE · vacía (se llena en el hangar)"
 	else:
-		_titulo_bodega.text = "BODEGA DE LA NAVE · %d de 100 kg" % kilos
+		_titulo_bodega.text = tr("BODEGA DE LA NAVE · %d de 100 kg") % kilos
 	# Si lo elegido ya no está (se comió la última barra), se elige lo primero que haya.
 	if _seleccion == null or _seleccion.get_meta("id") == "":
 		_seleccion = null
@@ -228,7 +228,7 @@ func _mostrar_detalle(casilla: Panel) -> void:
 		return
 	var cantidad := GameManager.cantidad(id)
 	var en_mochila := not GameManager.RANURAS.has(id) and not GameManager.CARGA.has(id)
-	_detalle_nombre.text = info.nombre + ("  ×%d" % cantidad if en_mochila and cantidad > 1 else "")
+	_detalle_nombre.text = tr(info.nombre) + ("  ×%d" % cantidad if en_mochila and cantidad > 1 else "")
 	_detalle_tipo.text = info.tipo
 	_detalle_texto.text = info.texto
 	_boton_usar.visible = info.has("usar") and cantidad > 0
@@ -236,8 +236,8 @@ func _mostrar_detalle(casilla: Panel) -> void:
 		var efectos: Dictionary = info.usar
 		var partes := []
 		for recurso in efectos:
-			partes.append("%+d %s" % [roundi(efectos[recurso]), recurso.replace("_", " ")])
-		_boton_usar.text = "USAR  (%s)" % ", ".join(partes)
+			partes.append("%+d %s" % [roundi(efectos[recurso]), tr(recurso.replace("_", " "))])
+		_boton_usar.text = tr("USAR  (%s)") % ", ".join(partes)
 
 
 func _usar_elegido() -> void:

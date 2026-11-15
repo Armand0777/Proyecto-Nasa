@@ -261,7 +261,7 @@ func _process(delta: float) -> void:
 	camara.v_offset = randf_range(-1.0, 1.0) * 0.035 * _temblor
 	if _en_puzle:
 		_restante -= delta
-		_tiempo_label.text = "Tiempo para el despegue: %d s\n(mueve el mouse para mirar por las ventanas)" % ceili(_restante)
+		_tiempo_label.text = tr("Tiempo para el despegue: %d s\n(mueve el mouse para mirar por las ventanas)") % ceili(_restante)
 		if _restante <= 0.0:
 			_reiniciar_puzle()
 	if _despegando:
@@ -508,7 +508,7 @@ func _actualizar_apuntado(activo: bool) -> void:
 	_apuntado = nuevo
 	var aviso: Label = _hud.get_node("Aviso")
 	if nuevo:
-		aviso.text = ("[USAR] %s" if ControlesTactiles.activo else "[E] %s") % _controles[nuevo][0]
+		aviso.text = (tr("[USAR] %s") if ControlesTactiles.activo else "[E] %s") % tr(_controles[nuevo][0])
 	aviso.visible = nuevo != null
 
 
@@ -568,7 +568,7 @@ func _alternar_luces() -> void:
 		if not _energia_luces.has(luz):
 			_energia_luces[luz] = (luz as OmniLight3D).light_energy
 		create_tween().tween_property(luz, "light_energy", _energia_luces[luz] * (0.25 if _luces_bajas else 1.0), 0.4)
-	_dialogo.decir("Luces de la cabina %s. Con poca luz adentro se ven mejor las estrellas." % ("bajas" if _luces_bajas else "encendidas"))
+	_dialogo.decir(tr("Luces de la cabina %s. Con poca luz adentro se ven mejor las estrellas.") % tr("bajas" if _luces_bajas else "encendidas"))
 
 
 func _llamar_radio() -> void:
@@ -588,7 +588,7 @@ func _llamar_radio() -> void:
 func _ver_estado() -> void:
 	_hundir(_botones_aux[2])
 	var combustible := roundi(lerpf(100.0, 35.0, clampf(_km / 100.0, 0.0, 1.0)))
-	_dialogo.decir("Estado: presión de cabina normal, oxígeno 21 %%, temperatura 22 °C. %s" % ("Altitud %s km." % _con_puntos(floori(_km)) if _despegando else "Combustible %d %%: listos para despegar." % combustible))
+	_dialogo.decir(tr("Estado: presión de cabina normal, oxígeno 21 %%, temperatura 22 °C. %s") % (tr("Altitud %s km.") % _con_puntos(floori(_km)) if _despegando else tr("Combustible %d %%: listos para despegar.") % combustible))
 
 
 func _ver_biobox() -> void:
@@ -673,7 +673,7 @@ func _activar(indice: int) -> void:
 		return
 	if indice != _siguiente:
 		Sonidos.tocar("error.ogg")
-		_dialogo.decir("¡Ese todavía no! Primero %s." % INTERRUPTORES[_siguiente][2])
+		_dialogo.decir(tr("¡Ese todavía no! Primero %s.") % tr(INTERRUPTORES[_siguiente][2]))
 		return
 	Sonidos.tocar("interruptor.ogg")
 	_luces[indice].albedo_color = COLOR_LISTO
@@ -829,7 +829,7 @@ func _viaje_a_la_luna() -> void:
 	_viajando = true
 	# Empieza desde afuera: la cápsula avanza hacia la Luna, que se ve crecer. Con C se va adentro.
 	_toma_libre()
-	_tiempo_label.text = "Cámara: %s  (adentro / afuera)" % ("botón CÁMARA" if ControlesTactiles.activo else "tecla C · mouse para girar")
+	_tiempo_label.text = tr("Cámara: %s  (adentro / afuera)") % tr("botón CÁMARA" if ControlesTactiles.activo else "tecla C · mouse para girar")
 	_tiempo_label.show()
 	var viaje := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	viaje.tween_property(self, "_horas_viaje", 72.0, 30.0)
@@ -890,12 +890,12 @@ func _mostrar_asteroides(resultado: Dictionary) -> void:
 	if not resultado.listo or (resultado.dato as Dictionary).is_empty():
 		return
 	var dato: Dictionary = resultado.dato
-	var cuando := "HOY" if dato.estado == "EN VIVO" else "EL %s" % dato.fecha
+	var cuando := tr("HOY") if dato.estado == "EN VIVO" else tr("EL %s") % dato.fecha
 	GameManager.estado_neows = "%d asteroides el %s; el más cercano, %s, pasó a %s km (%s)" % [
 		dato.cantidad, dato.fecha, dato.nombre, _con_puntos(int(dato.km)), dato.estado]
 	_dialogo.decir("Mira la pantalla, Comandante: la NASA vigila los asteroides que pasan cerca de la Tierra y calcula su camino con muchos años de anticipación. Ahí ves los que pasan en estos días.", "", "", {}, "m1_28b_asteroides")
-	_banner.text = "ASTEROIDES CERCA DE LA TIERRA %s: %d\nEl más cercano: %s · unos %d m · pasa a %s km (%.1f veces la distancia a la Luna)\nFuente: NASA NeoWs · %s" % [
-		cuando, dato.cantidad, dato.nombre, maxi(1, roundi(dato.metros)), _con_puntos(int(dato.km)), dato.lunas, dato.estado]
+	_banner.text = tr("ASTEROIDES CERCA DE LA TIERRA %s: %d\nEl más cercano: %s · unos %d m · pasa a %s km (%.1f veces la distancia a la Luna)\nFuente: NASA NeoWs · %s") % [
+		cuando, dato.cantidad, dato.nombre, maxi(1, roundi(dato.metros)), _con_puntos(int(dato.km)), dato.lunas, tr(dato.estado)]
 	_banner.modulate.a = 0.0
 	_banner.show()
 	var tween := create_tween()
@@ -1065,7 +1065,7 @@ func _pilotar(delta: float) -> void:
 			_giro_cohete = Vector2.ZERO
 			_rumbo_alineado.emit()
 	# Panel, círculo de la mira y marca de la Luna.
-	_altitud_label.text = "RUMBO A LA LUNA · desvío %d°\n%s" % [roundi(desvio), "¡Luna en el círculo!" if desvio < DESVIO_OK else "Gira con W, A, S, D o las flechas"]
+	_altitud_label.text = tr("RUMBO A LA LUNA · desvío %d°\n%s") % [roundi(desvio), tr("¡Luna en el círculo!" if desvio < DESVIO_OK else "Gira con W, A, S, D o las flechas")]
 	var estilo: StyleBoxFlat = _mira_piloto.get_theme_stylebox("panel")
 	estilo.border_color = COLOR_LISTO if desvio < DESVIO_OK else COLOR_TURQUESA
 	var vista := get_viewport().get_visible_rect().size
@@ -1081,7 +1081,7 @@ func _pilotar(delta: float) -> void:
 ## Pide confirmar una separación (Espacio o el botón amarillo) y espera.
 func _separar(aviso: String, linea: String, audio: String) -> void:
 	_dialogo.decir(linea, "", "", {}, audio)
-	_mostrar_aviso("[ Espacio ]  o el botón amarillo  ·  %s" % aviso)
+	_mostrar_aviso(tr("[ Espacio ]  o el botón amarillo  ·  %s") % tr(aviso))
 	_espera = 0.0
 	_recordado = false
 	_esperando_separacion = true
@@ -1209,10 +1209,10 @@ func _actualizar_ascenso(delta: float) -> void:
 		capa = _capa_forzada  # Después de la órbita terrestre ya no se habla de capas del aire.
 	var velocidad := _con_puntos(roundi(_velocidad(_km) / 10.0) * 10)
 	var altitud := _con_puntos(floori(_km))
-	_altitud_label.text = "ALTITUD %s km  ·  %s km/h aprox.\n%s" % [altitud, velocidad, capa.to_upper()]
+	_altitud_label.text = tr("ALTITUD %s km  ·  %s km/h aprox.\n%s") % [altitud, velocidad, tr(capa).to_upper()]
 	if _viajando:
 		var recorrido := roundi(384400.0 * clampf(_horas_viaje / 72.0, 0.0, 1.0))
-		_altitud_label.text = "VIAJE A LA LUNA · hora %d de 72 (tiempo acelerado ×10.000)\n%s km de 384.400 km" % [floori(_horas_viaje), _con_puntos(recorrido)]
+		_altitud_label.text = tr("VIAJE A LA LUNA · hora %d de 72 (tiempo acelerado ×10.000)\n%s km de 384.400 km") % [floori(_horas_viaje), _con_puntos(recorrido)]
 	elif _panel_forzado != "":
 		_altitud_label.text = _panel_forzado
 	_pantallas[0].text = "CAPA\n%s" % ("ESPACIO" if _km >= 100.0 else capa.to_upper())
@@ -1755,7 +1755,7 @@ func _construir_tablero() -> void:
 		cuerpo.input_event.connect(_al_tocar.bind(i))
 		_interior.add_child(cuerpo)
 		_botones.append(cuerpo)
-		_controles[cuerpo] = ["%d · %s" % [i + 1, String(INTERRUPTORES[i][0]).replace("\n", " ")], _activar.bind(i)]
+		_controles[cuerpo] = ["%d · %s" % [i + 1, tr(INTERRUPTORES[i][0]).replace("\n", " ")], _activar.bind(i)]
 		# Barra de estado delante de la tecla.
 		var luz := StandardMaterial3D.new()
 		luz.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -1766,7 +1766,7 @@ func _construir_tablero() -> void:
 		barra.position = posicion + Vector3(0, -0.03, 0.085)
 		_interior.add_child(barra)
 		_luces.append(luz)
-		_rotulo_tecla("%d  %s" % [i + 1, String(INTERRUPTORES[i][0]).replace("\n", " ").to_upper()], posicion + Vector3(0, 0.055, -0.02))
+		_rotulo_tecla("%d  %s" % [i + 1, tr(INTERRUPTORES[i][0]).replace("\n", " ").to_upper()], posicion + Vector3(0, 0.055, -0.02))
 	# Tapa de seguridad transparente sobre la ignición (se levanta cuando le toca).
 	_tapa_ignicion = Node3D.new()
 	_tapa_ignicion.position = Vector3(0.36, 1.13, -1.35)

@@ -28,7 +28,7 @@ func _ready() -> void:
 		var item: Dictionary = GameManager.CARGA[id]
 		var boton := Button.new()
 		boton.toggle_mode = true
-		boton.text = "%s · %d kg\n%s" % [item.nombre, item.kg, item.texto]
+		boton.text = "%s · %d kg\n%s" % [tr(item.nombre), item.kg, tr(item.texto)]
 		boton.custom_minimum_size = Vector2(520, 110)
 		boton.add_theme_font_size_override("font_size", 24)
 		boton.toggled.connect(_actualizar.unbind(1))
@@ -75,7 +75,7 @@ func _actualizar() -> void:
 	relleno.bg_color = ROJO if pasado else TURQUESA
 	relleno.set_corner_radius_all(8)
 	_bascula.add_theme_stylebox_override("fill", relleno)
-	_peso.text = "%d / %d kg%s" % [kg, LIMITE_KG, "  ¡Demasiado peso!" if pasado else ""]
+	_peso.text = "%d / %d kg%s" % [kg, LIMITE_KG, tr("  ¡Demasiado peso!") if pasado else ""]
 	_peso.add_theme_color_override("font_color", ROJO if pasado else Color(0.949, 0.961, 1.0))
 	_cargar.disabled = pasado or kg == 0
 
