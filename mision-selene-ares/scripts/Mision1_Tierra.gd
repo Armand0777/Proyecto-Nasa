@@ -94,6 +94,10 @@ func _ready() -> void:
 	var con_prologo: bool = prologo.activo
 	var atajo := GameManager.atajo
 	GameManager.atajo = ""
+	# Inventario nuevo: se empieza con la ropa de hibernación; en el laboratorio se pone el traje.
+	GameManager.reiniciar_inventario()
+	if atajo != "":
+		GameManager.asegurar_equipo()  # Modo Jueces: ya con el traje puesto.
 
 	_mejorar_ambiente()
 	_construir_hangar()

@@ -433,6 +433,7 @@ func _ponerse_traje() -> void:
 		return
 	_traje_listo = true
 	_traje.queue_free()
+	GameManager.ponerse(["casco", "traje", "mochila", "guantes", "botas"])
 	_flecha.ocultar()
 	_marcar_tarjeta()
 	_jugador.set_physics_process(false)  # Quieto mientras se pone el casco.
@@ -491,6 +492,7 @@ func _ponerse_tablet() -> void:
 		return
 	_tablet_lista = true
 	_tablet.queue_free()
+	GameManager.ponerse(["tablet"])
 	_flecha.ocultar()
 	Sonidos.tocar("logro.ogg")
 	_marcar_tarjeta()

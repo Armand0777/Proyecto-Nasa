@@ -1,10 +1,11 @@
 extends CanvasLayer
 ## Controles táctiles (autoload "ControlesTactiles"): solo aparecen en teléfonos y tablets.
 ## - Joystick flotante en la mitad izquierda: aprieta las mismas acciones que W, A, S, D, así sirve
-##   para caminar, para girar la cápsula y para mover el módulo en el alunizaje.
+##   para caminar, para girar la cápsula y para mover el módulo en el alunizaje. Empujado hasta el
+##   borde, el jugador corre (como con Shift) y la palanca se pone amarilla.
 ## - Arrastrar el dedo en la mitad derecha: mirar (las escenas lo leen con tomar_mirada()).
-## - Botones que aparecen solo cuando sirven (USAR, SALTAR, FOTO, uno de acción y PAUSA). Cada botón
-##   "aprieta" la tecla de siempre (E, Espacio, F, Esc), así el resto del juego no cambia.
+## - Botones que aparecen solo cuando sirven (USAR, SALTAR, FOTO, INV, uno de acción y PAUSA). Cada botón
+##   "aprieta" la tecla de siempre (E, Espacio, F, Tab, Esc), así el resto del juego no cambia.
 ## - El botón "atrás" del teléfono abre la pausa en vez de cerrar el juego.
 ## Tocar ventanas, botones, la burbuja de A.R.T.I. o los interruptores 3D funciona solo: Godot
 ## convierte el primer dedo en un clic. Para probar en la PC: ejecutar con el argumento --tactil.
@@ -31,10 +32,15 @@ const BOTONES := {
 	"accion": ["ACCIÓN", KEY_SPACE, COLOR_AMARILLO, 165.0],
 	"pausa": ["II", KEY_ESCAPE, Color(0.85, 0.88, 0.95), 90.0],
 	"camara": ["CÁMARA", KEY_C, Color(0.55, 0.75, 1.0), 110.0],
+	"inventario": ["INV", KEY_TAB, COLOR_TURQUESA, 90.0],
 }
+## Qué tan lejos hay que empujar el joystick (de 0 a 1) para correr.
+const EMPUJE_CORRER := 0.9
 
 ## true en teléfonos y tablets (o con --tactil en la PC).
 var activo := false
+## true con el joystick empujado hasta el borde: el jugador corre.
+var corriendo := false
 
 var _escena: Node
 var _pedido_joystick := false
@@ -137,6 +143,7 @@ func _process(_delta: float) -> void:
 		"accion": _pedidos.get("accion", false),
 		"pausa": not en_menu,
 		"camara": _pedidos.get("camara", false),
+		"inventario": _caminando,
 	}
 	for nombre in _botones:
 		_botones[nombre].visible = mostrar[nombre]
@@ -208,6 +215,7 @@ func _input(event: InputEvent) -> void:
 
 ## Aprieta las acciones de caminar con la fuerza del joystick (como W, A, S, D, pero de a poquito).
 func _apretar_direccion(v: Vector2) -> void:
+	_poner_corriendo(v.length() >= EMPUJE_CORRER)
 	for datos in [["derecha", v.x], ["izquierda", -v.x], ["atras", v.y], ["adelante", -v.y]]:
 		var fuerza: float = datos[1]
 		if fuerza > 0.0:
@@ -218,10 +226,20 @@ func _apretar_direccion(v: Vector2) -> void:
 
 func _soltar_joystick() -> void:
 	_dedo_joystick = -1
+	_poner_corriendo(false)
 	for accion in ["derecha", "izquierda", "atras", "adelante"]:
 		Input.action_release(accion)
 	_centro_joystick = _lugar_joystick()
 	_mover_joystick(_centro_joystick)
+
+
+## La palanca amarilla avisa que se está corriendo.
+func _poner_corriendo(si: bool) -> void:
+	if si == corriendo:
+		return
+	corriendo = si
+	var estilo: StyleBoxFlat = _palanca.get_theme_stylebox("panel")
+	estilo.bg_color = Color(COLOR_AMARILLO if si else COLOR_TURQUESA, 0.55)
 
 
 func _soltar_todo() -> void:
@@ -266,6 +284,7 @@ func _ubicar_botones() -> void:
 		"accion": Vector2(vista.x - 130.0, vista.y - 100.0),
 		"pausa": Vector2(vista.x - 80.0, 150.0),
 		"camara": Vector2(vista.x - 80.0, 270.0),
+		"inventario": Vector2(vista.x - 190.0, 150.0),
 	}
 	for nombre in _botones:
 		var boton: Panel = _botones[nombre]

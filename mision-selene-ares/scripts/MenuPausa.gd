@@ -18,11 +18,13 @@ const GRIS := Color(0.64, 0.68, 0.81)
 const MISIONES := ["La Tierra", "La Luna", "Marte"]
 const CONTROLES := [
 	["W A S D  o  flechas", "Caminar"],
+	["Shift", "Correr (mantener apretado mientras caminas)"],
 	["Mouse", "Mirar (clic en el juego para capturarlo)"],
 	["Espacio", "Saltar · frenar en el alunizaje · separar etapas"],
 	["E  o  clic", "Usar el objeto que miras"],
 	["Q", "Preguntar a A.R.T.I."],
 	["F", "Foto científica (caminata EVA)"],
+	["Tab  o  I", "Inventario: lo que llevas puesto y lo que recogiste"],
 	["1  2  3", "Interruptores de la cabina"],
 	["Esc  o  P", "Pausa"],
 ]

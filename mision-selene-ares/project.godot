@@ -26,6 +26,7 @@ GameManager="*res://scripts/GameManager.gd"
 Sonidos="*res://scripts/Sonidos.gd"
 MenuPausa="*res://scripts/MenuPausa.gd"
 ControlesTactiles="*res://scripts/ControlesTactiles.gd"
+Inventario="*res://scripts/Inventario.gd"
 Transicion="*res://scripts/Transicion.gd"
 
 [display]

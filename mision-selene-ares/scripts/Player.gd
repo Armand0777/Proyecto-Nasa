@@ -1,22 +1,32 @@
 extends CharacterBody3D
-## Jugador en primera persona: camina con WASD o flechas, mira con el mouse, salta con Espacio
-## y usa objetos con E o clic. La gravedad y el salto dependen del planeta (GameManager).
-## En pantalla táctil: joystick, arrastrar el dedo para mirar y botones (ControlesTactiles).
+## Jugador en primera persona: camina con WASD o flechas, corre con Shift, mira con el mouse, salta
+## con Espacio y usa objetos con E o clic. La gravedad y el salto dependen del planeta (GameManager).
+## En pantalla táctil: joystick (empujado hasta el borde, corre), arrastrar el dedo para mirar y
+## botones (ControlesTactiles).
 
 ## Avisa al HUD qué se puede usar al frente ("" si no hay nada).
 signal objetivo_cambiado(texto: String)
 
 @export var velocidad := 4.0
+@export var velocidad_correr := 7.0
 @export var sensibilidad_base := 0.0025
+## Cuánto se abre la vista al correr (da sensación de velocidad).
+@export var fov_extra_correr := 7.0
 
 @onready var _camara: Camera3D = $Camara
 @onready var _rayo: RayCast3D = $Camara/Rayo
 
 var _objetivo: Node = null
+## true mientras corre (se mueve con Shift apretado); el HUD o las escenas lo pueden leer.
+var corriendo := false
+var _rapidez := 0.0
+var _fov_base := 75.0
 
 
 func _ready() -> void:
 	add_to_group("jugador")
+	_rapidez = velocidad
+	_fov_base = _camara.fov
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -51,21 +61,31 @@ func _physics_process(delta: float) -> void:
 		velocity.y = ambiente["salto"]
 	var entrada := Input.get_vector("izquierda", "derecha", "adelante", "atras")
 	var direccion := transform.basis * Vector3(entrada.x, 0.0, entrada.y)
-	velocity.x = direccion.x * velocidad
-	velocity.z = direccion.z * velocidad
+	# Correr: Shift (o el joystick táctil hasta el borde) y moviéndose. La rapidez cambia suave,
+	# y en el aire se mantiene la que traía (no se acelera saltando).
+	var quiere_correr := (Input.is_action_pressed("correr") or ControlesTactiles.corriendo) and entrada.length() > 0.3
+	if is_on_floor():
+		corriendo = quiere_correr
+	_rapidez = move_toward(_rapidez, velocidad_correr if corriendo else velocidad, delta * 14.0)
+	velocity.x = direccion.x * _rapidez
+	velocity.z = direccion.z * _rapidez
 	move_and_slide()
+	# La vista se abre un poco al correr. Solo si es la cámara activa (las cinemáticas usan otras).
+	if _camara.current:
+		var meta := _fov_base + (fov_extra_correr if corriendo else 0.0)
+		_camara.fov = lerpf(_camara.fov, meta, minf(1.0, delta * 6.0))
 	_sonar_pasos(delta, entrada)
 	_buscar_objetivo()
 
 
 var _espera_paso := 0.0
 
-## Un paso cada medio segundo mientras camina sobre el suelo.
+## Un paso cada medio segundo mientras camina sobre el suelo (más seguido al correr).
 func _sonar_pasos(delta: float, entrada: Vector2) -> void:
 	_espera_paso -= delta
 	if is_on_floor() and entrada != Vector2.ZERO and _espera_paso <= 0.0:
-		Sonidos.tocar("paso.ogg", -12.0, 0.12)
-		_espera_paso = 0.5
+		Sonidos.tocar("paso.ogg", -10.0 if corriendo else -12.0, 0.12)
+		_espera_paso = 0.31 if corriendo else 0.5
 
 
 ## Lo que el rayo toca al frente; solo cuenta si se puede usar (tiene interactuar()).

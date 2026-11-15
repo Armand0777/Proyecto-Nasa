@@ -97,6 +97,7 @@ var _boton_camara: Button
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	GameManager.planeta_actual = GameManager.Planeta.LUNA
+	GameManager.asegurar_equipo()
 	# En órbita: la cámara empieza muy alta y mirando hacia abajo, al Polo Sur.
 	_camara.position.y = 70.0
 	_camara.rotation_degrees.x = -28.0

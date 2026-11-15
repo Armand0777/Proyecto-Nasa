@@ -25,6 +25,38 @@ const CONTROLES := {
 	"izquierda": [KEY_A, KEY_LEFT], "derecha": [KEY_D, KEY_RIGHT],
 	"saltar": [KEY_SPACE], "interactuar": [KEY_E], "preguntar": [KEY_Q],
 	"pausa": [KEY_ESCAPE, KEY_P],  # Menú de pausa (MenuPausa.gd).
+	"correr": [KEY_SHIFT],
+	"inventario": [KEY_TAB, KEY_I],  # Inventario.gd
+}
+
+## Se emite cuando cambia lo que el jugador lleva puesto o en la mochila.
+signal inventario_cambiado
+
+## Lo que lleva puesto, en el orden de las ranuras del inventario (como la armadura en otros juegos).
+const RANURAS := ["casco", "traje", "mochila", "guantes", "botas", "tablet"]
+## Todo lo que puede aparecer en el inventario. «icono» lo dibuja Inventario.gd; «usar» (opcional)
+## son los recursos que suma al usarlo desde el inventario (se gasta uno).
+const OBJETOS := {
+	"casco": {"nombre": "Casco con visor dorado", "tipo": "Equipo · cabeza", "icono": "casco",
+		"texto": "El visor tiene una capa finísima de oro: deja pasar la luz pero frena el calor y los rayos ultravioleta del Sol."},
+	"traje": {"nombre": "Traje espacial", "tipo": "Equipo · cuerpo", "icono": "traje",
+		"texto": "Tiene muchas capas: unas guardan la presión del aire, otras aíslan del frío y del calor, y la de afuera frena el polvo y los micrometeoritos."},
+	"mochila": {"nombre": "Mochila de soporte vital", "tipo": "Equipo · espalda", "icono": "mochila",
+		"texto": "Lleva el oxígeno para respirar, quita el dióxido de carbono que exhalas y mueve agua fría por el traje para que no te acalores."},
+	"guantes": {"nombre": "Guantes presurizados", "tipo": "Equipo · manos", "icono": "guantes",
+		"texto": "Son lo más difícil de hacer de un traje: tienen que aguantar la presión y a la vez dejarte mover los dedos para usar herramientas."},
+	"botas": {"nombre": "Botas lunares", "tipo": "Equipo · pies", "icono": "botas",
+		"texto": "Su suela con relieve agarra bien en el regolito, el polvo suelto y filoso que cubre la Luna."},
+	"tablet": {"nombre": "Tablet de comandante", "tipo": "Equipo · muñeca", "icono": "tablet",
+		"texto": "Va en tu muñeca: con ella tomas fotos científicas y ves los datos de la misión."},
+	"barra_proteina": {"nombre": "Barra de proteína", "tipo": "Comida · se puede usar", "icono": "barra", "usar": {"hambre": 20.0},
+		"texto": "Comida lista traída de la Tierra. Llena, pero se acaba: después habrá que cultivar en el biodomo."},
+	"hielo": {"nombre": "Muestra de hielo lunar", "tipo": "Muestra científica", "icono": "hielo",
+		"texto": "Hielo de agua de los cráteres del Polo Sur, donde nunca da el Sol. Derretido sirve para beber, y separado en sus partes da oxígeno."},
+	"roca_lunar": {"nombre": "Fragmento de roca lunar", "tipo": "Muestra científica", "icono": "roca",
+		"texto": "Las rocas de la Luna guardan su historia: ayudan a entender cómo se formó, hace unos 4.500 millones de años."},
+	"foto": {"nombre": "Foto científica", "tipo": "Álbum de la misión", "icono": "foto",
+		"texto": "Fotos tomadas con la tablet. Se guardan en el álbum que verás al terminar la misión."},
 }
 
 ## Puzle 1 (hangar): lo que se puede llevar. Los kilos son de juego; lo que importa es que no cabe
@@ -48,6 +80,10 @@ var fotos: Array[Image] = []
 var estado_donki := "no se jugó la tormenta"
 ## Modo Jueces: a qué parte saltar dentro de una escena ("tormenta" o "eva"); la escena lo borra al usarlo.
 var atajo := ""
+## Inventario: lo que lleva puesto (ids de RANURAS) y lo que recogió (id de OBJETOS → cantidad).
+## Las fotos no se guardan aquí: se cuentan de «fotos».
+var puesto: Array[String] = []
+var objetos: Dictionary[String, int] = {}
 
 
 func _ready() -> void:
@@ -82,6 +118,59 @@ func transferir(desde: String, hacia: String, cantidad: float) -> void:
 	var posible := minf(cantidad, minf(recursos[desde], 100.0 - recursos[hacia]))
 	cambiar(desde, -posible)
 	cambiar(hacia, posible)
+
+
+# --- Inventario ---
+
+## Partida nueva: sin nada puesto (se empieza con la ropa de hibernación) y la mochila vacía.
+func reiniciar_inventario() -> void:
+	puesto.clear()
+	objetos.clear()
+	inventario_cambiado.emit()
+
+
+func ponerse(ids: Array) -> void:
+	for id in ids:
+		if not puesto.has(id):
+			puesto.append(id)
+	inventario_cambiado.emit()
+
+
+## Para las partes que se empiezan sin pasar por el laboratorio (Modo Jueces): todo el equipo puesto.
+func asegurar_equipo() -> void:
+	if puesto.is_empty():
+		ponerse(RANURAS)
+
+
+func agregar(id: String, cantidad := 1) -> void:
+	objetos[id] = objetos.get(id, 0) + cantidad
+	inventario_cambiado.emit()
+
+
+func cantidad(id: String) -> int:
+	if id == "foto":
+		return fotos.size()
+	return objetos.get(id, 0)
+
+
+## Saca «cantidad» de un objeto; false (y no saca nada) si no hay suficientes.
+func quitar(id: String, cantidad_a_quitar := 1) -> bool:
+	if objetos.get(id, 0) < cantidad_a_quitar:
+		return false
+	objetos[id] -= cantidad_a_quitar
+	if objetos[id] == 0:
+		objetos.erase(id)
+	inventario_cambiado.emit()
+	return true
+
+
+## Lo que hay en la mochila, en el orden de OBJETOS: [[id, cantidad], ...].
+func lista_mochila() -> Array:
+	var lista := []
+	for id in OBJETOS:
+		if not RANURAS.has(id) and cantidad(id) > 0:
+			lista.append([id, cantidad(id)])
+	return lista
 
 
 ## Las acciones se crean aquí para no tocar project.godot; el clic izquierdo lo maneja el jugador.

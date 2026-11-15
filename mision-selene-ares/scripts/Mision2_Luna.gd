@@ -47,7 +47,6 @@ const COLOR_HIELO := Color(0.749, 0.953, 1.0)
 @onready var _llegada: Label = %Llegada
 
 var _material: StandardMaterial3D
-var _barras_proteina := 0
 var _dato_tormenta: Dictionary = NasaApi.PRACTICA
 var _segundos := 0.0
 var _tormenta := false
@@ -102,7 +101,15 @@ func _ready() -> void:
 		var efectos: Dictionary = GameManager.CARGA[id].efectos
 		for recurso in efectos:
 			GameManager.cambiar(recurso, efectos[recurso])
-	_barras_proteina = 3 if GameManager.carga_elegida.has("proteina") else 0
+	# Inventario de la Luna: el equipo puesto, las barras de proteína de la carga y sin muestras
+	# (si se reinicia esta parte, las muestras se vuelven a juntar).
+	GameManager.asegurar_equipo()
+	GameManager.objetos.erase("hielo")
+	GameManager.objetos.erase("roca_lunar")
+	GameManager.objetos["barra_proteina"] = 3 if GameManager.carga_elegida.has("proteina") else 0
+	if GameManager.objetos["barra_proteina"] == 0:
+		GameManager.objetos.erase("barra_proteina")
+	GameManager.inventario_cambiado.emit()
 
 	# El biodomo es el mismo del fondo del menú; el jugador aparece adentro.
 	var domo: Vector2 = $Exterior.posicion_domo
@@ -359,12 +366,11 @@ func _al_usar(estacion: String) -> void:
 			GameManager.cambiar("energia", -10.0)
 			_arti.decir("Agua reciclada + filtro de microalgas = agua potable. Purificarla gastó 10 de electricidad.")
 		"nutricion":
-			if _barras_proteina == 0:
-				_arti.decir("No trajimos barras de proteína en la carga. Cosecha una lechuga en el huerto.")
+			if not GameManager.quitar("barra_proteina"):
+				_arti.decir("No quedan barras de proteína. Cosecha una lechuga en el huerto.")
 				return
-			_barras_proteina -= 1
 			GameManager.cambiar("hambre", 20.0)
-			_arti.decir("¡Rica barra de proteína de la Tierra! Quedan %d. Cuando se acaben, habrá que cultivar." % _barras_proteina)
+			_arti.decir("¡Rica barra de proteína de la Tierra! Quedan %d (míralas con Tab en tu inventario). Cuando se acaben, habrá que cultivar." % GameManager.cantidad("barra_proteina"))
 		"consola":
 			if _tormenta:
 				_abrir_panel()
@@ -398,6 +404,7 @@ func _al_usar(estacion: String) -> void:
 			if not _roca_ok:
 				Sonidos.tocar("picar.ogg")
 				_roca_ok = true
+				GameManager.agregar("roca_lunar")
 				_actualizar_objetivos()
 				_arti.decir("¡Fragmento de roca lunar extraído con el láser! Los científicos estudian estas rocas para saber cómo se formó la Luna.")
 		"persianas":
@@ -843,6 +850,7 @@ func _recoger_hielo(hielo: StaticBody3D) -> void:
 	_hielos.erase(hielo)
 	hielo.queue_free()
 	_hielo_recogido += 1
+	GameManager.agregar("hielo")
 	_actualizar_objetivos()
 	_arti.decir("¡Muestra de hielo %d recogida! Con el hielo de la Luna se puede hacer agua para beber y oxígeno para respirar." % _hielo_recogido)
 
@@ -889,6 +897,7 @@ func _tomar_foto() -> void:
 		var foto := get_viewport().get_texture().get_image()
 		foto.resize(480, 270)
 		GameManager.fotos.append(foto)
+		GameManager.inventario_cambiado.emit()
 	_foto_ok = true
 	_actualizar_objetivos()
 	_arti.decir("¡Gran foto científica! La guardé para el álbum de la misión.")

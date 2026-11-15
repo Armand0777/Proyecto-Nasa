@@ -40,6 +40,7 @@ var _viento: AudioStreamPlayer  # Viento real de Marte grabado por el rover Pers
 func _ready() -> void:
 	GameManager.planeta_actual = GameManager.Planeta.MARTE
 	GameManager.reiniciar(LLEGADA)
+	GameManager.asegurar_equipo()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	# Copia del ambiente para no cambiar el del menú cuando llega la tormenta.
 	var mundo: WorldEnvironment = $Exterior/WorldEnvironment
