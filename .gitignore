@@ -1,2 +1,8 @@
 # Versión web exportada (se genera desde Godot; se sube a itch.io, no al repositorio).
 build/
+
+# Caché del editor de Godot (se regenera sola al abrir el proyecto).
+.godot/
+
+# Tomas grabadas para el tráiler (herramientas/trailer).
+grabaciones_trailer/
