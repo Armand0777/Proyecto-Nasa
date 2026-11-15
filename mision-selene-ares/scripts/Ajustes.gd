@@ -3,6 +3,8 @@ extends Node
 ## Se guardan en user://ajustes.cfg; en la versión web quedan guardados en el navegador.
 
 const RUTA := "user://ajustes.cfg"
+## Versión de ajustes.cfg. 2: el inglés pasó a ser el idioma por defecto (ver cargar()).
+const VERSION := 2
 ## Los textos en inglés, por partes del juego (scripts/textos/). Cada archivo tiene un diccionario TEXTOS.
 const TEXTOS_INGLES := [
 	preload("res://scripts/textos/Ingles_Menus.gd"), preload("res://scripts/textos/Ingles_Comunes.gd"),
@@ -21,8 +23,8 @@ var sensibilidad_mouse := 1.0
 var pantalla_completa := false
 ## Si A.R.T.I. habla en voz alta (usa la voz del sistema o del navegador).
 var voz_arti := true
-## Idioma del juego: "es" o "en".
-var idioma := "es"
+## Idioma del juego: "es" o "en". Empieza en inglés; si el jugador lo cambia, queda guardado.
+var idioma := "en"
 var _ingles: Translation
 ## Sombras de las lámparas de los interiores. Son lo más caro de dibujar (una sala baja de ~170 a
 ## ~65 cuadros por segundo), así que van apagadas; la sombra del Sol queda siempre.
@@ -65,6 +67,7 @@ func guardar() -> void:
 	archivo.set_value("pantalla", "completa", pantalla_completa)
 	archivo.set_value("audio", "voz_arti", voz_arti)
 	archivo.set_value("juego", "idioma", idioma)
+	archivo.set_value("ajustes", "version", VERSION)
 	var error := archivo.save(RUTA)
 	if error != OK:
 		push_warning("No se pudieron guardar los ajustes (error %d)." % error)
@@ -73,13 +76,17 @@ func guardar() -> void:
 func cargar() -> void:
 	var archivo := ConfigFile.new()
 	if archivo.load(RUTA) != OK:
-		return  # Primera vez: se usan los valores por defecto.
+		aplicar_idioma(idioma)  # Primera vez: los valores por defecto (el juego empieza en inglés).
+		return
 	for bus in volumen:
 		volumen[bus] = clampf(float(archivo.get_value("audio", bus, volumen[bus])), 0.0, 1.0)
 	sensibilidad_mouse = clampf(float(archivo.get_value("control", "sensibilidad_mouse", 1.0)), 0.25, 3.0)
 	pantalla_completa = bool(archivo.get_value("pantalla", "completa", false))
 	voz_arti = bool(archivo.get_value("audio", "voz_arti", true))
-	aplicar_idioma(str(archivo.get_value("juego", "idioma", "es")))
+	# Los ajustes de antes de la versión 2 traen "es" aunque nadie lo haya elegido (era el idioma por
+	# defecto y se guardaba al cerrar Ajustes): esos empiezan en inglés, como un jugador nuevo.
+	var guardado := str(archivo.get_value("juego", "idioma", idioma))
+	aplicar_idioma(guardado if int(archivo.get_value("ajustes", "version", 1)) >= VERSION else idioma)
 
 
 ## Cambia el idioma del juego: "es" (el original) o "en". Los botones y carteles se traducen solos

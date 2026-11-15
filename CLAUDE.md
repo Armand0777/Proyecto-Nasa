@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `mision-selene-ares/` — **el juego** (abrir `mision-selene-ares/project.godot`). Escena principal: `scenes/MenuPrincipal.tscn`.
 - `godot-biodomo/godot/` — proyecto Godot aparte, de prueba, para el biodomo (`biodomo.tscn`, `visor.gd`); sus modelos se copian a `mision-selene-ares/modelos/biodomo/`.
+- `logo/` — logo del juego. `hacer_icono.py` saca de ahí `mision-selene-ares/icono.png`, el ícono del proyecto (pestaña del navegador, ventana, Android).
 - `AVANCE_DEL_PROYECTO.md` — el guion convertido en lista de tareas (`[x]` hecho, `[ ]` falta, 🟡 a medias). Actualizarlo al terminar una tarea.
 - `guion_definitivo_mision_selene_ares.md` — guion y diseño (paleta de colores en la sección 0).
 - `guion_doblaje_arti.md` — cada frase de A.R.T.I. en el código debe ser **idéntica** a la de este archivo (las grabaciones se buscan por nombre de pista).
@@ -24,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `convertir_modelos.gd` produce los `*-juego.res` (árboles/pasto); `convertir_estacion.gd` produce `modelos/estacion/estacion-juego.scn`. Las instrucciones están al inicio de cada script.
 - Exportar: presets en `export_presets.cfg` — Web → `build/web/index.html` (sin hilos, para itch.io), Android → `build/android/`. `build/` no se sube al repo.
 - Servir la versión web localmente: configuración `juego-web` de `.claude/launch.json` (python http.server en el puerto 8060 sobre `build/web`).
-- Publicar en Vercel: exportar Web y correr `powershell -ExecutionPolicy Bypass -File despliegue/subir_a_vercel.ps1` (copia `build/web` a `build/mision-selene-ares` con `despliegue/vercel.json` y hace `vercel deploy --prod`). Pasos completos en el README. Subir publica el juego: solo si el usuario lo pide.
+- Publicar en Vercel: exportar Web y correr `powershell -ExecutionPolicy Bypass -File despliegue/subir_a_vercel.ps1` (copia `build/web` a `build/mision-selene-ares` con `despliegue/vercel.json` y hace `vercel deploy --prod`). Pasos completos en el README. Subir publica el juego: solo si el usuario lo pide. El preset Web lleva en `html/head_include` un script que pasa a pantalla completa (y acostado) al primer toque en celulares.
 
 ## Arquitectura
 
@@ -42,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Reglas del proyecto
 
-- **Modo inglés:** el código se escribe en español; el inglés va en `scripts/textos/Ingles_*.gd` (diccionario «texto en español» → «texto en inglés», registrados en `Ajustes.TEXTOS_INGLES`). Botones y carteles se traducen solos; las frases de A.R.T.I. se traducen en `DialogoARTI.decir`; los textos armados con números o dibujados necesitan `tr()`. Un texto nuevo sin su línea en inglés sale en español en el modo inglés. Para ver qué falta: `Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://herramientas/revisar_ingles.gd` (lista los textos en español sin traducción). Todo el juego está traducido (menús, las tres misiones, Aurora, el rover y el cierre).
+- **Modo inglés:** el código se escribe en español; el inglés va en `scripts/textos/Ingles_*.gd` (diccionario «texto en español» → «texto en inglés», registrados en `Ajustes.TEXTOS_INGLES`). Botones y carteles se traducen solos; las frases de A.R.T.I. se traducen en `DialogoARTI.decir`; los textos armados con números o dibujados necesitan `tr()`. Un texto nuevo sin su línea en inglés sale en español en el modo inglés. Para ver qué falta: `Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://herramientas/revisar_ingles.gd` (lista los textos en español sin traducción). Todo el juego está traducido (menús, las tres misiones, Aurora, el rover y el cierre). El juego **empieza en inglés** (`Ajustes.idioma = "en"`); si el jugador cambia a español, queda guardado en `user://ajustes.cfg` (los ajustes de antes de `Ajustes.VERSION` 2 vuelven al inglés una vez).
 - Renderer **Compatibility** (`gl_compatibility`), necesario para web. No cambiarlo a Forward+.
 - Arte low-poly con colores planos. Turquesa `#2EE6D6` = "se puede tocar"; rojo `#FF3B5C` solo para emergencias.
 - Perder nunca castiga: si un recurso se acaba, A.R.T.I. da una reserva y explica.

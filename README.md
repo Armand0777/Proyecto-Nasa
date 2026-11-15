@@ -47,7 +47,7 @@ Perder nunca castiga: si un recurso se acaba, A.R.T.I. ayuda con una reserva y e
 
 En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantalla completa, la voz de A.R.T.I. y el idioma.
 
-**Idioma / Language:** el juego entero se puede jugar en **español** o en **inglés**. Se elige con el botón «Idioma: Español» del menú principal o en Ajustes (también desde la pausa), y queda guardado. En inglés, A.R.T.I. usa una voz en inglés del sistema o del navegador.
+**Idioma / Language:** el juego entero se puede jugar en **inglés** (el idioma con el que empieza) o en **español**. Se cambia con el botón «Language: English» del menú principal o en Ajustes (también desde la pausa), y queda guardado. En inglés, A.R.T.I. usa una voz en inglés del sistema o del navegador.
 
 ### Modo Jueces
 
@@ -84,6 +84,10 @@ El proyecto usa el renderer **Compatibility**, el que permite exportar a la web.
    powershell -ExecutionPolicy Bypass -File despliegue\subir_a_vercel.ps1
    ```
    El script copia la exportación a `build/mision-selene-ares/` con `despliegue/vercel.json` (página ya lista, Vercel no la arma) y la sube como proyecto «mision-selene-ares». Al final muestra el enlace público. Para actualizar, se repiten los pasos 2 y 3.
+
+**En celulares**, el primer toque pone el juego en pantalla completa (sin la barra del navegador) y acostado. Es un script en *html/head_include* del preset Web (`export_presets.cfg`). En iPhone el navegador no lo permite: ahí se juega a pantalla completa agregando la página a la pantalla de inicio.
+
+**Ícono:** la pestaña del navegador, la ventana del juego y Android usan `mision-selene-ares/icono.png`, el emblema del logo (`logo/logo_mision_selene_ares.webp`). Si cambia el logo, `python logo/hacer_icono.py <logo> mision-selene-ares/icono.png <muestra.png>` lo vuelve a generar.
 
 La exportación es sin hilos, así que no necesita encabezados especiales en el servidor. Ojo: la exportación incluye `data/clave_nasa.txt`, así que en la web la clave de api.nasa.gov se puede sacar del juego; si eso preocupa, quitarla del filtro de exportación (sin ella se usa `DEMO_KEY`).
 
