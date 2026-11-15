@@ -8,8 +8,9 @@ extends PanelContainer
 const LETRAS_POR_SEGUNDO := 40.0
 const CARPETA_VOZ := "res://audio/voz_arti/%s.ogg"
 const COLOR_GUIA := "#2ee6d6"
-## Nombres de voces femeninas comunes en español (Windows, Mac, Android y navegadores).
-const VOCES_FEMENINAS := ["helena", "sabina", "laura", "elvira", "dalia", "paulina", "monica", "mónica", "lucia", "lucía", "female", "mujer"]
+## Nombres de voces femeninas comunes en español y en inglés (Windows, Mac, Android y navegadores).
+const VOCES_FEMENINAS := ["helena", "sabina", "laura", "elvira", "dalia", "paulina", "monica", "mónica", "lucia", "lucía", "female", "mujer",
+	"zira", "samantha", "aria", "jenny", "hazel", "susan", "karen", "victoria", "woman"]
 
 ## Se emite cuando el jugador toca el botón [?] o pulsa Q (sirve para el tutorial del prólogo).
 signal pregunta_hecha
@@ -17,6 +18,8 @@ signal pregunta_hecha
 ## Voz elegida para A.R.T.I. ("" = no hay voces en español en este equipo).
 static var _voz := ""
 static var _voz_buscada := false
+## Idioma de la voz elegida: si el jugador cambia de idioma, se busca otra.
+static var _idioma_voz := ""
 ## Última frase leída con la voz del sistema: si se pide otra vez mientras suena, no se repite.
 static var _ultima_frase := ""
 
@@ -44,9 +47,13 @@ func _ready() -> void:
 ## Muestra una frase. Con «pregunta» aparece el botón [?]; al tocarlo (o con Q) A.R.T.I. dice «respuesta».
 ## «audio» y «audio_respuesta» son los nombres de las grabaciones del guion de doblaje (sin .ogg).
 func decir(texto: String, pregunta := "", respuesta := "", glosario := {}, audio := "", audio_respuesta := "") -> void:
+	# Modo inglés: las frases se escriben en español en el código y aquí se traducen (Ajustes.idioma).
+	texto = tr(texto)
+	pregunta = tr(pregunta) if pregunta != "" else ""
 	_glosario = glosario
-	_respuesta = respuesta
+	_respuesta = tr(respuesta) if respuesta != "" else ""
 	_audio_respuesta = audio_respuesta
+	_boton.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # Ya viene traducida.
 	_boton.text = "? %s  (Q)" % pregunta
 	_boton.visible = pregunta != ""
 	show()
@@ -105,8 +112,12 @@ func _hablar(texto: String, audio: String) -> void:
 		_grabacion.stream = load(CARPETA_VOZ % audio)
 		_grabacion.play()
 		return
+	if _idioma_voz != Ajustes.idioma:
+		_idioma_voz = Ajustes.idioma
+		_voz = ""
+		_voz_buscada = false
 	if not _voz_buscada:
-		var voces := DisplayServer.tts_get_voices_for_language("es")
+		var voces := DisplayServer.tts_get_voices_for_language(Ajustes.idioma)
 		# En el navegador la lista llega vacía hasta que cargan las voces: se vuelve a buscar la próxima vez.
 		_voz_buscada = not voces.is_empty()
 		if not voces.is_empty():
@@ -153,4 +164,4 @@ func _al_tocar_texto(event: InputEvent) -> void:
 
 func _al_tocar_palabra(clave: Variant) -> void:
 	if _glosario.has(str(clave)):
-		_escribir(_glosario[str(clave)])
+		_escribir(tr(_glosario[str(clave)]))

@@ -3,6 +3,11 @@ extends Node
 ## Se guardan en user://ajustes.cfg; en la versión web quedan guardados en el navegador.
 
 const RUTA := "user://ajustes.cfg"
+## Los textos en inglés, por partes del juego (scripts/textos/). Cada archivo tiene un diccionario TEXTOS.
+const TEXTOS_INGLES := [preload("res://scripts/textos/Ingles_Menus.gd")]
+
+## Se emite al cambiar de idioma (para lo que no se traduce solo).
+signal idioma_cambiado
 
 ## Volumen de 0.0 a 1.0 por bus de audio (los buses están en default_bus_layout.tres).
 var volumen: Dictionary[String, float] = {"Master": 0.8, "Musica": 0.7, "Efectos": 0.8}
@@ -11,6 +16,9 @@ var sensibilidad_mouse := 1.0
 var pantalla_completa := false
 ## Si A.R.T.I. habla en voz alta (usa la voz del sistema o del navegador).
 var voz_arti := true
+## Idioma del juego: "es" o "en".
+var idioma := "es"
+var _ingles: Translation
 ## Sombras de las lámparas de los interiores. Son lo más caro de dibujar (una sala baja de ~170 a
 ## ~65 cuadros por segundo), así que van apagadas; la sombra del Sol queda siempre.
 ## shortcut: sin opción en el menú; si algún día se quiere «calidad alta», este es el interruptor.
@@ -51,6 +59,7 @@ func guardar() -> void:
 	archivo.set_value("control", "sensibilidad_mouse", sensibilidad_mouse)
 	archivo.set_value("pantalla", "completa", pantalla_completa)
 	archivo.set_value("audio", "voz_arti", voz_arti)
+	archivo.set_value("juego", "idioma", idioma)
 	var error := archivo.save(RUTA)
 	if error != OK:
 		push_warning("No se pudieron guardar los ajustes (error %d)." % error)
@@ -65,3 +74,23 @@ func cargar() -> void:
 	sensibilidad_mouse = clampf(float(archivo.get_value("control", "sensibilidad_mouse", 1.0)), 0.25, 3.0)
 	pantalla_completa = bool(archivo.get_value("pantalla", "completa", false))
 	voz_arti = bool(archivo.get_value("audio", "voz_arti", true))
+	aplicar_idioma(str(archivo.get_value("juego", "idioma", "es")))
+
+
+## Cambia el idioma del juego: "es" (el original) o "en". Los botones y carteles se traducen solos
+## (Godot busca su texto en la traducción); los textos armados con números usan tr().
+func aplicar_idioma(codigo: String) -> void:
+	idioma = "en" if codigo == "en" else "es"
+	if _ingles == null:
+		_ingles = Translation.new()
+		_ingles.locale = "en"
+		for archivo in TEXTOS_INGLES:
+			for texto in archivo.TEXTOS:
+				_ingles.add_message(texto, archivo.TEXTOS[texto])
+	# En español no se registra ninguna traducción: así nunca se cuela el inglés como respaldo.
+	if _ingles in TranslationServer.get_translations():
+		TranslationServer.remove_translation(_ingles)
+	if idioma == "en":
+		TranslationServer.add_translation(_ingles)
+	TranslationServer.set_locale(idioma)
+	idioma_cambiado.emit()

@@ -183,10 +183,11 @@ func _donde(escena: Node) -> Array:
 func _actualizar_resumen() -> void:
 	var escena := get_tree().current_scene
 	var datos := _donde(escena)
-	_lugar.text = "Misión %d · %s" % [datos[0] + 1, datos[1]] if datos[1] != "" else ""
+	_lugar.text = tr("Misión %d · %s") % [datos[0] + 1, tr(datos[1])] if datos[1] != "" else ""
 	_parte.text = datos[2]
 	for i in _progreso.get_child_count():
 		var paso: Control = _progreso.get_child(i)
+		(paso.get_child(1) as Label).text = "%d · %s" % [i + 1, tr(MISIONES[i])]  # Por si cambió el idioma.
 		var color := TURQUESA if i == datos[0] else (VERDE if i < datos[0] else GRIS.darkened(0.45))
 		(paso.get_child(0).get_theme_stylebox("panel") as StyleBoxFlat).bg_color = color
 		(paso.get_child(1) as Label).add_theme_color_override("font_color", Color.WHITE if i == datos[0] else GRIS)
@@ -342,6 +343,20 @@ func _pagina_ajustes(padre: Control) -> Control:
 		Ajustes.voz_arti = activar
 		if not activar:
 			Dialogo.parar_voz())
+	# Idioma: el botón muestra el idioma actual (en su propio idioma, sin traducir).
+	_etiqueta(rejilla, "Idioma", 28, Color.WHITE)
+	var idioma := Button.new()
+	idioma.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	idioma.text = "English" if Ajustes.idioma == "en" else "Español"
+	idioma.custom_minimum_size = Vector2(260, 60)
+	idioma.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	idioma.pressed.connect(func() -> void:
+		Ajustes.aplicar_idioma("es" if Ajustes.idioma == "en" else "en")
+		idioma.text = "English" if Ajustes.idioma == "en" else "Español"
+		_actualizar_resumen())
+	Ajustes.idioma_cambiado.connect(func() -> void: idioma.text = "English" if Ajustes.idioma == "en" else "Español")
+	rejilla.add_child(idioma)
+	rejilla.add_child(Control.new())
 	return rejilla
 
 

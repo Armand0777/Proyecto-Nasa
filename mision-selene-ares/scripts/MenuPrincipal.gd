@@ -75,6 +75,16 @@ func _ready() -> void:
 	_boton_ajustes.pressed.connect(_abrir_ajustes)
 	_boton_listo.pressed.connect(_cerrar_ajustes)
 	%ModoJueces.pressed.connect(_abrir_jueces)
+	# Idioma: un botón más chico debajo de los tres grandes. Su texto se traduce solo.
+	var idioma := Button.new()
+	idioma.text = "Idioma: Español"
+	idioma.custom_minimum_size = Vector2(0, 64)
+	idioma.add_theme_font_size_override("font_size", 28)
+	idioma.pressed.connect(func() -> void:
+		Ajustes.aplicar_idioma("es" if Ajustes.idioma == "en" else "en")
+		Ajustes.guardar())
+	_botones.add_child(idioma)
+	_botones.move_child(idioma, %ModoJueces.get_index() + 1)
 	_crear_panel_jueces()
 
 	for bus in _volumenes:
