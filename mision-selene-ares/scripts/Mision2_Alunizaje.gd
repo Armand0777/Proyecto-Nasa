@@ -8,14 +8,18 @@ extends Node3D
 ##    se nota: los propulsores dan el combustible, el radar el tamaño de la zona y los amortiguadores
 ##    qué tan fuerte se puede tocar el suelo. Si se toca muy rápido o fuera de la zona no pasa nada
 ##    grave: se vuelve a intentar una vez; si el segundo intento tampoco sale, A.R.T.I. aterriza sola.
-## Como en un alunizaje real, hay fases: el módulo se separa de la cápsula (que queda en órbita),
-## frena y se acerca solo desde 420 m con las patas plegadas, despliega las patas y a 120 m pilota
-## el jugador. Al tocar el suelo se enciende la luz de CONTACTO y se apaga el motor. Después, sin
-## pantalla negra, se pasa a la llegada caminando al biodomo (Mision2_Luna).
+## Todo en un solo plano, sin cortes de cámara: se empieza en órbita (la Luna es una esfera enorme
+## debajo del terreno, así desde arriba se ve redonda y abajo empalma con el suelo). La cápsula se
+## acopla al módulo de alunizaje que esperaba en órbita (como en Artemis), se calibra el descenso,
+## el módulo se separa y baja solo desde la órbita, con la cámara siguiéndolo, despliega las patas y
+## a 120 m pilota el jugador. Al tocar el suelo se enciende la luz de CONTACTO y se apaga el motor; la
+## cámara entra por la ventana a la cabina, justo donde empieza Mision2_Luna (con Comandante Junior
+## parado frente a la escotilla). La cámara se puede mover con el mouse en todo momento.
 
 const SIGUIENTE_ESCENA := "res://scenes/Mision2_Luna.tscn"
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const ModuloLunar := preload("res://scripts/ModuloLunar.gd")
+const ARTI_ESCENA := preload("res://scenes/ARTI.tscn")
 ## [id, nombre, zona verde mínima, máxima, para qué sirve]
 const SISTEMAS := [
 	["propulsores", "Propulsores de freno", 40.0, 55.0, "frenan la caída: sin aire, en la Luna no sirven los paracaídas"],
@@ -35,8 +39,14 @@ const ALTURA_INICIAL := 120.0
 const BAJADA_INICIAL := 5.0
 const DESVIO_INICIAL := 16.0  # Metros a un lado de la zona al empezar.
 const DISTANCIA_AL_DOMO := 20.0  # La zona de aterrizaje queda junto al biodomo.
-## Desde dónde empieza la aproximación automática (frenado), antes de que pilote el jugador.
-const ALTURA_APROXIMACION := 420.0
+## La Luna redonda debajo del terreno (para verla desde la órbita), en metros de la escena.
+const RADIO_LUNA := 30000.0
+## Dónde espera el módulo en órbita: altura sobre la zona y cuántos metros antes de llegar a ella.
+## (Es una órbita «achicada»: el panel muestra la altura como si fuera la real, desde 100 km.)
+const ALTURA_ORBITA := 6000.0
+const AVANCE_ORBITA := 9000.0
+## Lo que tarda el descenso automático, de la órbita a 120 m sobre la zona.
+const SEGUNDOS_DESCENSO := 34.0
 ## Intentos del jugador antes de que A.R.T.I. aterrice sola.
 const INTENTOS_MAXIMOS := 2
 
@@ -102,23 +112,113 @@ var _distancia := DISTANCIA_CAMARA
 var _camara_libre := false
 var _peso_libre := 0.0  # De 0 (mira adelante, al horizonte) a 1 (mira el módulo).
 var _arrastrando := false
+var _toco_camara := false  # El jugador la movió: ya no vuelve sola detrás del módulo.
+## Alto (sobre los pies del módulo) del punto que mira y alrededor del cual gira la cámara.
+var _foco_alto := ModuloLunar.PISO * 0.8
+# Órbita: la cápsula acoplada al módulo, que se queda arriba al separarse.
+var _en_orbita := false
+var _capsula: Node3D
+var _capsula_pegada := true
+var _capsula_desvio := Vector3.ZERO  # Cuánto más arriba del acople está (al acoplar y al separarse).
+var _capsula_velocidad := Vector3.ZERO
+var _frenando_auto := false
+var _patas_desplegadas := false
+var _altura_anterior := 0.0
+var _arti3d: Node3D
 
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	GameManager.planeta_actual = GameManager.Planeta.LUNA
 	GameManager.asegurar_equipo()
-	# En órbita: la cámara empieza muy alta y mirando hacia abajo, al Polo Sur.
-	_camara.position.y = 70.0
-	_camara.rotation_degrees.x = -28.0
-	_crear_panel()
 	# Sin negro: se llega desde la órbita del viaje (Transicion disuelve esa imagen sobre esta).
 	_fundido.modulate.a = 0.0
+	_preparar_cielo()
+	_preparar_zona()
+	_quitar_rocas_de_la_zona()
+	_crear_luna()
+	_crear_modulo()
+	_crear_capsula()
+	_camara_descenso = Camera3D.new()
+	_camara_descenso.fov = 70.0
+	_camara_descenso.near = 0.1
+	_camara_descenso.far = 90000.0  # Desde la órbita se ve lejísimos.
+	add_child(_camara_descenso)
+	# En órbita, lejos de la zona: el módulo espera y la cápsula llega desde arriba a acoplarse.
+	_altura_abs = _zona.y + ALTURA_ORBITA
+	_avance = AVANCE_ORBITA
+	_desvio = 0.0
+	_plegar_patas(1.0)
+	_modulo.global_position = _posicion()
+	_modulo.global_basis = Basis.looking_at(_frente, Vector3.UP)
+	_capsula_desvio = Vector3(0, 30.0, 0)
+	_actualizar_capsula(0.0)
+	# Toma de tres cuartos de la nave entera, con la Luna curva de fondo.
+	_foco_alto = 6.5
+	_distancia = 34.0
+	_orbita = Vector2(0.8, -0.05)
+	_camara_libre = true
+	_peso_libre = 1.0
+	_camara_descenso.global_position = _lugar_camara(_posicion())
+	_camara_descenso.look_at(_posicion() + Vector3.UP * _foco_alto)
+	_camara_descenso.make_current()
+	_en_orbita = true
+	_acoplar()
+
+
+## La cápsula se acopla al módulo de alunizaje que esperaba en órbita; después se calibra el descenso.
+func _acoplar() -> void:
+	_arti.decir("Ahí está el módulo de alunizaje, que nos esperaba en órbita. Nos acoplamos y pasamos adentro por el túnel.", "", "", {}, "m2_00_acople")
+	var acople := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	acople.tween_property(self, "_capsula_desvio", Vector3.ZERO, 7.0)
+	await acople.finished
+	Sonidos.tocar("golpe.ogg", -12.0)
+	await _pausa(2.0)
+	_crear_panel()
 	_arti.decir(
 		"¡Despierta, Comandante! Llegamos a la órbita de la Luna. Vamos a aterrizar en el Polo Sur porque ahí hay hielo de agua escondido. Equilibra la batería de descenso antes de bajar: deja los tres sistemas en la zona verde.",
 		"¿Por qué no alcanza la batería para todo?",
 		"La batería tiene un límite: lo que le das a un sistema se lo quitas a otro. Los ingenieros de la NASA hacen este mismo reparto en cada misión.",
 		{}, "m2_01_despertar_orbita")
+
+
+## Cielo propio de esta escena: abajo del horizonte, negro (desde arriba se ve el espacio alrededor de
+## la Luna redonda). Se copia para no cambiar el del biodomo ni el del menú.
+func _preparar_cielo() -> void:
+	var mundo: WorldEnvironment = $Exterior/WorldEnvironment
+	var ambiente: Environment = mundo.environment.duplicate()
+	ambiente.sky = ambiente.sky.duplicate()
+	var cielo: ShaderMaterial = ambiente.sky.sky_material.duplicate()
+	cielo.set_shader_parameter("color_suelo", Color(0.004, 0.005, 0.01))
+	ambiente.sky.sky_material = cielo
+	mundo.environment = ambiente
+
+
+## La zona de aterrizaje queda junto al biodomo, mirando hacia él.
+func _preparar_zona() -> void:
+	var domo: Vector2 = $Exterior.posicion_domo
+	var hacia_afuera := -domo.normalized()
+	var centro := domo + hacia_afuera * DISTANCIA_AL_DOMO
+	_zona = Vector3(centro.x, 0.0, centro.y)
+	_zona.y = _suelo(_zona)
+	_frente = Vector3(-hacia_afuera.x, 0.0, -hacia_afuera.y)  # Mirando al biodomo.
+	_lado = Vector3(-_frente.z, 0.0, _frente.x)
+
+
+## La Luna redonda: una esfera enorme con el mismo suelo pintado que el terreno, con la punta justo
+## debajo de él. Desde la órbita se ve su curva; abajo, el terreno (con sus montañas) la tapa.
+func _crear_luna() -> void:
+	var esfera := SphereMesh.new()
+	esfera.radius = RADIO_LUNA
+	esfera.height = RADIO_LUNA * 2.0
+	esfera.radial_segments = 160
+	esfera.rings = 80
+	var luna := MeshInstance3D.new()
+	luna.mesh = esfera
+	luna.material_override = $Exterior/Terreno.material_override
+	luna.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	luna.position = Vector3(0, -RADIO_LUNA - 40.0, 0)  # Bien abajo: no se asoma en el fondo de los cráteres.
+	$Exterior.add_child(luna)
 
 
 func _crear_panel() -> void:
@@ -206,57 +306,50 @@ func _actualizar() -> void:
 
 # --- Descenso pilotado ---
 
-## Con la calibración lista empieza el descenso: el módulo aparece alto, a un lado de la zona, y lo
-## pilota el jugador. Lo calibrado define el combustible, el tamaño de la zona y el aguante del golpe.
+## Con la calibración lista empieza el descenso desde la órbita, en el mismo plano. Lo calibrado
+## define el combustible, el tamaño de la zona y el aguante del golpe.
 func _alunizar() -> void:
 	_aterrizar.get_parent().get_parent().hide()
 	get_viewport().gui_release_focus()  # Que Espacio frene y no vuelva a pulsar un botón.
 	_combustible_total = _deslizadores["propulsores"].value * 0.6
 	_radio_zona = _deslizadores["radar"].value * 0.3
 	_limite_bajada = _deslizadores["amortiguadores"].value / 10.0
-	var domo: Vector2 = $Exterior.posicion_domo
-	var hacia_afuera := -domo.normalized()
-	var centro := domo + hacia_afuera * DISTANCIA_AL_DOMO
-	_zona = Vector3(centro.x, 0.0, centro.y)
-	_zona.y = _suelo(_zona)
-	_frente = Vector3(-hacia_afuera.x, 0.0, -hacia_afuera.y)  # Mirando al biodomo.
-	_lado = Vector3(-_frente.z, 0.0, _frente.x)
-	_quitar_rocas_de_la_zona()
-	_crear_modulo()
 	_crear_zona()
 	_crear_panel_descenso()
-	_camara_descenso = Camera3D.new()
-	_camara_descenso.fov = 70.0
-	add_child(_camara_descenso)
 	_aproximacion()
 
 
-## Fases 1 y 2 (automáticas, como en un alunizaje real): el módulo se separa de la cápsula, frena
-## desde 420 m con las patas plegadas y las despliega al acercarse. A 120 m empieza a pilotar el jugador.
+## Fases 1 y 2 (automáticas, como en un alunizaje real): el módulo se separa de la cápsula (que se
+## queda en órbita), enciende el motor y baja desde la órbita hasta 120 m sobre la zona en un solo
+## movimiento suave; al acercarse despliega las patas. Después pilota el jugador.
 func _aproximacion() -> void:
-	_desvio = DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
-	_altura_abs = _zona.y + ALTURA_APROXIMACION
-	_avance = 320.0
+	var lado_final := DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
 	_vx = 0.0
 	_vy = 0.0
 	_combustible = _combustible_total
-	_plegar_patas(1.0)
-	_modulo.global_position = _posicion()
-	_camara_descenso.global_position = _lugar_camara(_posicion())
-	_camara_activa().make_current()
+	_altura_anterior = _altura_abs
 	_panel_descenso.show()
-	_texto_fase.text = "FASE 1 · Separación y frenado (automático)"
+	_texto_fase.text = "FASE 1 · Separación y descenso desde la órbita (automático)"
+	_en_orbita = false
 	_aproximando = true
 	_arti.decir("Nos separamos de la cápsula, que se queda en órbita esperándonos. ¡El módulo de alunizaje enciende su motor para frenar!", "", "", {}, "m2_01i_separacion")
-	# Baja en diagonal: de 420 m de alto y 320 m antes de la zona, hasta 120 m justo encima.
-	var bajada := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).set_parallel()
-	bajada.tween_property(self, "_altura_abs", _zona.y + ALTURA_INICIAL, 12.0)
-	bajada.tween_property(self, "_avance", 0.0, 12.0)
-	await _pausa(5.0)
-	_texto_fase.text = "FASE 2 · Aproximación: patas desplegadas"
+	# La cámara: si el jugador no la movió, pasa sola de la nave entera a seguir al módulo desde atrás.
+	var camara := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	camara.tween_property(self, "_foco_alto", ModuloLunar.PISO * 0.8, 6.0)
+	if not _toco_camara:
+		camara.tween_property(self, "_orbita", Vector2.ZERO, 6.0)
+		camara.tween_property(self, "_distancia", DISTANCIA_CAMARA, 6.0)
+		camara.chain().tween_callback(func() -> void: _camara_libre = false)
+	# Separación: el módulo se suelta y la cápsula sube un poco; después sigue su órbita.
+	var separar := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	separar.tween_property(self, "_capsula_desvio", Vector3(0, 14.0, 0), 4.0)
+	await separar.finished
+	_capsula_pegada = false
+	_capsula_velocidad = _frente * 9.0 + Vector3.UP * 0.6
+	_frenando_auto = true
 	Sonidos.tocar("interruptor.ogg")
-	create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_method(_plegar_patas, 1.0, 0.0, 2.0)
-	_arti.decir("Patas de aterrizaje desplegadas. Ya se ve la zona de aterrizaje junto al biodomo.", "", "", {}, "m2_01j_patas")
+	var bajada := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	bajada.tween_method(_bajar_desde_orbita.bind(lado_final), 0.0, 1.0, SEGUNDOS_DESCENSO)
 	await bajada.finished
 	_aproximando = false
 	_empezar_descenso(false)
@@ -264,6 +357,34 @@ func _aproximacion() -> void:
 		"¿Por qué no usamos paracaídas?",
 		"Porque la Luna no tiene aire, y un paracaídas necesita aire para frenar. Por eso bajamos frenando con los propulsores, igual que los astronautas del Apolo.",
 		{}, "m2_01b_pilotar_descenso", "m2_01c_por_que_no_paracaidas")
+
+
+## Camino del descenso (u de 0 a 1): la altura baja primero y el avance después, así pasa muy por
+## encima de las montañas y termina bajando casi derecho sobre la zona, a 120 m.
+func _bajar_desde_orbita(u: float, lado_final: float) -> void:
+	var resto := 1.0 - u
+	_altura_abs = _zona.y + ALTURA_INICIAL + (ALTURA_ORBITA - ALTURA_INICIAL) * pow(resto, 1.6)
+	_avance = AVANCE_ORBITA * pow(resto, 2.4)
+	_desvio = lado_final * smoothstep(0.55, 1.0, u)
+	if not _patas_desplegadas and _altura_abs - _zona.y < 1100.0:
+		_patas_desplegadas = true
+		_texto_fase.text = "FASE 2 · Aproximación: patas desplegadas"
+		Sonidos.tocar("interruptor.ogg")
+		create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_method(_plegar_patas, 1.0, 0.0, 2.0)
+		_arti.decir("Patas de aterrizaje desplegadas. Ya se ve la zona de aterrizaje junto al biodomo.", "", "", {}, "m2_01j_patas")
+
+
+## La cápsula: acoplada sobre el túnel del módulo (o subiendo al separarse); suelta, sigue su órbita.
+func _actualizar_capsula(delta: float) -> void:
+	if not is_instance_valid(_capsula) or not _capsula.visible:
+		return
+	if _capsula_pegada:
+		var acople := Vector3(0, ModuloLunar.TECHO + 0.62, 0) + _capsula_desvio
+		_capsula.global_transform = Transform3D(_modulo.global_basis.orthonormalized(), _modulo.to_global(acople))
+	else:
+		_capsula.global_position += _capsula_velocidad * delta
+		if _capsula.global_position.distance_to(_camara_descenso.global_position) > 8000.0:
+			_capsula.hide()  # Ya quedó muy lejos: no se dibuja más.
 
 
 ## Fase 3, descenso final. «reiniciar»: vuelve a poner el módulo arriba, a un lado de la zona, con
@@ -325,9 +446,15 @@ func _physics_process(delta: float) -> void:
 		var giro := ControlesTactiles.tomar_mirada()
 		if giro != Vector2.ZERO:
 			_girar_camara(giro)
+	_actualizar_capsula(delta)
+	if _en_orbita:
+		_actualizar_camara(_posicion(), delta)
+		return
 	if _aproximando:
-		# Fases automáticas: la altura la baja un Tween; el motor va frenando todo el tiempo.
-		_mover_modulo(true, 0.0, delta)
+		# Fases automáticas: la altura la baja un Tween; el motor frena desde que se separa.
+		_vy = (_altura_abs - _altura_anterior) / maxf(delta, 0.001)
+		_altura_anterior = _altura_abs
+		_mover_modulo(_frenando_auto, 0.0, delta)
 		_actualizar_panel_descenso()
 		return
 	if not _volando:
@@ -395,12 +522,17 @@ func _mover_modulo(frenar: bool, lado: float, delta: float) -> void:
 		_sonido_motor.stop()
 	# Desde atrás, mirando hacia adelante: se ven el horizonte, la Tierra en el cielo y el biodomo a
 	# lo lejos. Bien arriba la vista baja un poco más; cerca del suelo queda casi derecha.
-	# Si el jugador movió la cámara, mira al módulo (así se ve por arriba, de lado o por debajo).
+	_actualizar_camara(posicion, delta)
+
+
+## La cámara de afuera sigue al módulo. Sin tocarla mira hacia adelante (el horizonte, la Tierra y el
+## biodomo); si el jugador la movió, mira al módulo (por arriba, de lado o por debajo).
+func _actualizar_camara(posicion: Vector3, delta: float) -> void:
 	var objetivo := _lugar_camara(posicion)
 	_camara_descenso.global_position = _camara_descenso.global_position.lerp(objetivo, 1.0 - exp(-6.0 * delta))
 	_peso_libre = move_toward(_peso_libre, 1.0 if _camara_libre else 0.0, delta * 2.0)
 	var adelante := posicion + _frente * 60.0 - Vector3.UP * minf(_altura() * 0.35, 40.0)
-	var al_modulo := posicion + Vector3.UP * (ModuloLunar.PISO * 0.8)
+	var al_modulo := posicion + Vector3.UP * _foco_alto
 	_camara_descenso.look_at(adelante.lerp(al_modulo, _peso_libre))
 
 
@@ -409,14 +541,14 @@ func _mover_modulo(frenar: bool, lado: float, delta: float) -> void:
 func _lugar_camara(posicion: Vector3) -> Vector3:
 	var atras := (-_frente).rotated(Vector3.UP, _orbita.x)
 	var inclinacion := clampf(INCLINACION_CAMARA + _orbita.y, -1.2, 1.45)
-	var lugar := posicion + Vector3.UP * 1.5 + (atras * cos(inclinacion) + Vector3.UP * sin(inclinacion)) * _distancia
+	var lugar := posicion + Vector3.UP * _foco_alto + (atras * cos(inclinacion) + Vector3.UP * sin(inclinacion)) * _distancia
 	lugar.y = maxf(lugar.y, _suelo(lugar) + 0.8)
 	return lugar
 
 
 ## Mouse: arrastrar (botón izquierdo o derecho) gira la cámara de afuera; la rueda acerca o aleja.
 func _unhandled_input(event: InputEvent) -> void:
-	if ControlesTactiles.activo or not (_volando or _aproximando):
+	if ControlesTactiles.activo or not (_volando or _aproximando or _en_orbita):
 		return
 	if event is InputEventMouseButton:
 		var boton := event as InputEventMouseButton
@@ -436,15 +568,17 @@ func _girar_camara(giro: Vector2) -> void:
 	_orbita.x -= giro.x
 	_orbita.y = clampf(_orbita.y + giro.y, -1.2 - INCLINACION_CAMARA, 1.45 - INCLINACION_CAMARA)
 	_camara_libre = true
+	_toco_camara = true
 
 
 func _acercar(factor: float) -> void:
-	_distancia = clampf(_distancia * factor, 7.0, 70.0)
+	_distancia = clampf(_distancia * factor, 7.0, 90.0)
 	_camara_libre = true
+	_toco_camara = true
 
 
 func _actualizar_panel_descenso() -> void:
-	_texto_altura.text = "Altura: %d m" % maxi(roundi(_altura()), 0)
+	_texto_altura.text = "Altura: %s" % _texto_altura_real()
 	var bajada := maxf(-_vy, 0.0)
 	_texto_bajada.text = "Bajando a %s m/s" % _decimal(bajada) if _vy <= 0.0 else "Subiendo a %s m/s" % _decimal(_vy)
 	var color := VERDE if bajada <= _limite_bajada else (AMARILLO if bajada <= _limite_bajada * 2.0 else ROJO)
@@ -463,6 +597,16 @@ func _actualizar_panel_descenso() -> void:
 	else:
 		_texto_zona.text = "Zona de aterrizaje: %d m a la %s" % [ceili(lejos), "izquierda" if _desvio > 0.0 else "derecha"]
 		_texto_zona.add_theme_color_override("font_color", AMARILLO)
+
+
+## La órbita de la escena está achicada: arriba de 420 m la altura se muestra como la real (de los
+## 100 km de la órbita lunar hasta medio kilómetro); abajo, en metros, tal cual.
+func _texto_altura_real() -> String:
+	var altura := _altura_abs - _zona.y if _aproximando else _altura()
+	if altura <= 420.0:
+		return "%d m" % maxi(roundi(altura), 0)
+	var parte := clampf((altura - 420.0) / (ALTURA_ORBITA - 420.0), 0.0, 1.0)
+	return "%s km" % _decimal(0.42 + 99.58 * parte * parte)
 
 
 func _avisar_combustible() -> void:
@@ -522,20 +666,32 @@ func _alunizaje_logrado() -> void:
 	_panel_descenso.hide()
 	if _vista_cabina:
 		_cambiar_camara()
-	# La cámara da una vuelta hasta una toma del módulo aterrizado, de frente y un poco de costado
-	# (se ven la escotilla, el porche y la escalera). De ahí, disolviendo, se pasa adentro de la
-	# cabina: la escena del biodomo empieza con Comandante Junior parado frente a la escotilla.
-	var mirar := _modulo.to_global(Vector3(0, ModuloLunar.PISO, 0))
-	var lugar := _modulo.to_global(Vector3(4.5, 3.4, -8.5))
-	lugar.y = maxf(lugar.y, _suelo(lugar) + 1.5)
-	var desde := _camara_descenso.global_transform
-	var hasta := Transform3D(Basis.IDENTITY, lugar).looking_at(mirar)
-	var vuelo := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	vuelo.tween_method(func(t: float) -> void: _camara_descenso.global_transform = desde.interpolate_with(hasta, t), 0.0, 1.0, 4.0)
-	await vuelo.finished
-	await _pausa(1.5)
+	# Sin cortes: la cámara va hasta la ventana de la derecha, la atraviesa y queda adentro de la
+	# cabina, a la altura de los ojos de Comandante Junior y mirando la escotilla: así mismo empieza
+	# la escena del biodomo, que se disuelve encima sin que se note el cambio.
+	var ventana := Vector3(1.15, ModuloLunar.PISO + 1.525, -1.05)
+	var afuera := Vector3(0.707, 0.0, -0.707)
+	await _volar_camara(_mirando(ventana + afuera * 3.2 + Vector3(0, 0.3, 0), ventana), 4.0)
+	await _volar_camara(_mirando(ventana - afuera * 0.7, ventana - afuera * 2.0), 1.6)
+	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_camara_descenso, "fov", 75.0, 1.8)
+	var ojos := Transform3D(_modulo.global_basis.orthonormalized(), _modulo.to_global(ModuloLunar.LUGAR_JUGADOR + Vector3(0, 1.6, 0)))
+	await _volar_camara(ojos, 1.8)
+	await _pausa(0.3)
 	_arti.callar()
 	Transicion.cambiar_escena(SIGUIENTE_ESCENA)
+
+
+## Transform de la cámara en «desde» (coordenadas del módulo) mirando a «hacia».
+func _mirando(desde: Vector3, hacia: Vector3) -> Transform3D:
+	return Transform3D(Basis.IDENTITY, _modulo.to_global(desde)).looking_at(_modulo.to_global(hacia), Vector3.UP)
+
+
+## Lleva la cámara de afuera, suave, desde donde está hasta «hasta».
+func _volar_camara(hasta: Transform3D, segundos: float) -> void:
+	var desde := _camara_descenso.global_transform
+	var vuelo := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	vuelo.tween_method(func(t: float) -> void: _camara_descenso.global_transform = desde.interpolate_with(hasta, t), 0.0, 1.0, segundos)
+	await vuelo.finished
 
 
 ## Desde el segundo intento: A.R.T.I. pilota y muestra cómo se hace.
@@ -583,6 +739,10 @@ func _crear_modulo() -> void:
 	_camara_cabina.position = Vector3(0.78, ModuloLunar.PISO + 1.6, -0.62)
 	_camara_cabina.rotation_degrees = Vector3(-34.0, -45.0, 0.0)
 	_modulo.add_child(_camara_cabina)
+	# A.R.T.I. viaja en su base de carga (ahí mismo aparece en la escena del biodomo).
+	_arti3d = ARTI_ESCENA.instantiate()
+	_modulo.add_child(_arti3d)
+	_arti3d.position = Vector3(0.55, ModuloLunar.PISO, 0.6)
 	# Llamas: conos que brillan solos (sin sombra). En el vacío casi no se ven; aquí sí, para saber cuándo frenas.
 	var fuego := StandardMaterial3D.new()
 	fuego.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -636,6 +796,50 @@ func _crear_modulo() -> void:
 	_sonido_motor.bus = &"Efectos"
 	_sonido_motor.volume_db = -8.0
 	add_child(_sonido_motor)
+
+
+## La cápsula de la tripulación (parecida a la Orion de Artemis): su punta con el acople va abajo,
+## sobre el túnel del módulo; arriba, el escudo térmico, el módulo de servicio, la tobera y cuatro
+## paneles solares en cruz.
+func _crear_capsula() -> void:
+	_capsula = Node3D.new()
+	add_child(_capsula)
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.vertex_color_is_srgb = true
+	material.roughness = 0.5
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var piezas := [
+		[Fondo._cilindro(0.5, 0.5, 0.35, 16), Color(0.55, 0.57, 0.6), Vector3(0, 0.17, 0)],
+		[Fondo._cilindro(2.5, 0.7, 3.2, 16), Color(0.86, 0.87, 0.89), Vector3(0, 1.95, 0)],
+		[Fondo._cilindro(2.55, 2.55, 0.3, 16), Color(0.36, 0.26, 0.18), Vector3(0, 3.7, 0)],
+		[Fondo._cilindro(2.0, 2.0, 3.8, 16), Color(0.7, 0.72, 0.75), Vector3(0, 5.75, 0)],
+		[Fondo._cilindro(2.03, 2.03, 0.3, 16), Color(0.12, 0.13, 0.15), Vector3(0, 4.5, 0)],
+		[Fondo._cilindro(1.1, 0.5, 1.5, 16), Color(0.25, 0.26, 0.28), Vector3(0, 8.4, 0)],
+	]
+	for i in 4:
+		var angulo := TAU * i / 4.0 + PI / 4.0
+		var hacia := Vector3(sin(angulo), 0.0, cos(angulo))
+		piezas.append([Fondo._caja(Vector3(0.2, 0.2, 1.0)), Color(0.5, 0.52, 0.56), hacia * 2.4 + Vector3(0, 6.5, 0), angulo])
+		piezas.append([Fondo._caja(Vector3(2.0, 0.05, 6.5)), Color(0.08, 0.16, 0.38), hacia * 6.2 + Vector3(0, 6.5, 0), angulo])
+		for k in 4:
+			piezas.append([Fondo._caja(Vector3(2.02, 0.06, 0.04)), Color(0.6, 0.62, 0.66), hacia * (3.6 + k * 1.75) + Vector3(0, 6.5, 0), angulo])
+	for datos in piezas:
+		var pieza := MeshInstance3D.new()
+		pieza.mesh = Fondo.malla_plana(datos[0], datos[1])
+		pieza.material_override = material
+		pieza.position = datos[2]
+		if datos.size() > 3:
+			pieza.rotation.y = datos[3]
+		_capsula.add_child(pieza)
+	var nombre := Label3D.new()
+	nombre.text = "SELENE-ARES"
+	nombre.font_size = 96
+	nombre.pixel_size = 0.006
+	nombre.modulate = Color(0.08, 0.14, 0.3)
+	nombre.outline_size = 0
+	nombre.position = Vector3(0, 5.6, 2.03)
+	_capsula.add_child(nombre)
 
 
 ## Círculo de balizas verdes en el suelo: su tamaño sale del radar.

@@ -18,6 +18,9 @@ const COLOR_ALGAS := Color(0.61, 0.88, 0.36)
 @export var montanas := false
 ## Altura de las montañas del borde, en metros.
 @export var alto_montanas := 760.0
+## Cuánto baja el borde del terreno detrás de las montañas: así se mete debajo de la Luna redonda
+## del alunizaje (vista desde la órbita, la cordillera parece el borde de un gran cráter).
+@export var hundir_borde := 260.0
 
 ## Cráteres: x, z, radio y profundidad.
 var _crateres: Array[Vector4] = []
@@ -76,16 +79,18 @@ func _altura(x: float, z: float) -> float:
 	return h * smoothstep(radio_domo + 3.0, radio_domo + 18.0, punto.distance_to(posicion_domo))
 
 
-## Cordillera del borde: sube desde un poco antes de la mitad hasta el borde del terreno, con picos y
-## valles. En el borde siempre es más alta que la cámara del alunizaje (~430 m), así no se ve el final.
+## Cordillera alrededor: sube desde un poco antes de la mitad, tiene picos y crestas, y detrás baja
+## hasta meterse debajo del suelo de la Luna redonda. Desde abajo (más bajo que los picos) nunca se
+## ve dónde termina el terreno; desde la órbita, se ve como el borde de un gran cráter.
 func _montanas(x: float, z: float, distancia: float) -> float:
 	var mitad := tamano_terreno * 0.5
-	var subida := smoothstep(mitad * 0.42, mitad * 0.86, distancia)
+	var subida := smoothstep(mitad * 0.42, mitad * 0.7, distancia)
 	if subida <= 0.0:
 		return 0.0
+	var bajada := smoothstep(mitad * 0.8, mitad * 0.99, distancia)
 	var picos := 0.86 + 0.22 * _ruido.get_noise_2d(x * 0.22, z * 0.22)  # Picos anchos.
 	var crestas := 1.0 - absf(_ruido.get_noise_2d(x * 0.9 + 400.0, z * 0.9))  # Crestas filosas.
-	return subida * alto_montanas * (picos + 0.12 * crestas)
+	return subida * (1.0 - bajada) * alto_montanas * (picos + 0.12 * crestas) - bajada * hundir_borde
 
 
 func _color_suelo(centro: Vector3, variacion: float) -> Color:

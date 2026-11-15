@@ -93,7 +93,8 @@
 
 | Archivo de Audio | Escena / Disparador | Guion y Acotación de Actuación |
 | :--- | :--- | :--- |
-| `m2_01_despertar_orbita.ogg` | Al despertar en órbita (alunizaje) | *(Con voz suave y amable, como despertando a alguien)* "¡Despierta, Comandante! Llegamos a la órbita de la Luna. Vamos a aterrizar en el Polo Sur porque ahí hay hielo de agua escondido. Equilibra la batería de descenso antes de bajar: deja los tres sistemas en la zona verde." |
+| `m2_00_acople.ogg` | En órbita lunar, mientras la cápsula se acopla al módulo de alunizaje (antes de despertar) | *(Tranquila, en voz baja)* "Ahí está el módulo de alunizaje, que nos esperaba en órbita. Nos acoplamos y pasamos adentro por el túnel." |
+| `m2_01_despertar_orbita.ogg` | Al despertar en órbita, ya acoplados (alunizaje) | *(Con voz suave y amable, como despertando a alguien)* "¡Despierta, Comandante! Llegamos a la órbita de la Luna. Vamos a aterrizar en el Polo Sur porque ahí hay hielo de agua escondido. Equilibra la batería de descenso antes de bajar: deja los tres sistemas en la zona verde." |
 | `m2_01i_separacion.ogg` | Al pulsar «Aterrizar»: el módulo se separa de la cápsula | *(Emocionada, narrando)* "Nos separamos de la cápsula, que se queda en órbita esperándonos. ¡El módulo de alunizaje enciende su motor para frenar!" |
 | `m2_01j_patas.ogg` | Se despliegan las patas (aproximación) | *(Atenta)* "Patas de aterrizaje desplegadas. Ya se ve la zona de aterrizaje junto al biodomo." |
 | `m2_01b_pilotar_descenso.ogg` | Después de la aproximación, a 120 m: empieza el descenso pilotado | *(Animada, entregando el mando con confianza)* "¡Calibración correcta! Ahora pilotas tú: mantén Espacio para frenar con los propulsores y usa A y D para llegar al círculo verde. Hay que tocar el suelo despacito." |

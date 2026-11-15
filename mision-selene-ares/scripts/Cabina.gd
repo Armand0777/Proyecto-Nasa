@@ -115,8 +115,12 @@ var _apuntado: Node = null
 var _luces_bajas := false
 var _energia_luces := {}
 var _radio_i := 0
-## Giro de la vista libre de afuera alrededor de la cápsula (izquierda-derecha, arriba-abajo).
-var _orbita := Vector2.ZERO
+## Cámara de afuera que mueve el jugador (tomas del despegue, las separaciones y el viaje): gira
+## alrededor de la cápsula hacia los lados y hacia arriba o abajo (se puede mirar la Tierra desde
+## arriba o la cápsula desde abajo) y con la rueda se acerca o se aleja.
+var _orbita := Vector2.ZERO  # Giro (x) y cuánto más arriba o abajo (y), en radianes.
+var _zoom := 1.0  # Multiplica la distancia de la cámara a la cápsula.
+var _camara_tocada := false  # Si el jugador ya la movió: deja de girar sola y mira la cápsula.
 ## Viaje Tierra → Luna: horas de misión (0 a 72) que avanzan en tiempo acelerado.
 var _viajando := false
 var _horas_viaje := 0.0
@@ -279,6 +283,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif _toma == "libre" or _toma == "persecucion":
 				_girar_orbita(event.relative * giro)
 			return
+		if event is InputEventMouseButton and event.pressed and (_toma == "libre" or _toma == "persecucion"):
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				_acercar_camara(0.88)
+				return
+			if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				_acercar_camara(1.14)
+				return
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED  # En la web, el mouse se captura con un clic.
@@ -433,25 +444,48 @@ func _cambiar_vista() -> void:
 func _toma_libre() -> void:
 	_toma = "libre"
 	_orbita = Vector2.ZERO
+	_zoom = 1.0
+	_camara_tocada = false
 	_vista_exterior(true)
 	_camara_ext.make_current()
 
 
+## Mouse a los lados: gira alrededor. Mouse hacia abajo: la cámara sube y mira hacia abajo.
 func _girar_orbita(giro: Vector2) -> void:
+	if giro == Vector2.ZERO:
+		return
 	_orbita.x -= giro.x
-	_orbita.y = clampf(_orbita.y - giro.y, -1.1, 1.1)
+	_orbita.y = clampf(_orbita.y + giro.y, -3.0, 3.0)
+	_camara_tocada = true
 
 
+func _acercar_camara(factor: float) -> void:
+	_zoom = clampf(_zoom * factor, 0.3, 3.0)
+	_camara_tocada = true
+
+
+## Pone la cámara de afuera alrededor de «centro» (en coordenadas de la cápsula): «base» es dónde
+## estaría sin que el jugador la mueva. Devuelve la posición en el mundo.
+func _orbitar(centro_local: Vector3, base: Vector3) -> Vector3:
+	var distancia := base.length() * _zoom
+	var direccion := base.normalized()
+	var giro := atan2(direccion.x, direccion.z) + _orbita.x
+	var inclinacion := clampf(asin(clampf(direccion.y, -1.0, 1.0)) + _orbita.y, -1.45, 1.45)
+	var lugar := Vector3(sin(giro) * cos(inclinacion), sin(inclinacion), cos(giro) * cos(inclinacion)) * distancia
+	return _cohete.to_global(centro_local + lugar)
+
+
+## Vista libre del viaje: detrás de la cápsula, con la Luna al fondo. Si el jugador la mueve, gira
+## alrededor de la cápsula (también por arriba y por debajo) y la mira a ella.
 func _ubicar_camara_libre() -> void:
-	var centro := _cohete.to_global(Vector3(0, 60.0, 0))
+	var centro_local := Vector3(0, 60.0, 0)
+	var centro := _cohete.to_global(centro_local)
 	var objetivo := _luna.global_position if _luna.visible else _cohete.to_global(Vector3(0, 60.0, -200.0))
 	var hacia := (objetivo - centro).normalized()
-	var atras := (-hacia * 17.0).rotated(Vector3.UP, _orbita.x)
-	var eje := atras.cross(Vector3.UP)
-	if eje.length() > 0.01:
-		atras = atras.rotated(eje.normalized(), _orbita.y)
-	_camara_ext.global_position = centro + atras + Vector3.UP * 3.0
-	_camara_ext.look_at(centro + hacia * 25.0, Vector3.UP)
+	var atras := _cohete.global_basis.inverse() * (-hacia * 17.0 + Vector3.UP * 3.0)
+	_camara_ext.global_position = _orbitar(centro_local, atras)
+	var mirar := centro if _camara_tocada else centro + hacia * 25.0
+	_camara_ext.look_at(mirar, _cohete.global_basis.y)
 
 
 ## Gira la vista (en radianes): hasta las ventanas de los lados, la consola del techo y el panel auxiliar.
@@ -1190,13 +1224,14 @@ func _actualizar_ascenso(delta: float) -> void:
 	if _toma == "suelo":
 		_camara_ext.look_at(_cohete.global_position + Vector3(0, 35.0, 0))
 	elif _toma == "persecucion":
-		# Gira sola despacio y, además, el jugador la mueve alrededor del cohete con el mouse.
-		var giro := _toma_desplazamiento.rotated(Vector3.UP, (_tiempo - _toma_inicio) * 0.06 + _orbita.x)
-		var lado := giro.cross(Vector3.UP)
-		if lado.length() > 0.01:
-			giro = giro.rotated(lado.normalized(), _orbita.y)
-		_camara_ext.global_position = _cohete.to_global(giro)
-		_camara_ext.look_at(_cohete.to_global(Vector3(0, _toma_alto, 0)), _cohete.global_basis.y)
+		# Gira sola despacio hasta que el jugador la mueve: desde ahí la maneja él, alrededor de la
+		# cápsula, hacia los lados, por arriba (mirando hacia abajo) o por debajo, y con zoom.
+		var centro_local := Vector3(0, _toma_alto, 0)
+		var base := _toma_desplazamiento - centro_local
+		if not _camara_tocada:
+			base = base.rotated(Vector3.UP, (_tiempo - _toma_inicio) * 0.06)
+		_camara_ext.global_position = _orbitar(centro_local, base)
+		_camara_ext.look_at(_cohete.to_global(centro_local), _cohete.global_basis.y)
 	elif _toma == "libre":
 		_ubicar_camara_libre()
 
@@ -1253,6 +1288,8 @@ func _toma_afuera(desplazamiento: Vector3, alto: float) -> void:
 	_ayuda_maniobra.show()
 	_toma = "persecucion"
 	_orbita = Vector2.ZERO
+	_zoom = 1.0
+	_camara_tocada = false
 	_toma_desplazamiento = desplazamiento
 	_toma_alto = alto
 	_toma_inicio = _tiempo
@@ -2418,7 +2455,7 @@ func _crear_interfaz() -> void:
 	_aviso_accion.hide()
 
 	_ayuda_maniobra = _etiqueta(capa, 26, Color(0.85, 0.9, 1.0))
-	_ayuda_maniobra.text = "Arrastra el dedo para mirar alrededor del cohete" if ControlesTactiles.activo else "Mueve el mouse para mirar alrededor del cohete"
+	_ayuda_maniobra.text = "Arrastra el dedo para mirar alrededor del cohete" if ControlesTactiles.activo else "Mouse: mirar alrededor del cohete (también arriba y abajo) · rueda: acercar o alejar"
 	_ayuda_maniobra.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_ayuda_maniobra.offset_left = -500.0
 	_ayuda_maniobra.offset_right = 500.0

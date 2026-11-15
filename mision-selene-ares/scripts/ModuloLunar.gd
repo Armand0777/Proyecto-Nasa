@@ -341,14 +341,14 @@ func _construir_porche_y_escalera() -> void:
 		add_child(escalera)
 
 
-## La escotilla: una puerta con bisagra a la izquierda que se abre hacia afuera. Con física empuja
-## (AnimatableBody3D) y se usa con E.
+## La escotilla: una puerta con bisagra a la izquierda que se abre hacia afuera. Con física empuja y
+## se usa con E. El cuerpo físico (AnimatableBody3D) es el que gira, puesto en la bisagra: si girara
+## un nodo padre, Godot no movería la colisión y la puerta abierta seguiría tapando la salida.
 func _construir_puerta() -> void:
-	_bisagra = Node3D.new()
-	_bisagra.position = Vector3(-0.5, PISO, -1.3 + GROSOR / 2.0)
-	add_child(_bisagra)
 	_puerta = AnimatableBody3D.new()
-	_puerta.position = Vector3(0.5, 1.0, 0.0)
+	_puerta.position = Vector3(-0.5, PISO, -1.3 + GROSOR / 2.0)
+	_bisagra = _puerta
+	var centro := Vector3(0.5, 1.0, 0.0)  # Centro de la hoja, medido desde la bisagra.
 	if _con_fisica:
 		_puerta.set_script(Interactuable)
 		_puerta.set("texto", "Abrir la escotilla")
@@ -356,20 +356,21 @@ func _construir_puerta() -> void:
 		var forma := CollisionShape3D.new()
 		forma.shape = BoxShape3D.new()
 		forma.shape.size = Vector3(0.98, 1.98, 0.08)
+		forma.position = centro
 		_puerta.add_child(forma)
-	_bisagra.add_child(_puerta)
-	_malla(Fondo._caja(Vector3(0.98, 1.98, 0.07)), Color(0.86, 0.87, 0.9), Vector3.ZERO).reparent(_puerta, false)
-	var ojo := _malla(Fondo._cilindro(0.13, 0.13, 0.03, 16), Color.WHITE, Vector3(0, 0.38, -0.03), _vidrio)
+	add_child(_puerta)
+	_malla(Fondo._caja(Vector3(0.98, 1.98, 0.07)), Color(0.86, 0.87, 0.9), centro).reparent(_puerta, false)
+	var ojo := _malla(Fondo._cilindro(0.13, 0.13, 0.03, 16), Color.WHITE, centro + Vector3(0, 0.38, -0.03), _vidrio)
 	ojo.rotation.x = PI / 2.0
 	ojo.reparent(_puerta, false)
-	var aro := _malla(Fondo._cilindro(0.16, 0.16, 0.02, 16), NEGRO, Vector3(0, 0.38, -0.04))
+	var aro := _malla(Fondo._cilindro(0.16, 0.16, 0.02, 16), NEGRO, centro + Vector3(0, 0.38, -0.04))
 	aro.rotation.x = PI / 2.0
 	aro.reparent(_puerta, false)
-	_malla(Fondo._caja(Vector3(0.06, 0.26, 0.05)), GRIS_OSCURO, Vector3(0.36, 0.0, -0.06)).reparent(_puerta, false)
-	var volante := _malla(Fondo._cilindro(0.17, 0.17, 0.03, 12), GRIS, Vector3(0, 0.0, 0.05))
+	_malla(Fondo._caja(Vector3(0.06, 0.26, 0.05)), GRIS_OSCURO, centro + Vector3(0.36, 0.0, -0.06)).reparent(_puerta, false)
+	var volante := _malla(Fondo._cilindro(0.17, 0.17, 0.03, 12), GRIS, centro + Vector3(0, 0.0, 0.05))
 	volante.rotation.x = PI / 2.0
 	volante.reparent(_puerta, false)
-	_malla(Fondo._caja(Vector3(0.98, 0.06, 0.075)), AMARILLO, Vector3(0, -0.96, 0)).reparent(_puerta, false)
+	_malla(Fondo._caja(Vector3(0.98, 0.06, 0.075)), AMARILLO, centro + Vector3(0, -0.96, 0)).reparent(_puerta, false)
 
 
 # --- Ayudas ---
