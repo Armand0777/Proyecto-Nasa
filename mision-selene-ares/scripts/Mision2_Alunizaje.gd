@@ -255,7 +255,7 @@ func _crear_panel() -> void:
 	caja.add_child(titulo)
 	for datos in SISTEMAS:
 		var nombre := Label.new()
-		nombre.text = "%s · zona verde %d–%d %%\n%s" % [datos[1], datos[2], datos[3], datos[4]]
+		nombre.text = tr("%s · zona verde %d–%d %%\n%s") % [tr(datos[1]), datos[2], datos[3], tr(datos[4])]
 		nombre.add_theme_font_size_override("font_size", 20)
 		nombre.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		caja.add_child(nombre)
@@ -332,7 +332,7 @@ func _chequeo_medico() -> void:
 	if _estudio.is_empty():
 		return
 	var dato := _estudio
-	GameManager.estado_osdr = "estudio %s de la misión %s (%s)" % [dato.id, dato.mision, dato.estado]
+	GameManager.estado_osdr = tr("estudio %s de la misión %s (%s)") % [dato.id, dato.mision, tr(dato.estado)]
 	var panel := PanelContainer.new()
 	panel.anchor_left = 1.0
 	panel.anchor_right = 1.0
@@ -349,17 +349,17 @@ func _chequeo_medico() -> void:
 	caja.add_child(titulo)
 	for linea: String in [
 		"Tu viaje a la Luna: 3 días  ·  Signos vitales: normales",
-		"Misión real %s (%s): %d astronautas, %d días en órbita" % [dato.mision, dato.anio, dato.astronautas, dato.dias],
-		"Les tomaron sangre %d veces: %d antes del vuelo y %d después (hasta %d días después)" % [dato.tomas_antes + dato.tomas_despues, dato.tomas_antes, dato.tomas_despues, dato.ultimo_dia],
+		tr("Misión real %s (%s): %d astronautas, %d días en órbita") % [dato.mision, dato.anio, dato.astronautas, dato.dias],
+		tr("Les tomaron sangre %d veces: %d antes del vuelo y %d después (hasta %d días después)") % [dato.tomas_antes + dato.tomas_despues, dato.tomas_antes, dato.tomas_despues, dato.ultimo_dia],
 		"Midieron las defensas, el corazón y cómo se recupera el cuerpo",
 	]:
 		var texto := Label.new()
-		texto.text = "• " + linea
+		texto.text = "• " + tr(linea)
 		texto.add_theme_font_size_override("font_size", 22)
 		texto.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		caja.add_child(texto)
 	var fuente := Label.new()
-	fuente.text = "Fuente: NASA OSDR · estudio %s · %s" % [dato.id, dato.estado]
+	fuente.text = tr("Fuente: NASA OSDR · estudio %s · %s") % [dato.id, tr(dato.estado)]
 	fuente.add_theme_font_size_override("font_size", 20)
 	fuente.add_theme_color_override("font_color", VERDE if dato.estado == "EN VIVO" else AMARILLO)
 	caja.add_child(fuente)
@@ -477,7 +477,7 @@ func _empezar_descenso(reiniciar := true) -> void:
 	_aviso_combustible = 0
 	_camara_activa().make_current()
 	_panel_descenso.show()
-	_texto_fase.text = "FASE 3 · Descenso final: %s" % ("A.R.T.I. pilota" if _piloto_auto else "pilotas tú")
+	_texto_fase.text = tr("FASE 3 · Descenso final: %s") % tr("A.R.T.I. pilota" if _piloto_auto else "pilotas tú")
 	_texto_contacto.text = ""
 	_volando = true
 
@@ -500,7 +500,7 @@ func _cambiar_camara() -> void:
 		_distancia = DISTANCIA_CAMARA
 		_camara_libre = false
 	_camara_activa().make_current()
-	_boton_camara.text = "Cámara: %s" % ("ventana del módulo" if _vista_cabina else "desde afuera")
+	_boton_camara.text = tr("Cámara: %s") % tr("ventana del módulo" if _vista_cabina else "desde afuera")
 
 
 func _pausa(segundos: float) -> void:
@@ -651,15 +651,15 @@ func _acercar(factor: float) -> void:
 
 
 func _actualizar_panel_descenso() -> void:
-	_texto_altura.text = "Altura: %s" % _texto_altura_real()
+	_texto_altura.text = tr("Altura: %s") % _texto_altura_real()
 	var bajada := maxf(-_vy, 0.0)
-	_texto_bajada.text = "Bajando a %s m/s" % _decimal(bajada) if _vy <= 0.0 else "Subiendo a %s m/s" % _decimal(_vy)
+	_texto_bajada.text = tr("Bajando a %s m/s") % _decimal(bajada) if _vy <= 0.0 else tr("Subiendo a %s m/s") % _decimal(_vy)
 	var color := VERDE if bajada <= _limite_bajada else (AMARILLO if bajada <= _limite_bajada * 2.0 else ROJO)
 	if _altura() > 25.0:  # Muy arriba todavía hay tiempo de frenar: solo se avisa si cae rapidísimo.
 		color = VERDE if bajada <= 8.0 else AMARILLO
 	_texto_bajada.add_theme_color_override("font_color", color)
 	_barra_combustible.value = _combustible / _combustible_total * 100.0
-	_texto_lado.text = "De lado: %s m/s" % _decimal(absf(_vx))
+	_texto_lado.text = tr("De lado: %s m/s") % _decimal(absf(_vx))
 	# Luz de contacto: las sondas de las patas tocan el suelo justo antes de apoyarse (como en el Apolo).
 	if _volando and _altura() < 1.5:
 		_texto_contacto.text = "●  CONTACTO"
@@ -668,7 +668,7 @@ func _actualizar_panel_descenso() -> void:
 		_texto_zona.text = "Zona de aterrizaje: ¡estás encima!"
 		_texto_zona.add_theme_color_override("font_color", VERDE)
 	else:
-		_texto_zona.text = "Zona de aterrizaje: %d m a la %s" % [ceili(lejos), "izquierda" if _desvio > 0.0 else "derecha"]
+		_texto_zona.text = tr("Zona de aterrizaje: %d m a la %s") % [ceili(lejos), tr("izquierda" if _desvio > 0.0 else "derecha")]
 		_texto_zona.add_theme_color_override("font_color", AMARILLO)
 
 
@@ -702,7 +702,7 @@ func _tocar_suelo() -> void:
 	Sonidos.tocar("golpe.ogg")
 	_temblar(0.06 if bajada <= _limite_bajada else 0.2)
 	var en_zona := absf(_desvio) <= _radio_zona
-	_texto_bajada.text = "Toque: %s m/s (aguante: %s)" % [_decimal(bajada), _decimal(_limite_bajada)]
+	_texto_bajada.text = tr("Toque: %s m/s (aguante: %s)") % [_decimal(bajada), _decimal(_limite_bajada)]
 	if bajada <= _limite_bajada and en_zona:
 		_alunizaje_logrado()
 		return
@@ -965,10 +965,10 @@ func _crear_panel_descenso() -> void:
 	_barra_combustible.show_percentage = false
 	caja.add_child(_barra_combustible)
 	_texto_calibracion = _etiqueta(caja, 18)
-	_texto_calibracion.text = "Tu calibración: combustible para %d s · zona de %d m · los amortiguadores aguantan hasta %s m/s" % [roundi(_combustible_total), roundi(_radio_zona), _decimal(_limite_bajada)]
+	_texto_calibracion.text = tr("Tu calibración: combustible para %d s · zona de %d m · los amortiguadores aguantan hasta %s m/s") % [roundi(_combustible_total), roundi(_radio_zona), _decimal(_limite_bajada)]
 	_texto_calibracion.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var ayuda := _etiqueta(caja, 18)
-	ayuda.text = "Espacio (o W): frenar · A y D (o ← →): moverte de lado\n%s" % ("Arrastra el dedo a la derecha: mover la cámara" if ControlesTactiles.activo else "Arrastra con el mouse: mover la cámara · rueda: acercar o alejar")
+	ayuda.text = tr("Espacio (o W): frenar · A y D (o ← →): moverte de lado\n%s") % tr("Arrastra el dedo a la derecha: mover la cámara" if ControlesTactiles.activo else "Arrastra con el mouse: mover la cámara · rueda: acercar o alejar")
 	ayuda.modulate = Color(1, 1, 1, 0.75)
 	_boton_auto = Button.new()
 	_boton_auto.text = "Que aterrice A.R.T.I."

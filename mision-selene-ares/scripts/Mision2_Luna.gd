@@ -162,7 +162,7 @@ func _process(delta: float) -> void:
 	if _tormenta:
 		_restante -= delta
 		_alarma.light_energy = 4.0 if fmod(_restante, 1.0) < 0.5 else 0.4  # 1 parpadeo por segundo.
-		_aviso_tormenta.text = "TORMENTA SOLAR · impacto en %d s · escudo %d de %d" % [ceili(_restante), GameManager.recursos["escudo"], _meta_escudo]
+		_aviso_tormenta.text = tr("TORMENTA SOLAR · impacto en %d s · escudo %d de %d") % [ceili(_restante), GameManager.recursos["escudo"], _meta_escudo]
 		if _restante <= 0.0:
 			_terminar_tormenta()
 		return
@@ -341,7 +341,7 @@ func _al_usar(estacion: String) -> void:
 				_arti.decir("No quedan barras de proteína. Cosecha una lechuga en el huerto.")
 				return
 			GameManager.cambiar("hambre", 20.0)
-			_arti.decir("¡Rica barra de proteína de la Tierra! Quedan %d (míralas con Tab en tu inventario). Cuando se acaben, habrá que cultivar." % GameManager.cantidad("barra_proteina"))
+			_arti.decir(tr("¡Rica barra de proteína de la Tierra! Quedan %d (míralas con Tab en tu inventario). Cuando se acaben, habrá que cultivar.") % GameManager.cantidad("barra_proteina"))
 		"consola":
 			if _tormenta:
 				_abrir_panel()
@@ -402,19 +402,19 @@ func _empezar_tormenta() -> void:
 	var dato := _dato_tormenta
 	# La fuerza real de la llamarada decide cuánto escudo hace falta.
 	_meta_escudo = {"X": 80.0, "M": 60.0}.get(str(dato.clase).left(1), 40.0)
-	GameManager.estado_donki = "evento de práctica (sin conexión)" if dato.estado == "PRÁCTICA" else "llamarada clase %s del %s (%s)" % [dato.clase, dato.fecha, dato.estado]
+	GameManager.estado_donki = tr("evento de práctica (sin conexión)") if dato.estado == "PRÁCTICA" else tr("llamarada clase %s del %s (%s)") % [dato.clase, dato.fecha, tr(dato.estado)]
 	if dato.estado == "PRÁCTICA":
 		_evento.text = "Evento de práctica: no hubo conexión con NASA DONKI"
 	else:
-		_evento.text = "Llamarada solar real clase %s · %s · Fuente: NASA DONKI · %s" % [dato.clase, dato.fecha, dato.estado]
+		_evento.text = tr("Llamarada solar real clase %s · %s · Fuente: NASA DONKI · %s") % [dato.clase, dato.fecha, tr(dato.estado)]
 	_evento.show()
 	_aviso_tormenta.show()
 	_alarma.show()
 	Sonidos.tocar("alarma.wav", -3.0)
 	_cerrar_panel()
-	var alerta := "¡ALERTA ROJA, COMANDANTE! Nuestros sensores conectados a la red DONKI de la NASA detectaron una Tormenta de Radiación Solar gigante dirigiéndose hacia la Luna. Impactará en %d segundos." % segundos_tormenta
+	var alerta := tr("¡ALERTA ROJA, COMANDANTE! Nuestros sensores conectados a la red DONKI de la NASA detectaron una Tormenta de Radiación Solar gigante dirigiéndose hacia la Luna. Impactará en %d segundos.") % segundos_tormenta
 	if dato.estado == "PRÁCTICA":
-		alerta = "¡ALERTA ROJA, COMANDANTE! Simulacro de tormenta solar: hoy no pudimos conectarnos con la NASA, así que practicaremos. Impactará en %d segundos." % segundos_tormenta
+		alerta = tr("¡ALERTA ROJA, COMANDANTE! Simulacro de tormenta solar: hoy no pudimos conectarnos con la NASA, así que practicaremos. Impactará en %d segundos.") % segundos_tormenta
 	# La meta no se dice en voz: cambia con cada llamarada y la grabación es una sola (se ve arriba).
 	_arti.decir(alerta,
 		"¿Qué es una tormenta de radiación solar y qué hago?",
@@ -448,7 +448,7 @@ func _terminar_tormenta() -> void:
 	_flecha.apuntar(_base.to_global(Vector3(0, PISO_DOMO + 3.4, PUERTA_INTERIOR_Z)))
 	_comunicaciones = 40.0
 	_calefaccion = 40.0
-	_arti.decir(texto + " Ya devolví la energía a comunicaciones y calefacción. Cuando quieras, sal por la esclusa para la caminata EVA.",
+	_arti.decir(tr(texto) + tr(" Ya devolví la energía a comunicaciones y calefacción. Cuando quieras, sal por la esclusa para la caminata EVA."),
 		"¿Así protegen a los astronautas de verdad?",
 		"Sí, con masa: paredes con agua, regolito o plástico frenan las partículas. En la nave Orion, los astronautas arman un refugio rodeándose de bolsas con agua y provisiones.",
 		{}, audio)
@@ -484,9 +484,9 @@ func _cerrar_panel() -> void:
 
 
 func _actualizar_panel() -> void:
-	_textos_panel["comunicaciones"].text = "Comunicaciones: %d" % _comunicaciones if _comunicaciones > 0.0 else "Comunicaciones: SIN SEÑAL"
-	_textos_panel["calefaccion"].text = "Calefacción: %d" % _calefaccion
-	_textos_panel["escudo"].text = "Escudo: %d de %d" % [GameManager.recursos["escudo"], _meta_escudo]
+	_textos_panel["comunicaciones"].text = tr("Comunicaciones: %d") % _comunicaciones if _comunicaciones > 0.0 else "Comunicaciones: SIN SEÑAL"
+	_textos_panel["calefaccion"].text = tr("Calefacción: %d") % _calefaccion
+	_textos_panel["escudo"].text = tr("Escudo: %d de %d") % [GameManager.recursos["escudo"], _meta_escudo]
 
 
 # --- Construcción ---
@@ -816,7 +816,7 @@ func _recoger_piedra(piedra: MeshInstance3D) -> void:
 		_roca_ok = true
 		_arti.decir("¡Piedra lunar recogida! Los científicos estudian estas rocas para saber cómo se formó la Luna.")
 	else:
-		_arti.decir("Otra piedra lunar para la colección. Ya llevas %d (míralas con Tab)." % GameManager.cantidad("roca_lunar"))
+		_arti.decir(tr("Otra piedra lunar para la colección. Ya llevas %d (míralas con Tab).") % GameManager.cantidad("roca_lunar"))
 	_actualizar_objetivos()
 
 
@@ -877,7 +877,7 @@ func _recoger_hielo(hielo: StaticBody3D) -> void:
 	_hielo_recogido += 1
 	GameManager.agregar("hielo")
 	_actualizar_objetivos()
-	_arti.decir("¡Muestra de hielo %d recogida! Con el hielo de la Luna se puede hacer agua para beber y oxígeno para respirar." % _hielo_recogido)
+	_arti.decir(tr("¡Muestra de hielo %d recogida! Con el hielo de la Luna se puede hacer agua para beber y oxígeno para respirar.") % _hielo_recogido)
 
 
 ## El escáner suena más rápido cuanto más cerca está el hielo más cercano.
@@ -895,10 +895,10 @@ func _escanear(delta: float) -> void:
 
 
 func _actualizar_objetivos(distancia := -1.0) -> void:
-	var escaner := "" if distancia < 0.0 else "\nEscáner: hielo a %d m" % distancia
+	var escaner := "" if distancia < 0.0 else tr("\nEscáner: hielo a %d m") % distancia
 	if _hielos.is_empty():
-		escaner = "\nEscáner: ya no hay más hielo cerca"
-	_objetivos.text = "CAMINATA EVA\n%s Hielo %d de 2\n%s Roca lunar\n%s Foto científica (tecla F)%s" % [
+		escaner = tr("\nEscáner: ya no hay más hielo cerca")
+	_objetivos.text = tr("CAMINATA EVA\n%s Hielo %d de 2\n%s Roca lunar\n%s Foto científica (tecla F)%s") % [
 		"✔" if _hielo_recogido >= 2 else "•", _hielo_recogido,
 		"✔" if _roca_ok else "•",
 		"✔" if _foto_ok else "•",

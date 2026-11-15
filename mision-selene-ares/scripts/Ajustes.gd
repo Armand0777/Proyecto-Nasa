@@ -7,6 +7,7 @@ const RUTA := "user://ajustes.cfg"
 const TEXTOS_INGLES := [
 	preload("res://scripts/textos/Ingles_Menus.gd"), preload("res://scripts/textos/Ingles_Comunes.gd"),
 	preload("res://scripts/textos/Ingles_Tierra.gd"), preload("res://scripts/textos/Ingles_Cabina.gd"),
+	preload("res://scripts/textos/Ingles_Luna.gd"),
 ]
 
 ## Se emite al cambiar de idioma (para lo que no se traduce solo).

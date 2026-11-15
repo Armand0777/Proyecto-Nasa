@@ -663,7 +663,7 @@ func _crear_interfaz() -> void:
 	ayuda.hide()
 
 	_saltar = Button.new()
-	_saltar.text = "Saltar"
+	_saltar.text = "Saltar escena"
 	_saltar.focus_mode = Control.FOCUS_NONE
 	_saltar.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_saltar.offset_left = -220.0
@@ -734,8 +734,8 @@ func _dibujar_mira(lienzo: Control) -> void:
 		lienzo.draw_line(apunta - direccion * 26.0, apunta + direccion * 26.0, AMARILLO, 4.0)
 	var fuente := lienzo.get_theme_default_font()
 	var cerca := _distancia <= DISTANCIA_PUERTA + 0.5
-	var estado := "Acercándonos a Aurora: %d m" % roundi(_distancia)
+	var estado := tr("Acercándonos a Aurora: %d m") % roundi(_distancia)
 	if cerca:
-		estado = "¡Alineado! Pulsa Espacio para acoplar" if listo else "Lleva la cruz al centro del círculo"
+		estado = tr("¡Alineado! Pulsa Espacio para acoplar" if listo else "Lleva la cruz al centro del círculo")
 	lienzo.draw_string_outline(fuente, Vector2(0, 150), estado, HORIZONTAL_ALIGNMENT_CENTER, lienzo.size.x, 34, 10, AZUL_NOCHE)
 	lienzo.draw_string(fuente, Vector2(0, 150), estado, HORIZONTAL_ALIGNMENT_CENTER, lienzo.size.x, 34, color if cerca else Color.WHITE)
