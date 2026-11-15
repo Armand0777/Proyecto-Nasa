@@ -166,6 +166,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [x] Diálogo de bienvenida y pregunta `[? ¿Qué es la Bio-Box?]`.
 - [x] **Puzle 1, Inciso A como ventana de selección:** 6 contenedores, límite de 100 kg, báscula que se pone roja al pasarse, y cada tarjeta muestra peso y efecto. Lo elegido decide con qué se empieza en la Luna.
 - [x] **Recorrido continuo:** se entra al hangar por el pasillo que viene del laboratorio del prólogo. Con la carga lista, la puerta de la derecha sale a la pradera; un camino de concreto y la flecha guía llevan a la rampa de la plataforma, y el ascensor de la torre sube hasta la cápsula antes de pasar a la cabina (frases `m1_06` a `m1_08`). El cohete está más cerca del hangar que en el menú (`posicion_cohete` en `Mision1_Tierra.tscn`).
+- [x] **Torre y ascensor con detalle:** cruces en X en la torre, escalera de emergencia en zigzag (cara de atrás), tuberías de combustible hasta el tanque con vapor frío, luces rojas de aviso en varios niveles y el nombre ARTEMIS-IX en el tanque. El ascensor tiene paredes de reja, puertas de media altura que se cierran al subir y se abren arriba, pantalla con la altura, rieles guía, contrapeso con cables y polea, y una caseta de control con luz ámbar que gira mientras sube. Canastas de escape con cables hasta un refugio (como en la plataforma real de Artemis) y un cartel que las explica.
 - [ ] Cada contenedor elegido "salta" a la bodega con un rebote.
 - [ ] A.R.T.I. señala con la mano cada contenedor.
 - [ ] Puzle 1 arrastrando en 3D, Inciso B e Inciso C (`P2`).
@@ -173,6 +174,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 
 ### Escena 1.2: Cápsula y despegue (nodo `Cabina` en `scenes/Mision1_Tierra.tscn`, script `scripts/Cabina.gd`)
 - [x] **Sin cortes desde el hangar:** el ascensor sube hasta una pasarela con barandas (no hay cómo caerse) que lleva a la escotilla; al entrar, la cámara pasa por la escotilla hasta el asiento.
+- [x] **Abordaje como en la torre real:** la pasarela es un brazo de acceso (puente de vigas, piso de rejilla, luces verdes en el piso) que termina en la **Sala Blanca** (cuarto blanco con luz, banco, cascos y un cartel que la explica). La escotilla tiene marco, ventanita, manija y luz verde, y se abre al entrar. Durante la cuenta regresiva el brazo se retira girando sobre su bisagra (`_retirar_brazo`). La cápsula por fuera tiene 8 caras (como la cabina por dentro), ventanas y franjas.
 - [x] **Cabina tipo Orion:** 8 paredes que se angostan hacia arriba, 4 ventanas con el exterior real (torre, pradera, cielo), tablero con 3 pantallas (capa de la atmósfera, altitud y velocidad, motores y combustible), asientos y luz en el techo. Se mira moviendo el mouse, sin capturarlo.
 - [x] **Puzle 2, Inciso A:** 3 interruptores (presión azul, calefacción naranja, ignición roja) en orden, con clic o teclas 1-2-3, y 30 s; luz verde al activarlos. Sin castigo si se acaba el tiempo.
 - [x] Cuenta regresiva `3, 2, 1... ¡Despegue!`.

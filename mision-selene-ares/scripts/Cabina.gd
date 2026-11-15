@@ -38,6 +38,8 @@ const ALTO := 2.4
 ## Caras con ventana (0 = adelante, −Z; cada cara gira 45°; la 2 mira a la torre) y la escotilla (atrás).
 const VENTANAS := [0, 1, 2, 7]
 const ESCOTILLA := 4
+## Bisagra del brazo de acceso en la torre (x, z en coordenadas de la plataforma, a la altura del piso).
+const BISAGRA_BRAZO := Vector2(9.0, 5.0)
 ## Ojos de Comandante Junior en su asiento (coordenadas de la cápsula).
 const OJOS := Vector3(0.0, 1.05, 0.55)
 ## Inclinación de la mirada al pilotar: el centro de la pantalla queda en medio de la ventana.
@@ -89,6 +91,8 @@ var _camara_ext := Camera3D.new()
 var _flecha: Node3D
 var _puerta_escotilla: Node3D
 var _apertura_escotilla := Vector3.ZERO
+var _hoja_escotilla: Node3D  # Hoja de la escotilla de afuera (gira sobre su bisagra).
+var _brazo: Node3D  # Brazo de acceso con la Sala Blanca: gira para retirarse antes del despegue.
 var _tween_arti: Tween
 
 # Estado general.
@@ -252,8 +256,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Lo llama el hangar al terminar de subir en el ascensor.
 func arriba() -> void:
-	_flecha.apuntar(_cohete.to_global(Vector3(0, PISO + 2.6, 3.0)))
-	_arti_a(_plataforma.to_global(Vector3(1.8, PISO, 3.4)))
+	_flecha.apuntar(_cohete.to_global(Vector3(0, PISO + 1.6, 3.0)))  # Debajo del techo de la Sala Blanca.
+	_arti_a(_plataforma.to_global(Vector3(-0.9, PISO, 4.6)))  # Adentro de la Sala Blanca (entra por su puerta).
 	_dialogo.decir("¡Llegamos arriba! Camina por la pasarela hasta la escotilla de la cápsula y pulsa E para entrar. Las barandas te cuidan: no hay peligro.", "", "", {}, "m1_09_pasarela")
 
 
@@ -266,6 +270,7 @@ func _entrar() -> void:
 	_preparar_cabina()
 	Sonidos.tocar("puerta.ogg", -2.0)
 	create_tween().tween_property(_puerta_escotilla, "position", _apertura_escotilla, 0.6)
+	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_hoja_escotilla, "rotation:y", -1.75, 0.6)
 	_meter_arti(false)
 	_camara.global_transform = (_jugador.get_node("Camara") as Camera3D).global_transform
 	_camara.make_current()
@@ -278,6 +283,7 @@ func _entrar() -> void:
 	await tween.finished
 	Sonidos.tocar("puerta.ogg", -4.0)
 	create_tween().tween_property(_puerta_escotilla, "position", Vector3.ZERO, 0.6)
+	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_hoja_escotilla, "rotation:y", 0.0, 0.8)
 	_sentarse(true)
 
 
@@ -394,6 +400,7 @@ func _despegar() -> void:
 	_en_puzle = false
 	_tiempo_label.hide()
 	_dialogo.callar()
+	_retirar_brazo()  # Durante la cuenta regresiva: por la ventana de la torre se ve cómo se aleja.
 	for texto in ["3", "2", "1", "¡Despegue!"]:
 		_cuenta.text = texto
 		_cuenta.show()
@@ -917,44 +924,206 @@ func _arti_a(destino: Vector3) -> void:
 
 # --- Construcción ---
 
-## Pasarela con barandas desde el ascensor (arriba) hasta la escotilla, y la escotilla por fuera.
+## Brazo de acceso de la tripulación, como el de la torre de Artemis: un puente de vigas con piso de
+## rejilla, barandas con postes y luces verdes en el piso que llevan hasta la Sala Blanca, el cuarto
+## blanco que rodea la escotilla. El brazo gira sobre una bisagra en la torre y se retira antes del
+## despegue (_retirar_brazo). Las colisiones no giran: para entonces el jugador ya está en la cápsula.
+## En coordenadas de la plataforma: la pasarela va por z 4.2–5.8 desde el ascensor (x 10.7) hasta la
+## sala, que va de x −1.6 a 1.6 y de z 2.5 (la cápsula) a 5.9.
 func _construir_pasarela() -> void:
 	var y := PISO - 0.1
-	_bloque(Vector3(12.2, 0.2, 1.6), Vector3(4.6, y, 5.0), COLOR_ACERO, true, _plataforma)
-	_bloque(Vector3(1.6, 0.2, 1.8), Vector3(0.0, y, 3.35), COLOR_ACERO, true, _plataforma)
-	# Barandas: se ven dos barras amarillas, pero chocan de abajo hasta arriba (no hay cómo caerse).
-	var barandas := [
-		[Vector3(9.9, 1.1, 0.08), Vector3(5.75, 0, 4.2)],
-		[Vector3(0.7, 1.1, 0.08), Vector3(-1.15, 0, 4.2)],
-		[Vector3(12.2, 1.1, 0.08), Vector3(4.6, 0, 5.8)],
-		[Vector3(0.08, 1.1, 1.6), Vector3(-1.5, 0, 5.0)],
-		[Vector3(0.08, 1.1, 1.8), Vector3(-0.8, 0, 3.35)],
-		[Vector3(0.08, 1.1, 1.8), Vector3(0.8, 0, 3.35)],
-	]
-	for datos in barandas:
-		var tamano: Vector3 = datos[0]
-		var base: Vector3 = datos[1]
-		_pared_invisible(tamano, base + Vector3(0, PISO + tamano.y / 2.0, 0))
-		for alto in [0.55, 1.05]:
-			_bloque(Vector3(tamano.x, 0.06, tamano.z), base + Vector3(0, PISO + alto, 0), COLOR_AMARILLO, false, _plataforma)
-	# Arriba, el ascensor solo se abre hacia la pasarela: atrás y al costado hay paredes invisibles.
-	_pared_invisible(Vector3(2.6, 1.2, 0.1), Vector3(12.0, PISO + 0.6, 3.68))
-	_pared_invisible(Vector3(0.1, 1.2, 2.6), Vector3(13.32, PISO + 0.6, 5.0))
+	# Colisiones: pisos, barandas (chocan de abajo hasta arriba: no hay cómo caerse) y paredes de la sala.
+	for datos in [
+		[Vector3(12.2, 0.2, 1.6), Vector3(4.6, y, 5.0)],
+		[Vector3(3.2, 0.2, 3.4), Vector3(0.0, y, 4.2)],
+		[Vector3(9.1, 1.1, 0.08), Vector3(6.15, PISO + 0.55, 4.2)],
+		[Vector3(9.1, 1.1, 0.08), Vector3(6.15, PISO + 0.55, 5.8)],
+		[Vector3(0.08, 2.6, 3.4), Vector3(-1.64, PISO + 1.3, 4.2)],
+		[Vector3(3.3, 2.6, 0.08), Vector3(0.0, PISO + 1.3, 5.94)],
+		[Vector3(0.08, 2.6, 1.7), Vector3(1.64, PISO + 1.3, 3.35)],
+		[Vector3(0.85, 2.6, 0.08), Vector3(-1.175, PISO + 1.3, 2.46)],
+		[Vector3(0.85, 2.6, 0.08), Vector3(1.175, PISO + 1.3, 2.46)],
+		# Arriba, el ascensor solo se abre hacia la pasarela.
+		[Vector3(2.6, 1.2, 0.1), Vector3(12.0, PISO + 0.6, 3.68)],
+		[Vector3(0.1, 1.2, 2.6), Vector3(13.32, PISO + 0.6, 5.0)],
+		[Vector3(2.6, 1.2, 0.1), Vector3(12.0, PISO + 0.6, 6.32)],
+	]:
+		_pared_invisible(datos[0], datos[1])
 
-	# Escotilla por fuera de la cápsula: se usa con E.
+	_brazo = Node3D.new()
+	_brazo.name = "BrazoAcceso"
+	_brazo.position = Vector3(BISAGRA_BRAZO.x, PISO, BISAGRA_BRAZO.y)
+	_plataforma.add_child(_brazo)
+	# El brazo va de la sala (x 1.6) a la bisagra (x 9); en coordenadas de la bisagra, de −7.4 a 0.
+	_tramo_pasarela(_brazo, -7.4, 0.0, true)
+	_bloque(Vector3(0.4, 1.5, 0.4), Vector3(0, -0.85, 0), COLOR_ACERO.darkened(0.2), false, _brazo)  # Bisagra, debajo del piso.
+	_construir_sala_blanca()
+	Decoracion.fusionar(_brazo)
+	# Rellano fijo frente al ascensor (x 9 a 10.7): no gira con el brazo.
+	var rellano := Node3D.new()
+	rellano.position = _brazo.position
+	_plataforma.add_child(rellano)
+	_tramo_pasarela(rellano, 0.0, 1.7, false)
+	Decoracion.fusionar(rellano)
+	_construir_escotilla()
+
+
+## Un tramo de pasarela entre «desde» y «hasta» (en x, coordenadas de la bisagra): piso de rejilla,
+## largueros, barandas con postes, rodapié y luces verdes en el piso; con «vigas», el puente de abajo.
+func _tramo_pasarela(padre: Node3D, desde: float, hasta: float, vigas: bool) -> void:
+	var largo := hasta - desde
+	var centro := (desde + hasta) / 2.0
+	var gris := COLOR_ACERO.darkened(0.2)
+	_bloque(Vector3(largo, 0.05, 1.6), Vector3(centro, -0.045, 0), COLOR_NOCHE.lightened(0.15), false, padre)
+	for i in int(largo / 0.2):
+		_bloque(Vector3(0.04, 0.025, 1.5), Vector3(desde + 0.1 + i * 0.2, -0.01, 0), COLOR_ACERO.lightened(0.15), false, padre)
+	var verde := StandardMaterial3D.new()
+	verde.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	verde.albedo_color = COLOR_LISTO
+	for lado in [-0.8, 0.8]:
+		_bloque(Vector3(largo, 0.32, 0.1), Vector3(centro, -0.2, lado), gris, false, padre)
+		_bloque(Vector3(largo, 0.12, 0.02), Vector3(centro, 0.06, lado * 0.97), COLOR_AMARILLO, false, padre)
+		_bloque(Vector3(largo, 0.06, 0.06), Vector3(centro, 1.05, lado), COLOR_AMARILLO, false, padre)
+		_bloque(Vector3(largo, 0.04, 0.04), Vector3(centro, 0.55, lado), gris, false, padre)
+		for i in int(largo / 1.2) + 1:
+			_bloque(Vector3(0.05, 1.1, 0.05), Vector3(desde + 0.05 + i * (largo - 0.1) / maxf(1.0, int(largo / 1.2)), 0.55, lado), gris, false, padre)
+		for i in int(largo):
+			var luz := MeshInstance3D.new()
+			luz.mesh = Fondo._caja(Vector3(0.22, 0.02, 0.05))
+			luz.material_override = verde
+			luz.position = Vector3(desde + 0.5 + i, 0.02, lado * 0.84)
+			luz.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			padre.add_child(luz)
+	if not vigas:
+		return
+	# Puente de vigas de abajo: cordones, montantes, diagonales y travesaños.
+	var tramos := 5
+	var paso := largo / tramos
+	for lado in [-0.75, 0.75]:
+		_bloque(Vector3(largo, 0.12, 0.12), Vector3(centro, -1.3, lado), gris, false, padre)
+		for i in tramos + 1:
+			var x := desde + i * paso
+			_bloque(Vector3(0.1, 1.1, 0.1), Vector3(x, -0.75, lado), gris, false, padre)
+			_bloque(Vector3(0.08, 0.08, 1.5), Vector3(x, -1.3, 0), gris, false, padre)
+			if i < tramos:
+				Decoracion.tubo(padre, Vector3(x, -1.3, lado), Vector3(x + paso, -0.2, lado), 0.045, gris, _material, false)
+
+
+## La Sala Blanca (existe en las torres de la NASA): el último cuarto antes de la cápsula, donde los
+## técnicos ayudan a la tripulación a ponerse el casco y entrar. Paredes blancas, luz en el techo, un
+## banco, un estante con cascos y un cartel que lo explica. En coordenadas de la bisagra: x −10.6 a
+## −7.4 y z −2.5 a 0.9.
+func _construir_sala_blanca() -> void:
+	var blanco := Color(0.93, 0.94, 0.96)
+	var b := _brazo
+	_bloque(Vector3(3.2, 0.06, 3.4), Vector3(-9.0, -0.03, -0.8), Color(0.8, 0.82, 0.85), false, b)
+	_bloque(Vector3(0.08, 2.74, 3.48), Vector3(-10.64, 1.37, -0.8), blanco, false, b)
+	_bloque(Vector3(3.36, 2.74, 0.08), Vector3(-9.0, 1.37, 0.94), blanco, false, b)
+	_bloque(Vector3(0.08, 2.74, 1.7), Vector3(-7.36, 1.37, -1.65), blanco, false, b)
+	_bloque(Vector3(0.08, 2.2, 0.14), Vector3(-7.36, 1.1, 0.87), blanco, false, b)
+	_bloque(Vector3(0.08, 0.54, 1.74), Vector3(-7.36, 2.47, 0.07), blanco, false, b)  # Sobre la puerta.
+	# Pared de la cápsula, con el hueco de la escotilla y un sello oscuro alrededor.
+	for x in [-10.175, -7.825]:
+		_bloque(Vector3(0.85, 2.74, 0.08), Vector3(x, 1.37, -2.54), blanco, false, b)
+	_bloque(Vector3(1.5, 0.69, 0.08), Vector3(-9.0, 2.395, -2.54), blanco, false, b)
+	for x in [-9.78, -8.22]:
+		_bloque(Vector3(0.08, 2.05, 0.12), Vector3(x, 1.02, -2.48), COLOR_NOCHE.lightened(0.15), false, b)
+	_bloque(Vector3(1.64, 0.08, 0.12), Vector3(-9.0, 2.05, -2.48), COLOR_NOCHE.lightened(0.15), false, b)
+	_bloque(Vector3(3.36, 0.08, 3.56), Vector3(-9.0, 2.78, -0.8), blanco, false, b)
+	var luz := MeshInstance3D.new()
+	luz.mesh = Fondo._caja(Vector3(1.4, 0.03, 0.5))
+	var brillo := StandardMaterial3D.new()
+	brillo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	brillo.albedo_color = Color(1.0, 0.98, 0.94)
+	luz.material_override = brillo
+	luz.position = Vector3(-9.0, 2.725, -0.8)
+	b.add_child(luz)
+	var lampara := OmniLight3D.new()  # Sin sombra: es barata.
+	lampara.light_energy = 0.9
+	lampara.omni_range = 4.2
+	lampara.position = Vector3(-9.0, 2.3, -0.7)
+	b.add_child(lampara)
+	# Banco, estante con dos cascos y el cartel.
+	_bloque(Vector3(1.4, 0.08, 0.4), Vector3(-9.5, 0.45, 0.66), COLOR_ACERO, false, b)
+	for x in [-10.1, -8.9]:
+		_bloque(Vector3(0.06, 0.42, 0.34), Vector3(x, 0.21, 0.66), COLOR_ACERO.darkened(0.2), false, b)
+	_bloque(Vector3(1.1, 0.04, 0.3), Vector3(-9.5, 1.6, 0.76), COLOR_ACERO, false, b)
+	for x in [-9.8, -9.2]:
+		var casco := MeshInstance3D.new()
+		var esfera := Fondo._esfera(10, 5)
+		esfera.radius = 0.16
+		esfera.height = 0.32
+		casco.mesh = Fondo.malla_plana(esfera, Color.WHITE)
+		casco.material_override = _material
+		casco.position = Vector3(x, 1.78, 0.76)
+		b.add_child(casco)
+		var visor := MeshInstance3D.new()
+		var cara := Fondo._esfera(10, 5)
+		cara.radius = 0.1
+		cara.height = 0.12
+		visor.mesh = Fondo.malla_plana(cara, Color(1.0, 0.78, 0.28))
+		visor.material_override = _material
+		visor.position = Vector3(x, 1.79, 0.63)
+		visor.rotation.x = PI / 2.0  # Visor plano al frente del casco.
+		b.add_child(visor)
+	Decoracion.cartel(b, Vector3(-10.58, 1.55, -1.3), PI / 2.0, "SALA BLANCA",
+		"Aquí los técnicos ayudan a la tripulación a ponerse el casco y entrar a la cápsula. Es el último cuarto antes del despegue.",
+		_material, Vector2(1.3, 0.95))
+	var letrero := Label3D.new()
+	letrero.text = "SALA BLANCA"
+	letrero.font_size = 40
+	letrero.pixel_size = 0.004
+	letrero.outline_size = 8
+	letrero.modulate = COLOR_AMARILLO
+	letrero.position = Vector3(-7.3, 2.47, 0.07)
+	letrero.rotation.y = PI / 2.0  # Hacia la pasarela.
+	b.add_child(letrero)
+
+
+## Escotilla por fuera de la cápsula (se usa con E): marco grueso, hoja con bisagra, ventanita y
+## manija, y una luz verde de «listo para abordar». La hoja se abre al entrar (_entrar).
+func _construir_escotilla() -> void:
 	var escotilla := StaticBody3D.new()
 	escotilla.set_script(Interactuable)
 	escotilla.texto = "Entrar a la cápsula"
-	escotilla.position = Vector3(0, PISO + 1.0, 2.7)
+	escotilla.position = Vector3(0, PISO + 1.0, 2.45)  # Sobre la cara plana de la cápsula que mira a la pasarela.
 	var forma := CollisionShape3D.new()
 	forma.shape = BoxShape3D.new()
 	forma.shape.size = Vector3(1.4, 2.0, 0.25)
 	escotilla.add_child(forma)
-	_bloque(Vector3(1.3, 1.9, 0.1), Vector3.ZERO, COLOR_ACERO.darkened(0.2), false, escotilla)
-	_bloque(Vector3(1.4, 0.1, 0.12), Vector3(0, 0.95, 0), COLOR_AMARILLO, false, escotilla)
-	_bloque(Vector3(1.4, 0.1, 0.12), Vector3(0, -0.95, 0), COLOR_AMARILLO, false, escotilla)
+	var marco := COLOR_ACERO.darkened(0.25)
+	for datos in [[Vector3(0.12, 2.0, 0.1), Vector3(-0.68, 0, 0)], [Vector3(0.12, 2.0, 0.1), Vector3(0.68, 0, 0)],
+			[Vector3(1.48, 0.12, 0.1), Vector3(0, 0.98, 0)], [Vector3(1.48, 0.12, 0.1), Vector3(0, -0.98, 0)]]:
+		_bloque(datos[0], datos[1], marco, false, escotilla)
+	_hoja_escotilla = Node3D.new()
+	_hoja_escotilla.position = Vector3(-0.62, 0, 0.02)
+	escotilla.add_child(_hoja_escotilla)
+	_bloque(Vector3(1.24, 1.84, 0.08), Vector3(0.62, 0, 0), Color(0.8, 0.83, 0.88), false, _hoja_escotilla)
+	_bloque(Vector3(1.1, 0.06, 0.09), Vector3(0.62, -0.72, 0.01), COLOR_AMARILLO, false, _hoja_escotilla)
+	_bloque(Vector3(0.06, 0.36, 0.06), Vector3(1.06, -0.05, 0.07), COLOR_NOCHE, false, _hoja_escotilla)
+	for datos in [[0.23, Color(0.9, 0.92, 0.95), 0.045], [0.17, Color(0.08, 0.12, 0.22), 0.06]]:
+		var ventana := MeshInstance3D.new()
+		ventana.mesh = Fondo.malla_plana(Fondo._cilindro(datos[0], datos[0], 0.04, 16), datos[1])
+		ventana.material_override = _material
+		ventana.position = Vector3(0.62, 0.42, datos[2])
+		ventana.rotation.x = PI / 2.0
+		_hoja_escotilla.add_child(ventana)
+	var verde := StandardMaterial3D.new()
+	verde.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	verde.albedo_color = COLOR_LISTO
+	var luz := MeshInstance3D.new()
+	luz.mesh = Fondo._caja(Vector3(0.32, 0.07, 0.05))
+	luz.material_override = verde
+	luz.position = Vector3(0, 1.1, 0.07)
+	escotilla.add_child(luz)
 	escotilla.usado.connect(_entrar)
 	_cohete.add_child(escotilla)
+
+
+## Antes del despegue el brazo de acceso se aleja del cohete girando sobre su bisagra.
+func _retirar_brazo() -> void:
+	Sonidos.tocar("puerta.ogg", -8.0)
+	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(_brazo, "rotation:y", deg_to_rad(80.0), 3.5)
 
 
 func _pared_invisible(tamano: Vector3, posicion: Vector3) -> void:

@@ -15,7 +15,7 @@ const COLOR_SEGURIDAD := Color(1.0, 0.478, 0.102)
 
 @export var posicion_cohete := Vector2(34.0, -136.0)
 
-var _baliza: MeshInstance3D
+var _balizas: MeshInstance3D  # Luces rojas de aviso de la torre (todas en una malla).
 var _tiempo := 0.0
 var _nubes: Node3D
 ## Materiales del pasto (y flores) y de los árboles (y arbustos), compartidos por todos los bloques.
@@ -32,7 +32,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	super(delta)
 	_tiempo += delta
-	_baliza.visible = fmod(_tiempo, 1.2) < 0.6  # Luz roja de aviso que parpadea.
+	_balizas.visible = fmod(_tiempo, 1.2) < 0.6  # Luces rojas de aviso que parpadean.
 	if _nubes:
 		_nubes.rotate_y(delta * 0.003)  # La cúpula de nubes avanza muy despacio.
 
@@ -87,15 +87,17 @@ func _crear_plataforma() -> void:
 		_agregar(propulsor, malla_plana(_cilindro(1.8, 1.8, 40.0), COLOR_BLANCO), Vector3(lado * 6.3, 27, 0))
 		_agregar(propulsor, malla_plana(_cilindro(0.0, 1.8, 5.0), COLOR_BLANCO), Vector3(lado * 6.3, 49.5, 0))
 	_agregar(_pieza(cohete, "EtapaSuperior"), malla_plana(_cilindro(3.0, 4.2, 5.0), COLOR_BLANCO), Vector3(0, 55.5, 0))
+	_nombre_cohete(nucleo)
 	var capsula := _pieza(cohete, "Capsula")
-	_agregar(capsula, malla_plana(_cilindro(2.6, 2.6, 3.0), COLOR_GRIS), Vector3(0, 59.5, 0))
-	_agregar(capsula, malla_plana(_cilindro(1.0, 2.6, 3.2), COLOR_GRIS), Vector3(0, 62.6, 0))
+	_crear_capsula(capsula)
 	var torre_escape := _pieza(cohete, "TorreEscape")
 	_agregar(torre_escape, malla_plana(_cilindro(0.45, 0.45, 7.0, 8), COLOR_BLANCO), Vector3(0, 67.7, 0))
 	_agregar(torre_escape, malla_plana(_cilindro(0.0, 0.45, 1.5, 8), COLOR_BLANCO), Vector3(0, 71.95, 0))
 
 	_crear_torre(base, Vector3(12, 7, 0))
 	_crear_vapor(base)
+	# Vapor frío que cae de la conexión de combustible del tanque (el brazo de abajo de la torre).
+	_crear_vapor(base, Vector3(4.6, 50.4, 0.0), 0.5, 14, 2.6, false)
 
 
 func _pieza(padre: Node3D, nombre: String) -> Node3D:
@@ -105,7 +107,50 @@ func _pieza(padre: Node3D, nombre: String) -> Node3D:
 	return pieza
 
 
-## Torre de vigas al lado del cohete, con dos brazos hacia él y una luz roja arriba.
+## Cápsula de 8 caras, giradas para coincidir con el octágono de la cabina por dentro: la escotilla
+## (hacia +z) y las 4 ventanas quedan sobre caras planas. Lleva franjas oscuras entre los paneles.
+func _crear_capsula(capsula: Node3D) -> void:
+	var cuerpo := _agregar(capsula, malla_plana(_cilindro(2.6, 2.6, 3.0, 8), COLOR_GRIS), Vector3(0, 59.5, 0))
+	var cono := _agregar(capsula, malla_plana(_cilindro(1.0, 2.6, 3.2, 8), COLOR_GRIS), Vector3(0, 62.6, 0))
+	var oscuro := COLOR_ACERO.darkened(0.35)
+	var franjas := [
+		_agregar(capsula, malla_plana(_cilindro(2.63, 2.63, 0.08, 8), oscuro), Vector3(0, 61.0, 0)),
+		_agregar(capsula, malla_plana(_cilindro(2.63, 2.63, 0.08, 8), oscuro), Vector3(0, 58.08, 0)),
+		_agregar(capsula, malla_plana(_cilindro(1.8, 1.835, 0.07, 8), oscuro), Vector3(0, 62.6, 0)),
+	]
+	for pieza: Node3D in [cuerpo, cono] + franjas:
+		pieza.rotation.y = PI / 8.0
+	# Ventanas donde la cabina tiene las suyas: adelante, a la torre (+x) y en las dos diagonales de adelante.
+	var plana := 2.6 * cos(PI / 8.0)  # Distancia del centro a una cara plana.
+	for direccion in [Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(0.7071, 0, -0.7071), Vector3(-0.7071, 0, -0.7071)]:
+		var giro := Basis(Vector3.UP, atan2(direccion.x, direccion.z))
+		var marco := _agregar(capsula, malla_plana(_caja(Vector3(1.0, 1.25, 0.04)), COLOR_BLANCO), direccion * (plana + 0.02) + Vector3(0, 59.6, 0))
+		marco.basis = giro
+		var vidrio := _agregar(capsula, malla_plana(_caja(Vector3(0.82, 1.07, 0.04)), Color(0.08, 0.12, 0.22)), direccion * (plana + 0.045) + Vector3(0, 59.6, 0))
+		vidrio.basis = giro
+	# Rendimiento: toda la cápsula en una sola malla (se muestra y se oculta entera).
+	preload("res://scripts/Decoracion.gd").fusionar(capsula)
+
+
+## Nombre de la misión escrito a lo alto del tanque naranja, sobre la cara que mira al hangar.
+func _nombre_cohete(nucleo: Node3D) -> void:
+	var nombre := Label3D.new()
+	nombre.text = "ARTEMIS-IX"
+	nombre.font_size = 96
+	nombre.pixel_size = 0.02
+	nombre.outline_size = 0
+	nombre.modulate = Color(0.06, 0.1, 0.25)
+	# Cara plana del cilindro de 12 lados centrada a 15° de +z: ahí la letra queda pegada al tanque.
+	var cara := Vector3(sin(PI / 12.0), 0, cos(PI / 12.0))
+	nombre.position = cara * (4.2 * cos(PI / 12.0) + 0.03) + Vector3(0, 29.0, 0)
+	nombre.rotation = Vector3(0, PI / 12.0, PI / 2.0)  # De abajo hacia arriba, como en los cohetes reales.
+	nucleo.add_child(nombre)
+
+
+## Torre de vigas al lado del cohete: columnas, vigas cada 6 m con cruces en X en las cuatro caras,
+## dos brazos hacia el cohete, tuberías de combustible que suben hasta el brazo del tanque, una
+## escalera de emergencia en zigzag por atrás y luces rojas de aviso en varios niveles.
+## Rendimiento: el acero va en una sola malla y lo que tiene colores (escalera, tuberías) en otra.
 func _crear_torre(padre: Node3D, posicion: Vector3) -> void:
 	var alto := 78.0
 	var st := SurfaceTool.new()
@@ -121,6 +166,13 @@ func _crear_torre(padre: Node3D, posicion: Vector3) -> void:
 		for lado in [-3.0, 3.0]:
 			st.append_from(viga_x, 0, Transform3D(Basis.IDENTITY, Vector3(0, y, lado)))
 			st.append_from(viga_z, 0, Transform3D(Basis.IDENTITY, Vector3(lado, y, 0)))
+	# Cruces en X entre cada par de vigas: así se arman las torres de verdad (no se tuercen con el viento).
+	var diagonal := _caja(Vector3(0.22, 6.0 * sqrt(2.0), 0.22))
+	for y in range(6, int(alto) - 6, 6):
+		for signo in [-1.0, 1.0]:
+			for lado in [-3.0, 3.0]:
+				st.append_from(diagonal, 0, Transform3D(Basis(Vector3.BACK, signo * PI / 4.0), Vector3(0, y + 3.0, lado)))
+				st.append_from(diagonal, 0, Transform3D(Basis(Vector3.RIGHT, signo * PI / 4.0), Vector3(lado, y + 3.0, 0)))
 	# Brazos: uno al tanque central y otro, más largo, a la cápsula.
 	st.append_from(_caja(Vector3(4.8, 1.2, 2.0)), 0, Transform3D(Basis.IDENTITY, Vector3(-5.4, 44, 0)))
 	st.append_from(_caja(Vector3(6.4, 1.2, 2.0)), 0, Transform3D(Basis.IDENTITY, Vector3(-6.2, 56, 0)))
@@ -129,17 +181,88 @@ func _crear_torre(padre: Node3D, posicion: Vector3) -> void:
 	acero.roughness = 0.8
 	_agregar(padre, st.commit(), posicion, acero)
 
+	var colores := SurfaceTool.new()
+	colores.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_agregar_escalera(colores)
+	_agregar_tuberias(colores)
+	_agregar(padre, colores.commit(), posicion)
+
+	# Luces rojas de aviso para los aviones: arriba y en las esquinas a 24 y 48 m.
 	var foco := StandardMaterial3D.new()
 	foco.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	foco.albedo_color = Color(1.0, 0.15, 0.1)
-	var esfera := _esfera(8, 4)
-	esfera.radius = 0.8
-	esfera.height = 1.6
-	_baliza = _agregar(padre, esfera, posicion + Vector3(0, alto + 0.8, 0), foco)
+	var luces := SurfaceTool.new()
+	luces.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var grande := _esfera(8, 4)
+	grande.radius = 0.8
+	grande.height = 1.6
+	luces.append_from(grande, 0, Transform3D(Basis.IDENTITY, Vector3(0, alto + 0.8, 0)))
+	var chica := _esfera(6, 3)
+	chica.radius = 0.32
+	chica.height = 0.64
+	for y in [24.0, 48.0]:
+		for x in [-3.4, 3.4]:
+			for z in [-3.4, 3.4]:
+				luces.append_from(chica, 0, Transform3D(Basis.IDENTITY, Vector3(x, y, z)))
+	_balizas = _agregar(padre, luces.commit(), posicion, foco)
+	_balizas.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-## Nubes de vapor frío alrededor de la base del cohete.
-func _crear_vapor(padre: Node3D) -> void:
+## Escalera de emergencia en zigzag por la cara de atrás de la torre (z = −3), desde la plataforma
+## hasta arriba: tramos de 3 m de alto con escalones, largueros, pasamanos amarillo y descansos.
+func _agregar_escalera(st: SurfaceTool) -> void:
+	var gris := COLOR_ACERO.darkened(0.15)
+	var amarillo := Color(1.0, 0.824, 0.247)
+	var z := -3.95  # Por fuera de la cara, pegada a las columnas.
+	var subida := 3.0
+	var largo := 3.8  # Lo que avanza cada tramo entre los dos descansos.
+	var angulo := atan2(subida, largo)
+	var inclinado := sqrt(largo * largo + subida * subida)
+	# Cada pieza se arma una sola vez y se copia en cada tramo.
+	var larguero := malla_plana(_caja(Vector3(inclinado, 0.22, 0.06)), gris)
+	var escalon := malla_plana(_caja(Vector3(largo / 8.0, 0.05, 1.0)), gris)
+	var pasamanos := malla_plana(_caja(Vector3(inclinado, 0.05, 0.05)), amarillo)
+	var descanso := malla_plana(_caja(Vector3(1.2, 0.1, 1.15)), gris)
+	var baranda := malla_plana(_caja(Vector3(1.2, 0.05, 0.05)), amarillo)
+	var poste := malla_plana(_caja(Vector3(0.05, 1.0, 0.05)), amarillo)
+	var y := -5.0
+	var tramo := 0
+	while y < 69.0:
+		var hacia := 1.0 if tramo % 2 == 0 else -1.0  # Un tramo va hacia +x y el siguiente vuelve.
+		var giro := Basis(Vector3.BACK, hacia * angulo)
+		for borde in [-0.5, 0.5]:
+			st.append_from(larguero, 0, Transform3D(giro, Vector3(0, y + subida / 2.0, z + borde)))
+		for i in 8:
+			var x := -hacia * largo / 2.0 + hacia * (i + 0.5) * largo / 8.0
+			st.append_from(escalon, 0, Transform3D(Basis.IDENTITY, Vector3(x, y + (i + 1) * subida / 8.0 - 0.03, z)))
+		st.append_from(pasamanos, 0, Transform3D(giro, Vector3(0, y + subida / 2.0 + 0.95, z - 0.55)))
+		# Descanso de llegada, con su baranda.
+		var fin := Vector3(hacia * (largo / 2.0 + 0.6), y + subida, z)
+		st.append_from(descanso, 0, Transform3D(Basis.IDENTITY, fin - Vector3(0, 0.05, 0)))
+		st.append_from(baranda, 0, Transform3D(Basis.IDENTITY, fin + Vector3(0, 1.0, -0.55)))
+		st.append_from(poste, 0, Transform3D(Basis.IDENTITY, fin + Vector3(hacia * 0.58, 0.5, -0.55)))
+		y += subida
+		tramo += 1
+
+
+## Tuberías de combustible: dos caños suben por dentro de la torre y siguen por arriba del brazo de
+## abajo hasta una placa de conexión en el tanque naranja.
+func _agregar_tuberias(st: SurfaceTool) -> void:
+	var blanco := COLOR_BLANCO.darkened(0.05)
+	var azul := Color(0.45, 0.56, 0.7)
+	for datos in [[-0.5, 0.24, blanco], [0.5, 0.17, azul]]:
+		var z: float = datos[0]
+		var radio: float = datos[1]
+		st.append_from(malla_plana(_cilindro(radio, radio, 49.6, 8), datos[2]), 0, Transform3D(Basis.IDENTITY, Vector3(-2.3, 19.8, z)))
+		st.append_from(malla_plana(_cilindro(radio, radio, 5.6, 8), datos[2]), 0, Transform3D(Basis(Vector3.BACK, PI / 2.0), Vector3(-5.1, 44.85, z)))
+		for x in [-3.6, -5.2, -6.8]:  # Abrazaderas sobre el brazo.
+			st.append_from(malla_plana(_caja(Vector3(0.12, radio * 2.0 + 0.12, radio * 2.0 + 0.12)), COLOR_ACERO.darkened(0.3)), 0, Transform3D(Basis.IDENTITY, Vector3(x, 44.85, z)))
+	st.append_from(malla_plana(_caja(Vector3(0.25, 1.3, 1.8)), COLOR_ACERO.darkened(0.2)), 0, Transform3D(Basis.IDENTITY, Vector3(-7.8, 44.7, 0)))
+
+
+## Nubes de vapor frío: grandes alrededor de la base del cohete y, con otros valores, chicas y cayendo
+## (el vapor muy frío pesa más que el aire) en la conexión de combustible.
+func _crear_vapor(padre: Node3D, posicion := Vector3(0, 6.0, 0), radio := 11.0, cantidad := 60, tamano := 10.0, sube := true) -> void:
 	var degradado := Gradient.new()
 	degradado.set_color(0, Color(1, 1, 1, 0.85))
 	degradado.set_color(1, Color(1, 1, 1, 0))
@@ -156,7 +279,7 @@ func _crear_vapor(padre: Node3D) -> void:
 	material.albedo_texture = textura
 	material.albedo_color = Color(0.96, 0.97, 1.0)
 	var cuadro := QuadMesh.new()
-	cuadro.size = Vector2(10, 10)
+	cuadro.size = Vector2(tamano, tamano)
 	cuadro.material = material
 	var aparicion := Gradient.new()
 	aparicion.set_color(0, Color(1, 1, 1, 0))
@@ -164,20 +287,20 @@ func _crear_vapor(padre: Node3D) -> void:
 	aparicion.add_point(0.25, Color(1, 1, 1, 1))
 	var vapor := CPUParticles3D.new()
 	vapor.mesh = cuadro
-	vapor.amount = 60
-	vapor.lifetime = 7.0
-	vapor.preprocess = 7.0
+	vapor.amount = cantidad
+	vapor.lifetime = 7.0 if sube else 3.5
+	vapor.preprocess = vapor.lifetime
 	vapor.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	vapor.emission_sphere_radius = 11.0
-	vapor.direction = Vector3.UP
-	vapor.spread = 50.0
-	vapor.gravity = Vector3(0, 0.2, 0)
-	vapor.initial_velocity_min = 0.8
-	vapor.initial_velocity_max = 2.0
+	vapor.emission_sphere_radius = radio
+	vapor.direction = Vector3.UP if sube else Vector3.DOWN
+	vapor.spread = 50.0 if sube else 30.0
+	vapor.gravity = Vector3(0, 0.2 if sube else -0.5, 0)
+	vapor.initial_velocity_min = 0.8 if sube else 0.3
+	vapor.initial_velocity_max = 2.0 if sube else 0.9
 	vapor.scale_amount_min = 0.8
 	vapor.scale_amount_max = 1.8
 	vapor.color_ramp = aparicion
-	vapor.position = Vector3(0, 6.0, 0)
+	vapor.position = posicion
 	padre.add_child(vapor)
 
 

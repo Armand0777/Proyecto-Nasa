@@ -30,6 +30,10 @@ const RAMPA_LARGO := 10.0
 const ASCENSOR := Vector3(12.0, 2.0, 5.0)
 ## Hasta dónde sube el ascensor: su piso queda a 58.2 m, a la altura de la pasarela y del piso de la cápsula.
 const ALTURA_CAPSULA := 58.0
+## Contrapeso del ascensor: punto de enganche de su cable cuando la cabina está abajo (baja lo que la
+## cabina sube) y la polea de arriba por la que pasan los dos cables.
+const CONTRAPESO := Vector3(14.0, 62.0, 4.0)
+const POLEA := Vector3(13.0, 64.4, 4.0)
 ## Dónde aparece el jugador si viene del prólogo: en el pasillo que llega del laboratorio.
 const INICIO_PASILLO := Vector3(0.0, 0.7, 10.5)
 
@@ -59,6 +63,14 @@ var _zona: Node3D  # Lo construido del hangar; se apaga en el espacio (rendimien
 var _puerta_atras: Node3D  # Puerta corrediza entre el hangar y el pasillo del laboratorio.
 var _lab_apagado := false
 var _zonas_decoracion: Array[Rect2] = []  # Donde hay decoración afuera no crecen pasto ni árboles.
+# Ascensor: botón (y pared de adelante), puertas de reja, pantalla, contrapeso, cables y luz ámbar.
+var _boton_ascensor: StaticBody3D
+var _puerta_entrada: Node3D
+var _puerta_salida: Node3D
+var _altura_ascensor: Label3D
+var _contrapeso: MeshInstance3D
+var _cables_ascensor: Array[MeshInstance3D] = []
+var _baliza_ascensor: Node3D
 
 
 func _ready() -> void:
@@ -90,6 +102,7 @@ func _ready() -> void:
 	_crear_hologramas()
 	_construir_camino()
 	_construir_ascensor()
+	_construir_escape()
 	_crear_colisiones_exterior()
 	_decorar_exterior()
 	Decoracion.fusionar(_zona)  # Rendimiento: paredes, piso y decoración del hangar en pocas mallas.
@@ -251,22 +264,34 @@ func _subir_ascensor() -> void:
 	tween.tween_property($Player/Camara, "rotation:x", deg_to_rad(-8.0), 0.8)
 	_arti_ir(_en_plataforma(ASCENSOR + Vector3(-1.9, 0, 0)))
 	await tween.finished
+	# Se cierra la puerta de reja y suena el botón.
+	Sonidos.tocar("puerta.ogg", -6.0)
+	var cerrar := create_tween().set_trans(Tween.TRANS_SINE)
+	cerrar.tween_property(_puerta_entrada, "rotation:y", 0.0, 0.7)
+	await cerrar.finished
 	Sonidos.tocar("interruptor.ogg")
-	await get_tree().create_timer(0.4, false).timeout
+	await get_tree().create_timer(0.3, false).timeout
 	_dialogo.decir("¡Arriba vamos! Desde aquí se ve todo el centro espacial: el hangar, la pradera y el camino que hicimos. La cápsula está en la punta del cohete; ahí nos sentaremos para despegar.", "", "", {}, "m1_08_ascensor")
 
-	# Suben juntos el ascensor, Comandante Junior y A.R.T.I.
+	# Suben juntos el ascensor, Comandante Junior y A.R.T.I.; el contrapeso baja y la luz ámbar gira.
 	if _tween_arti:
 		_tween_arti.kill()
 	_arti_viajando = false
+	var baliza := create_tween().set_loops()
+	baliza.tween_property(_baliza_ascensor, "rotation:y", TAU, 1.0).from(0.0)
 	var subida := ALTURA_CAPSULA - ASCENSOR.y
 	var viaje := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).set_parallel()
-	viaje.tween_property(_ascensor, "position:y", _ascensor.position.y + subida, 9.0)
+	viaje.tween_method(_mover_ascensor, 0.0, subida, 9.0)
 	viaje.tween_property(_jugador, "global_position:y", _jugador.global_position.y + subida, 9.0)
 	viaje.tween_property(_arti, "global_position:y", _arti.global_position.y + subida, 9.0)
 	await viaje.finished
-	# Arriba: se camina por la pasarela hasta la escotilla (lo maneja el nodo Cabina).
+	baliza.kill()
+	# Arriba: se abre la puerta del costado hacia la pasarela, y el botón ya no se usa (su pared la
+	# reemplaza una invisible de la Cabina). Hasta la escotilla lo maneja el nodo Cabina.
 	Sonidos.tocar("puerta.ogg", -2.0)
+	create_tween().set_trans(Tween.TRANS_SINE).tween_property(_puerta_salida, "rotation:y", -PI, 0.8)
+	_boton_ascensor.texto = ""
+	_boton_ascensor.collision_layer = 0
 	_jugador.set_physics_process(true)
 	$HUD/Mira.show()
 	$Cabina.arriba()
@@ -507,6 +532,9 @@ func _mejorar_ambiente() -> void:
 	# Rendimiento: 2 cortes de sombra en vez de 4 (la mitad de pasadas) y hasta 100 m.
 	sol.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sol.directional_shadow_max_distance = 100.0
+	# Con sombras más gruesas aparecían rayitas en el concreto y en los pisos (la superficie se hacía
+	# sombra a sí misma). Más «sesgo normal» las quita; el sesgo común no alcanzaba.
+	sol.shadow_normal_bias = 4.0
 	# Sombreado suave en vez del de dibujo: la luz se degrada sobre paredes y piso y se notan los volúmenes.
 	for material: StandardMaterial3D in [_material, $Prologo._material, $Cabina._material, _exterior.get("_material")]:
 		material.diffuse_mode = BaseMaterial3D.DIFFUSE_BURLEY
@@ -549,38 +577,233 @@ func _construir_camino() -> void:
 		_bloque(Vector3(0.3, 0.32, largo), Vector3(lado * 2.85, -0.14, 0), COLOR_SEGURIDAD, false, rampa)
 
 
-## Ascensor al pie de la torre: una jaula con piso, postes y techo que sube por un riel amarillo.
+## Ascensor al pie de la torre: cabina con paredes de reja, techo con luz y motor, puertas de reja de
+## media altura (se ve afuera) que se cierran al subir y se abren arriba, y una pantalla con la altura.
+## Sube entre dos rieles guía; un contrapeso baja por su lado mientras la cabina sube (así el motor
+## hace menos fuerza). Abajo, una caseta de control con una luz ámbar que gira mientras se mueve.
 func _construir_ascensor() -> void:
 	_ascensor = Node3D.new()
 	_ascensor.position = ASCENSOR
 	_plataforma.add_child(_ascensor)
+	var reja := COLOR_ACERO.lightened(0.2)
 	_bloque(Vector3(2.6, 0.2, 2.6), Vector3(0, 0.1, 0), COLOR_ACERO, true, _ascensor)
+	_bloque(Vector3(2.44, 0.012, 2.44), Vector3(0, 0.206, 0), COLOR_ACERO.darkened(0.3), false, _ascensor)
+	Decoracion.franjas_peligro(_ascensor, Vector3(0, 0.215, 1.1), Vector2(2.5, 0.2), _material)
 	_bloque(Vector3(2.6, 0.15, 2.6), Vector3(0, 3.0, 0), COLOR_ACERO, false, _ascensor)
 	for x in [-1.25, 1.25]:
 		for z in [-1.25, 1.25]:
 			_bloque(Vector3(0.12, 2.9, 0.12), Vector3(x, 1.55, z), COLOR_AMARILLO, false, _ascensor)
-	for y in [1.0, 2.0]:
-		_bloque(Vector3(2.6, 0.08, 0.08), Vector3(0, y, -1.25), COLOR_AMARILLO, false, _ascensor)
-	# Riel por el que sube, pegado a la torre.
-	_bloque(Vector3(0.4, ALTURA_CAPSULA + 2.0, 0.3), ASCENSOR + Vector3(0, (ALTURA_CAPSULA - ASCENSOR.y) / 2.0, -1.5), COLOR_AMARILLO, false, _plataforma)
-	# Botón del ascensor: se usa con E.
-	var boton := StaticBody3D.new()
-	boton.set_script(Interactuable)
-	boton.texto = "Subir en el ascensor"
-	boton.position = Vector3(0, 1.3, 1.2)
+	# Paredes de reja de piso a techo: atrás (hacia la torre) y a la derecha.
+	for i in 11:
+		var t := -1.0 + i * 0.2
+		_bloque(Vector3(0.03, 2.7, 0.03), Vector3(t, 1.6, -1.25), reja, false, _ascensor)
+		_bloque(Vector3(0.03, 2.7, 0.03), Vector3(1.25, 1.6, t), reja, false, _ascensor)
+	for y in [0.3, 1.0, 2.0, 2.85]:
+		_bloque(Vector3(2.5, 0.06, 0.06), Vector3(0, y, -1.25), reja, false, _ascensor)
+		_bloque(Vector3(0.06, 0.06, 2.5), Vector3(1.25, y, 0), reja, false, _ascensor)
+	_bloque(Vector3(2.4, 0.06, 0.08), Vector3(0, 1.05, -1.18), COLOR_AMARILLO, false, _ascensor)  # Pasamanos.
+	# Techo: panel de luz por dentro, motor y anclaje del cable por fuera.
+	var luz := MeshInstance3D.new()
+	luz.mesh = Fondo._caja(Vector3(1.4, 0.03, 0.5))
+	luz.material_override = _material_brillo(Color(1.0, 0.96, 0.88))
+	luz.position = Vector3(0, 2.91, 0)
+	luz.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ascensor.add_child(luz)
+	_bloque(Vector3(0.9, 0.45, 0.7), Vector3(0, 3.3, -0.65), Decoracion.OSCURO, false, _ascensor)
+	_bloque(Vector3(0.18, 0.2, 0.18), Vector3(0, 3.18, -1.0), COLOR_ACERO.darkened(0.3), false, _ascensor)
+	# Pantalla de altura sobre la puerta, mirando hacia adentro.
+	_bloque(Vector3(0.7, 0.42, 0.04), Vector3(-0.62, 2.2, 1.24), Decoracion.OSCURO, false, _ascensor)
+	var pantalla := MeshInstance3D.new()
+	var cuadro := QuadMesh.new()
+	cuadro.size = Vector2(0.62, 0.34)
+	pantalla.mesh = cuadro
+	pantalla.material_override = _material_brillo(Color(0.05, 0.12, 0.22))
+	pantalla.position = Vector3(-0.62, 2.2, 1.215)
+	pantalla.rotation.y = PI
+	_ascensor.add_child(pantalla)
+	_altura_ascensor = Label3D.new()
+	_altura_ascensor.font_size = 44
+	_altura_ascensor.pixel_size = 0.0022
+	_altura_ascensor.outline_size = 0
+	_altura_ascensor.modulate = Color(0.6, 0.85, 1.0)
+	_altura_ascensor.position = Vector3(-0.62, 2.2, 1.21)
+	_altura_ascensor.rotation.y = PI
+	_ascensor.add_child(_altura_ascensor)
+	# Puertas de reja: la de adelante (entrada, empieza abierta) y la del costado izquierdo (salida arriba).
+	_puerta_entrada = _puerta_reja(Vector3(-1.25, 0, 1.25), -PI / 2.0)
+	_puerta_salida = _puerta_reja(Vector3(-1.25, 0, -1.25), -PI / 2.0)
+	# Botón del ascensor: se usa con E. Su caja de choque es también la pared de adelante.
+	_boton_ascensor = StaticBody3D.new()
+	_boton_ascensor.set_script(Interactuable)
+	_boton_ascensor.texto = "Subir en el ascensor"
+	_boton_ascensor.position = Vector3(0, 1.3, 1.2)
 	var forma := CollisionShape3D.new()
 	forma.shape = BoxShape3D.new()
 	forma.shape.size = Vector3(2.6, 2.4, 0.2)
-	boton.add_child(forma)
-	var panel := MeshInstance3D.new()
-	panel.mesh = Fondo.malla_plana(Fondo._caja(Vector3(0.5, 0.6, 0.1)), Color(0.18, 0.902, 0.839))
-	panel.material_override = _material
-	panel.position = Vector3(1.0, 0.0, 0.0)
-	boton.add_child(panel)
-	boton.usado.connect(_subir_ascensor)
-	_ascensor.add_child(boton)
+	_boton_ascensor.add_child(forma)
+	# Caja de llamada turquesa (se puede tocar) por fuera del poste derecho.
+	_bloque(Vector3(0.24, 0.4, 0.12), Vector3(1.47, 0.1, 0.12), Color(0.18, 0.902, 0.839), false, _boton_ascensor)
+	_bloque(Vector3(0.1, 0.1, 0.04), Vector3(1.47, 0.14, 0.19), Color.WHITE, false, _boton_ascensor)
+	_boton_ascensor.usado.connect(_subir_ascensor)
+	_ascensor.add_child(_boton_ascensor)
 	var letrero := _letrero("ASCENSOR · CÁPSULA", Vector3(0, 3.5, 1.3), 0.0, 44, COLOR_AMARILLO)
 	letrero.reparent(_ascensor, false)
+	# Rendimiento: la cabina entera en pocas mallas; las puertas se mueven aparte.
+	Decoracion.fusionar(_ascensor, [_puerta_entrada, _puerta_salida])
+	_construir_maquinaria_ascensor()
+
+
+## Puerta de reja de media altura (deja ver afuera): zócalo y pasamanos amarillos y barrotes. La
+## bisagra va en «posicion»; con «giro» 0 la puerta se extiende 2.5 m hacia el +x de la cabina.
+func _puerta_reja(posicion: Vector3, giro: float) -> Node3D:
+	var bisagra := Node3D.new()
+	bisagra.position = posicion
+	bisagra.rotation.y = giro
+	_ascensor.add_child(bisagra)
+	_bloque(Vector3(2.5, 0.2, 0.04), Vector3(1.25, 0.35, 0), COLOR_AMARILLO, false, bisagra)
+	_bloque(Vector3(2.5, 0.06, 0.06), Vector3(1.25, 1.42, 0), COLOR_AMARILLO, false, bisagra)
+	for x in [0.03, 2.47]:
+		_bloque(Vector3(0.06, 1.25, 0.06), Vector3(x, 0.83, 0), COLOR_AMARILLO, false, bisagra)
+	for i in 11:
+		_bloque(Vector3(0.025, 0.95, 0.025), Vector3(0.25 + i * 0.2, 0.92, 0), COLOR_ACERO.lightened(0.2), false, bisagra)
+	Decoracion.fusionar(bisagra)
+	return bisagra
+
+
+## Lo que no sube con la cabina: rieles guía con soportes a la torre, el contrapeso con sus guías,
+## la polea de arriba con los cables, y la caseta de control con la luz ámbar y franjas en el piso.
+func _construir_maquinaria_ascensor() -> void:
+	var torre := Node3D.new()
+	torre.name = "MaquinariaAscensor"
+	_plataforma.add_child(torre)
+	var gris := COLOR_ACERO.darkened(0.2)
+	for x in [ASCENSOR.x - 0.6, ASCENSOR.x + 0.6]:
+		_bloque(Vector3(0.12, 62.0, 0.2), Vector3(x, 31.0, 3.5), gris, false, torre)
+	for y in range(13, 62, 6):  # A la altura de cada viga de la torre.
+		_bloque(Vector3(1.5, 0.12, 0.6), Vector3(ASCENSOR.x, y, 3.3), gris, false, torre)
+	# Contrapeso: guías a la derecha de la cabina; polea de 2 m de ancho arriba (el cable de la
+	# cabina baja por x = 12 y el del contrapeso por x = 14).
+	for x in [CONTRAPESO.x - 0.4, CONTRAPESO.x + 0.4]:
+		_bloque(Vector3(0.08, 62.5, 0.12), Vector3(x, 33.25, CONTRAPESO.z), gris, false, torre)
+	var polea := MeshInstance3D.new()
+	polea.mesh = Fondo.malla_plana(Fondo._cilindro(1.0, 1.0, 0.16, 16), Decoracion.OSCURO)
+	polea.material_override = _material
+	polea.position = POLEA
+	polea.rotation.x = PI / 2.0
+	torre.add_child(polea)
+	_bloque(Vector3(2.6, 0.3, 1.0), POLEA + Vector3(0, 1.2, -0.35), gris, false, torre)
+	for x in [-1.2, 1.2]:
+		_bloque(Vector3(0.15, 1.2, 0.15), POLEA + Vector3(x, 0.55, -0.35), gris, false, torre)
+	# Caseta de control abajo, a la derecha del ascensor.
+	var caseta := Vector3(15.6, 2.0, 7.8)
+	_bloque(Vector3(1.8, 2.4, 1.6), caseta + Vector3(0, 1.2, 0), Color(0.86, 0.88, 0.9), true, torre)
+	_bloque(Vector3(2.0, 0.12, 1.8), caseta + Vector3(0, 2.46, 0), gris, false, torre)
+	_bloque(Vector3(1.82, 0.16, 1.62), caseta + Vector3(0, 0.25, 0), COLOR_AMARILLO, false, torre)
+	_bloque(Vector3(0.04, 0.6, 1.0), caseta + Vector3(-0.92, 1.55, 0), Color(0.12, 0.18, 0.28), false, torre)
+	_bloque(Vector3(0.8, 1.9, 0.04), caseta + Vector3(0.3, 0.95, 0.82), gris, false, torre)
+	var letrero := _letrero("CONTROL DEL ASCENSOR", caseta + Vector3(0, 2.12, 0.83), 0.0, 30, COLOR_AMARILLO)
+	letrero.reparent(torre, false)
+	_bloque(Vector3(0.3, 0.12, 0.3), caseta + Vector3(0.5, 2.58, -0.4), Decoracion.OSCURO, false, torre)
+	Decoracion.franjas_peligro(torre, Vector3(ASCENSOR.x, 2.012, 7.1), Vector2(2.6, 0.5), _material)
+	Decoracion.fusionar(torre)
+	# Lo que se mueve: la luz ámbar que gira, el contrapeso y los dos cables.
+	_baliza_ascensor = Node3D.new()
+	_baliza_ascensor.position = caseta + Vector3(0.5, 2.72, -0.4)
+	_plataforma.add_child(_baliza_ascensor)
+	var ambar := _material_brillo(Color(1.0, 0.62, 0.1))
+	for lado in [-1.0, 1.0]:
+		var lente := MeshInstance3D.new()
+		lente.mesh = Fondo._caja(Vector3(0.12, 0.16, 0.2))
+		lente.material_override = ambar if lado > 0.0 else _material_brillo(Color(0.45, 0.25, 0.05))
+		lente.position.x = lado * 0.07
+		lente.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_baliza_ascensor.add_child(lente)
+	_contrapeso = MeshInstance3D.new()
+	_contrapeso.mesh = Fondo.malla_plana(Fondo._caja(Vector3(0.7, 2.2, 0.4)), Decoracion.OSCURO.lightened(0.15))
+	_contrapeso.material_override = _material
+	_plataforma.add_child(_contrapeso)
+	for i in 2:
+		var cable := MeshInstance3D.new()
+		cable.mesh = Fondo._cilindro(0.035, 0.035, 1.0, 5)
+		cable.material_override = _material_brillo(Color(0.08, 0.09, 0.11))
+		cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # Muy finos: su sombra ni se ve.
+		_plataforma.add_child(cable)
+		_cables_ascensor.append(cable)
+	_mover_ascensor(0.0)
+
+
+## Lleva la cabina a «subida» metros sobre su punto de partida: el contrapeso baja lo mismo, los
+## cables se estiran o se acortan y la pantalla muestra la altura sobre el suelo.
+func _mover_ascensor(subida: float) -> void:
+	_ascensor.position.y = ASCENSOR.y + subida
+	var techo := Vector3(ASCENSOR.x, _ascensor.position.y + 3.25, CONTRAPESO.z)
+	var arriba_contrapeso := CONTRAPESO + Vector3(0, -subida, 0)
+	_contrapeso.position = arriba_contrapeso - Vector3(0, 1.1, 0)
+	var puntos := [[techo, Vector3(ASCENSOR.x, POLEA.y, CONTRAPESO.z)], [arriba_contrapeso, Vector3(CONTRAPESO.x, POLEA.y, CONTRAPESO.z)]]
+	for i in 2:
+		var desde: Vector3 = puntos[i][0]
+		var hasta: Vector3 = puntos[i][1]
+		_cables_ascensor[i].position = (desde + hasta) / 2.0
+		_cables_ascensor[i].scale.y = maxf(hasta.y - desde.y, 0.01)
+	_altura_ascensor.text = "ALTURA\n%d m" % roundi(_ascensor.position.y + 0.2)
+
+
+## Canastas de escape, como en la plataforma de lanzamiento de Artemis: en la cara de la torre que no
+## mira al cohete, tres canastas cuelgan de cables que bajan en diagonal hasta un refugio lejos del
+## cohete. Si hay una emergencia antes del despegue, la tripulación baja en ellas deslizándose.
+## En la pasarela, un cartel lo explica.
+func _construir_escape() -> void:
+	var raiz := Node3D.new()
+	raiz.name = "Escape"
+	_plataforma.add_child(raiz)
+	var piso := ALTURA_CAPSULA + 0.2
+	var gris := COLOR_ACERO.darkened(0.15)
+	# Plataforma en la cara +x de la torre, con baranda, y la viga de la que cuelgan las canastas.
+	_bloque(Vector3(2.4, 0.15, 4.4), Vector3(16.5, piso - 0.075, 0), gris, false, raiz)
+	for z in [-2.2, 2.2]:
+		_bloque(Vector3(2.4, 0.06, 0.06), Vector3(16.5, piso + 1.05, z), COLOR_AMARILLO, false, raiz)
+		_bloque(Vector3(0.15, 3.3, 0.15), Vector3(17.0, piso + 1.6, z * 0.95), gris, false, raiz)
+	_bloque(Vector3(0.06, 0.06, 4.4), Vector3(17.7, piso + 1.05, 0), COLOR_AMARILLO, false, raiz)
+	_bloque(Vector3(0.25, 0.25, 4.6), Vector3(17.0, piso + 3.2, 0), gris, false, raiz)
+	# Refugio lejos del cohete, donde terminan los cables.
+	var refugio := Vector3(130.0, 0.0, 60.0)
+	var global_refugio := _plataforma.to_global(refugio)
+	refugio.y = _exterior.call("_altura_en_malla", global_refugio.x, global_refugio.z)
+	_bloque(Vector3(7.0, 2.8, 5.0), refugio + Vector3(0, 1.4, 0), COLOR_CONCRETO, false, raiz)
+	_bloque(Vector3(7.4, 0.3, 5.4), refugio + Vector3(0, 2.9, 0), COLOR_CONCRETO.darkened(0.15), false, raiz)
+	_bloque(Vector3(1.2, 2.0, 0.06), refugio + Vector3(1.5, 1.0, 2.52), COLOR_ACERO, false, raiz)
+	var letrero := _letrero("REFUGIO", refugio + Vector3(-1.2, 2.2, 2.56), 0.0, 90, COLOR_AMARILLO)
+	letrero.reparent(raiz, false)
+	for i in 3:
+		var z := -1.4 + i * 1.4
+		var arriba := Vector3(17.0, piso + 3.05, z)
+		var canasta := Vector3(17.0, piso + 0.3, z)
+		_bloque(Vector3(1.0, 0.06, 1.0), canasta, Decoracion.OSCURO, false, raiz)
+		for x in [-0.47, 0.47]:
+			for w in [-0.47, 0.47]:
+				_bloque(Vector3(0.05, 1.05, 0.05), canasta + Vector3(x, 0.52, w), COLOR_SEGURIDAD, false, raiz)
+		for borde in [-0.47, 0.47]:
+			for y in [0.55, 1.05]:
+				_bloque(Vector3(1.0, 0.05, 0.05), canasta + Vector3(0, y, borde), COLOR_SEGURIDAD, false, raiz)
+				_bloque(Vector3(0.05, 0.05, 1.0), canasta + Vector3(borde, y, 0), COLOR_SEGURIDAD, false, raiz)
+			_bloque(Vector3(0.94, 0.45, 0.012), canasta + Vector3(0, 0.3, borde), Decoracion.OSCURO.lightened(0.1), false, raiz)
+			_bloque(Vector3(0.012, 0.45, 0.94), canasta + Vector3(borde, 0.3, 0), Decoracion.OSCURO.lightened(0.1), false, raiz)
+		Decoracion.tubo(raiz, canasta + Vector3(0, 1.05, 0), arriba, 0.025, gris, _material, false)
+		_bloque(Vector3(0.4, 0.18, 0.18), arriba, Decoracion.OSCURO, false, raiz)
+		Decoracion.tubo(raiz, arriba, refugio + Vector3(-4.0, 1.2, (i - 1) * 1.6), 0.035, Decoracion.OSCURO, _material, false)
+	Decoracion.cartel(raiz, Vector3(9.85, piso + 1.65, 5.87), PI, "PLAN DE ESCAPE",
+		"Si hay una emergencia antes del despegue, la tripulación baja en canastas por esos cables hasta un refugio.",
+		_material, Vector2(1.66, 1.1))
+	Decoracion.fusionar(raiz)
+	# Cerca del refugio los cables pasan bajos: ahí no van árboles.
+	_zonas_decoracion.append(Rect2(global_refugio.x - 16.0, global_refugio.z - 16.0, 32.0, 32.0))
+
+
+func _material_brillo(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = color
+	return material
 
 
 ## Colisiones de afuera: la pradera, la plataforma de concreto, la base de acero y la torre.
