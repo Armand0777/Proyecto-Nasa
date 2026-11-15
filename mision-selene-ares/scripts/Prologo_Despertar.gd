@@ -55,6 +55,16 @@ const TARJETAS := {
 	Paso.TABLET: ["Tomar la tablet", "Mira la tablet en la mesa y pulsa  [ E ]", "TUTORIAL · PASO 6 DE 6"],
 	Paso.HANGAR: ["¡Tutorial completo!", "Pulsa  [ E ]  en la puerta del hangar", "PRÓXIMO: EL HANGAR"],
 }
+## Las teclas de cada tarjeta en pantalla táctil (ControlesTactiles).
+const TECLAS_TACTILES := {
+	Paso.MIRAR: "Arrastra el dedo en la mitad derecha de la pantalla para mirar",
+	Paso.CAMINAR: "Mueve el joystick de la izquierda",
+	Paso.SALTAR: "Toca el botón  SALTAR",
+	Paso.PREGUNTAR: "Toca el botón ?  de la burbuja de A.R.T.I.",
+	Paso.USAR: "Mira el traje y toca el botón  USAR",
+	Paso.TABLET: "Mira la tablet en la mesa y toca  USAR",
+	Paso.HANGAR: "Toca  USAR  en la puerta del hangar",
+}
 ## Dónde está el traje (en su soporte, al fondo a la izquierda del laboratorio).
 const POS_TRAJE := Vector3(-4.6, 0.0, -32.6)
 
@@ -587,7 +597,7 @@ func _cambiar_tarjeta(paso: Paso) -> void:
 	var datos: Array = TARJETAS[paso]
 	_tarjeta_paso.text = datos[2]
 	_tarjeta_titulo.text = datos[0]
-	_tarjeta_texto.text = datos[1]
+	_tarjeta_texto.text = TECLAS_TACTILES[paso] if ControlesTactiles.activo else datos[1]
 	_tarjeta_hecha = false
 	_tarjeta.modulate = Color.WHITE
 	_tarjeta.show()

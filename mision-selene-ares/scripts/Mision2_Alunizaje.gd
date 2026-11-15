@@ -7,7 +7,11 @@ extends Node3D
 ##    propulsores y A/D (o ←/→) mueven el módulo de lado hasta la zona de aterrizaje. La calibración
 ##    se nota: los propulsores dan el combustible, el radar el tamaño de la zona y los amortiguadores
 ##    qué tan fuerte se puede tocar el suelo. Si se toca muy rápido o fuera de la zona no pasa nada
-##    grave: se vuelve a intentar, y desde el segundo intento A.R.T.I. ofrece aterrizar sola.
+##    grave: se vuelve a intentar una vez; si el segundo intento tampoco sale, A.R.T.I. aterriza sola.
+## Como en un alunizaje real, hay fases: el módulo se separa de la cápsula (que queda en órbita),
+## frena y se acerca solo desde 420 m con las patas plegadas, despliega las patas y a 120 m pilota
+## el jugador. Al tocar el suelo se enciende la luz de CONTACTO y se apaga el motor. Después, sin
+## pantalla negra, se pasa a la llegada caminando al biodomo (Mision2_Luna).
 
 const SIGUIENTE_ESCENA := "res://scenes/Mision2_Luna.tscn"
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
@@ -30,6 +34,10 @@ const ALTURA_INICIAL := 120.0
 const BAJADA_INICIAL := 5.0
 const DESVIO_INICIAL := 16.0  # Metros a un lado de la zona al empezar.
 const DISTANCIA_AL_DOMO := 20.0  # La zona de aterrizaje queda junto al biodomo.
+## Desde dónde empieza la aproximación automática (frenado), antes de que pilote el jugador.
+const ALTURA_APROXIMACION := 420.0
+## Intentos del jugador antes de que A.R.T.I. aterrice sola.
+const INTENTOS_MAXIMOS := 2
 
 @onready var _arti: PanelContainer = %DialogoARTI
 @onready var _camara: Camera3D = $Exterior/Pivote/Camara
@@ -72,6 +80,16 @@ var _texto_zona: Label
 var _texto_calibracion: Label
 var _barra_combustible: ProgressBar
 var _boton_auto: Button
+# Fases, patas, contacto y cámaras.
+var _aproximando := false
+var _texto_fase: Label
+var _texto_lado: Label
+var _texto_contacto: Label
+var _patas: Array[Node3D] = []  # Bisagra de cada pata (se pliegan girando hacia arriba).
+var _ejes_patas: Array[Vector3] = []
+var _camara_cabina: Camera3D
+var _vista_cabina := false
+var _boton_camara: Button
 
 
 func _ready() -> void:
@@ -81,7 +99,8 @@ func _ready() -> void:
 	_camara.position.y = 70.0
 	_camara.rotation_degrees.x = -28.0
 	_crear_panel()
-	create_tween().tween_property(_fundido, "modulate:a", 0.0, 1.5)
+	# Sin negro: se llega desde la órbita del viaje (Transicion disuelve esa imagen sobre esta).
+	_fundido.modulate.a = 0.0
 	_arti.decir(
 		"¡Despierta, Comandante! Llegamos a la órbita de la Luna. Vamos a aterrizar en el Polo Sur porque ahí hay hielo de agua escondido. Equilibra la batería de descenso antes de bajar: deja los tres sistemas en la zona verde.",
 		"¿Por qué no alcanza la batería para todo?",
@@ -196,32 +215,95 @@ func _alunizar() -> void:
 	_camara_descenso = Camera3D.new()
 	_camara_descenso.fov = 70.0
 	add_child(_camara_descenso)
-	_empezar_descenso()
+	_aproximacion()
+
+
+## Fases 1 y 2 (automáticas, como en un alunizaje real): el módulo se separa de la cápsula, frena
+## desde 420 m con las patas plegadas y las despliega al acercarse. A 120 m empieza a pilotar el jugador.
+func _aproximacion() -> void:
+	_desvio = DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
+	_altura_abs = _zona.y + ALTURA_APROXIMACION
+	_vx = 0.0
+	_vy = 0.0
+	_combustible = _combustible_total
+	_plegar_patas(1.0)
+	_modulo.global_position = _posicion()
+	_camara_descenso.global_position = _posicion() - _frente * 14.0 + Vector3.UP * 9.0
+	_camara_activa().make_current()
+	_panel_descenso.show()
+	_texto_fase.text = "FASE 1 · Separación y frenado (automático)"
+	_aproximando = true
+	_arti.decir("Nos separamos de la cápsula, que se queda en órbita esperándonos. ¡El módulo de alunizaje enciende su motor para frenar!", "", "", {}, "m2_01i_separacion")
+	var bajada := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	bajada.tween_property(self, "_altura_abs", _zona.y + ALTURA_INICIAL, 10.0)
+	await _pausa(5.0)
+	_texto_fase.text = "FASE 2 · Aproximación: patas desplegadas"
+	Sonidos.tocar("interruptor.ogg")
+	create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_method(_plegar_patas, 1.0, 0.0, 2.0)
+	_arti.decir("Patas de aterrizaje desplegadas. Ya se ve la zona de aterrizaje junto al biodomo.", "", "", {}, "m2_01j_patas")
+	await bajada.finished
+	_aproximando = false
+	_empezar_descenso(false)
 	_arti.decir("¡Calibración correcta! Ahora pilotas tú: mantén Espacio para frenar con los propulsores y usa A y D para llegar al círculo verde. Hay que tocar el suelo despacito.",
 		"¿Por qué no usamos paracaídas?",
 		"Porque la Luna no tiene aire, y un paracaídas necesita aire para frenar. Por eso bajamos frenando con los propulsores, igual que los astronautas del Apolo.",
 		{}, "m2_01b_pilotar_descenso", "m2_01c_por_que_no_paracaidas")
 
 
-## Pone el módulo arriba, a un lado de la zona, con el tanque lleno (al empezar y al reintentar).
-func _empezar_descenso() -> void:
-	_desvio = DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
-	_altura_abs = _zona.y + ALTURA_INICIAL
-	_vx = 0.0
+## Fase 3, descenso final. «reiniciar»: vuelve a poner el módulo arriba, a un lado de la zona, con
+## el tanque lleno (al reintentar). Después de la aproximación sigue desde donde quedó.
+func _empezar_descenso(reiniciar := true) -> void:
+	if reiniciar:
+		_desvio = DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
+		_altura_abs = _zona.y + ALTURA_INICIAL
+		_vx = 0.0
+		_combustible = _combustible_total
+		_plegar_patas(0.0)
+		_modulo.global_position = _posicion()
+		_modulo.scale = Vector3.ONE
+		_camara_descenso.global_position = _posicion() - _frente * 14.0 + Vector3.UP * 9.0
 	_vy = -BAJADA_INICIAL
-	_combustible = _combustible_total
 	_aviso_combustible = 0
-	_modulo.global_position = _posicion()
-	_camara_descenso.global_position = _posicion() - _frente * 14.0 + Vector3.UP * 9.0
-	_camara_descenso.make_current()
+	_camara_activa().make_current()
 	_panel_descenso.show()
+	_texto_fase.text = "FASE 3 · Descenso final: %s" % ("A.R.T.I. pilota" if _piloto_auto else "pilotas tú")
+	_texto_contacto.text = ""
 	_volando = true
+
+
+## 1 = patas plegadas hacia arriba (en vuelo), 0 = desplegadas para aterrizar.
+func _plegar_patas(plegado: float) -> void:
+	for i in _patas.size():
+		_patas[i].basis = Basis(_ejes_patas[i], -1.3 * plegado)
+
+
+func _camara_activa() -> Camera3D:
+	return _camara_cabina if _vista_cabina else _camara_descenso
+
+
+## Botón de cámara: desde afuera (atrás y arriba) o desde la ventana del módulo, mirando abajo.
+func _cambiar_camara() -> void:
+	_vista_cabina = not _vista_cabina
+	_camara_activa().make_current()
+	_boton_camara.text = "Cámara: %s" % ("ventana del módulo" if _vista_cabina else "desde afuera")
+
+
+func _pausa(segundos: float) -> void:
+	await get_tree().create_timer(segundos, false).timeout
 
 
 func _physics_process(delta: float) -> void:
 	_tiempo += delta
 	for i in _balizas.size():  # Las balizas parpadean en ola.
 		_balizas[i].visible = fmod(_tiempo * 2.0 + i * 0.12, 1.0) < 0.7
+	# Pantalla táctil: joystick para moverse de lado (arriba también frena) y botón FRENAR.
+	ControlesTactiles.usar_joystick(_volando and not _piloto_auto)
+	ControlesTactiles.mostrar_boton("accion", _volando and not _piloto_auto, "FRENAR")
+	if _aproximando:
+		# Fases automáticas: la altura la baja un Tween; el motor va frenando todo el tiempo.
+		_mover_modulo(true, 0.0, delta)
+		_actualizar_panel_descenso()
+		return
 	if not _volando:
 		return
 	var frenar := Input.is_action_pressed("saltar") or Input.is_action_pressed("adelante")
@@ -301,6 +383,10 @@ func _actualizar_panel_descenso() -> void:
 		color = VERDE if bajada <= 8.0 else AMARILLO
 	_texto_bajada.add_theme_color_override("font_color", color)
 	_barra_combustible.value = _combustible / _combustible_total * 100.0
+	_texto_lado.text = "De lado: %s m/s" % _decimal(absf(_vx))
+	# Luz de contacto: las sondas de las patas tocan el suelo justo antes de apoyarse (como en el Apolo).
+	if _volando and _altura() < 1.5:
+		_texto_contacto.text = "●  CONTACTO"
 	var lejos := absf(_desvio) - _radio_zona
 	if lejos <= 0.0:
 		_texto_zona.text = "Zona de aterrizaje: ¡estás encima!"
@@ -340,25 +426,44 @@ func _tocar_suelo() -> void:
 	else:
 		_arti.decir("Tocamos el suelo fuera de la zona plana, entre piedras y cráteres. Probemos otra vez: usa A y D para quedar encima del círculo verde.", "", "", {}, "m2_01g_fuera_de_zona")
 	await get_tree().create_timer(6.0, false).timeout
-	var negro := create_tween()
-	negro.tween_property(_fundido, "modulate:a", 1.0, 0.6)
-	await negro.finished
 	_arti.callar()  # Que el consejo del intento anterior no se quede en pantalla.
-	_empezar_descenso()
-	if _intentos >= 2 and not _piloto_auto:
-		_boton_auto.show()
-	create_tween().tween_property(_fundido, "modulate:a", 0.0, 0.6)
+	# Sin negro: la imagen del toque se disuelve sobre el módulo de nuevo arriba. Después del
+	# segundo intento fallido ya no se repite más: aterriza A.R.T.I. y muestra cómo se hace.
+	if _intentos >= INTENTOS_MAXIMOS and not _piloto_auto:
+		Transicion.disolver(func() -> void:
+			_piloto_auto = true
+			_empezar_descenso()
+			_activar_piloto_auto())
+	else:
+		Transicion.disolver(_empezar_descenso)
 
 
+## Aterrizaje bueno: las patas se hunden un poco, se apaga el motor, el polvo cae y la cámara
+## queda junto al módulo mirando al biodomo. Desde ahí sigue la llegada caminando, sin negro.
 func _alunizaje_logrado() -> void:
-	_panel_descenso.hide()
+	_texto_contacto.text = "●  CONTACTO  ·  MOTOR APAGADO"
+	_texto_fase.text = "¡ALUNIZAJE!"
+	var amortigua := create_tween()
+	amortigua.tween_property(_modulo, "scale", Vector3(1.04, 0.92, 1.04), 0.12)
+	amortigua.tween_property(_modulo, "scale", Vector3.ONE, 0.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	Sonidos.tocar("logro.ogg")
 	_arti.decir("¡Alunizaje perfecto! Levantamos un poco de [url=regolito]regolito[/url]. Vamos al biodomo.", "", "",
 		{"regolito": "Es el polvo y las piedritas que cubren la Luna. Sin aire, el polvo no flota en nubes: cae rápido de vuelta al suelo."})
-	await get_tree().create_timer(4.5, false).timeout
-	var fundido := create_tween()
-	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.0)
-	await fundido.finished
-	get_tree().change_scene_to_file(SIGUIENTE_ESCENA)
+	await _pausa(3.0)
+	_panel_descenso.hide()
+	if _vista_cabina:
+		_cambiar_camara()
+	# La cámara llega a la escotilla del módulo, mirando al biodomo: así empieza la escena del biodomo.
+	var domo: Vector2 = $Exterior.posicion_domo
+	var mirar := Vector3(domo.x, _suelo(Vector3(domo.x, 0, domo.y)) + 2.5, domo.y)
+	var desde := _camara_descenso.global_transform
+	var hasta := Transform3D(Basis.IDENTITY, _modulo.global_position + _frente * 1.2 + Vector3.UP * 3.2).looking_at(mirar)
+	var vuelo := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	vuelo.tween_method(func(t: float) -> void: _camara_descenso.global_transform = desde.interpolate_with(hasta, t), 0.0, 1.0, 4.0)
+	await vuelo.finished
+	await _pausa(0.8)
+	_arti.callar()
+	Transicion.cambiar_escena(SIGUIENTE_ESCENA)
 
 
 ## Desde el segundo intento: A.R.T.I. pilota y muestra cómo se hace.
@@ -409,12 +514,35 @@ func _crear_modulo() -> void:
 		[Fondo._cilindro(0.03, 0.03, 0.9, 4), oscuro, Vector3(0.6, 4.1, 0.4)],
 		[Fondo._cilindro(0.3, 0.05, 0.15, 8), blanco, Vector3(0.6, 4.55, 0.4)],
 	]
+	# Cuatro patas, cada una con su bisagra arriba: en vuelo van plegadas hacia arriba y al acercarse
+	# al suelo se despliegan (_plegar_patas). La pata y su pie giran juntos alrededor de la bisagra.
 	for x in [-1.0, 1.0]:
 		for z in [-1.0, 1.0]:
 			var arriba := Vector3(x * 0.95, 1.4, z * 0.95)
 			var abajo := Vector3(x * 1.9, 0.12, z * 1.9)
-			piezas.append([Fondo._cilindro(0.06, 0.06, arriba.distance_to(abajo), 6), oscuro.lightened(0.2), (arriba + abajo) / 2.0, Basis(Quaternion(Vector3.UP, (arriba - abajo).normalized()))])
-			piezas.append([Fondo._cilindro(0.3, 0.3, 0.1, 8), oscuro.lightened(0.2), Vector3(x * 1.9, 0.05, z * 1.9)])
+			var bisagra := Node3D.new()
+			bisagra.position = arriba
+			_modulo.add_child(bisagra)
+			var pata := MeshInstance3D.new()
+			pata.mesh = Fondo.malla_plana(Fondo._cilindro(0.06, 0.06, arriba.distance_to(abajo), 6), oscuro.lightened(0.2))
+			pata.material_override = material
+			pata.position = (abajo - arriba) / 2.0
+			pata.basis = Basis(Quaternion(Vector3.UP, (arriba - abajo).normalized()))
+			bisagra.add_child(pata)
+			var pie := MeshInstance3D.new()
+			pie.mesh = Fondo.malla_plana(Fondo._cilindro(0.3, 0.3, 0.1, 8), oscuro.lightened(0.2))
+			pie.material_override = material
+			pie.position = Vector3(x * 1.9, 0.05, z * 1.9) - arriba
+			bisagra.add_child(pie)
+			_patas.append(bisagra)
+			# Eje horizontal, de costado a la pata: girando en negativo el pie sube hacia afuera.
+			_ejes_patas.append(Vector3(z, 0.0, -x).normalized())
+	# Cámara desde la ventana del módulo, mirando hacia adelante y abajo.
+	_camara_cabina = Camera3D.new()
+	_camara_cabina.fov = 72.0
+	_camara_cabina.position = Vector3(0, 3.25, -0.98)
+	_camara_cabina.rotation_degrees.x = -38.0
+	_modulo.add_child(_camara_cabina)
 	for datos in piezas:
 		var pieza := MeshInstance3D.new()
 		pieza.mesh = Fondo.malla_plana(datos[0], datos[1])
@@ -513,9 +641,14 @@ func _crear_panel_descenso() -> void:
 	titulo.theme_type_variation = &"Titulo"
 	titulo.add_theme_font_size_override("font_size", 34)
 	caja.add_child(titulo)
+	_texto_fase = _etiqueta(caja, 22)
+	_texto_fase.add_theme_color_override("font_color", AMARILLO)
 	_texto_altura = _etiqueta(caja, 26)
 	_texto_bajada = _etiqueta(caja, 26)
+	_texto_lado = _etiqueta(caja, 22)
 	_texto_zona = _etiqueta(caja, 22)
+	_texto_contacto = _etiqueta(caja, 26)
+	_texto_contacto.add_theme_color_override("font_color", Color(0.45, 0.8, 1.0))
 	var combustible := _etiqueta(caja, 20)
 	combustible.text = "Combustible de los propulsores"
 	_barra_combustible = ProgressBar.new()
@@ -535,6 +668,12 @@ func _crear_panel_descenso() -> void:
 	_boton_auto.pressed.connect(_activar_piloto_auto)
 	_boton_auto.hide()
 	caja.add_child(_boton_auto)
+	_boton_camara = Button.new()
+	_boton_camara.text = "Cámara: desde afuera"
+	_boton_camara.focus_mode = Control.FOCUS_NONE
+	_boton_camara.custom_minimum_size = Vector2(0, 52)
+	_boton_camara.pressed.connect(_cambiar_camara)
+	caja.add_child(_boton_camara)
 	$UI.add_child(_panel_descenso)
 	$UI.move_child(_fundido, -1)  # El fundido a negro tapa también este panel.
 

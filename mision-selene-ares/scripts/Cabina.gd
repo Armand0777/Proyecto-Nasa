@@ -102,6 +102,12 @@ var _en_puzle := false
 var _despegando := false
 var _en_espacio := false
 var _mirada := Vector2(0.18, 0.0)
+## Textos del panel de arriba después de la órbita terrestre (las capas del aire ya no aplican).
+var _capa_forzada := ""
+var _panel_forzado := ""
+## Viaje Tierra → Luna: horas de misión (0 a 72) que avanzan en tiempo acelerado.
+var _viajando := false
+var _horas_viaje := 0.0
 var _temblor := 0.0
 var _temblor_motor := 0.0
 var _tiempo := 0.0
@@ -207,7 +213,19 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tiempo += delta
-	if _sentado and _toma == "" and not _pilotando:
+	# Pantalla táctil: mirar arrastrando el dedo, joystick al pilotar y el botón de acción
+	# (separar / encender) mientras está el aviso de Espacio.
+	if ControlesTactiles.activo:
+		var mirando := _sentado and _toma == "" and not _pilotando
+		ControlesTactiles.usar_mirada(mirando)
+		ControlesTactiles.usar_joystick(_pilotando and not _rumbo_listo)
+		ControlesTactiles.mostrar_boton("accion", _aviso_accion.visible, "ENCENDER" if _esperando_encendido else "SEPARAR")
+		if mirando:
+			var giro := ControlesTactiles.tomar_mirada()
+			_mirada.x = clampf(_mirada.x - giro.y, 0.18 - 0.7, 0.18 + 0.95)
+			_mirada.y = clampf(_mirada.y - giro.x, -1.75, 1.75)
+			_camara.rotation = Vector3(_mirada.x, _mirada.y, 0.0)
+	elif _sentado and _toma == "" and not _pilotando:
 		# Mirar moviendo el mouse (sin capturarlo, así se puede hacer clic en el tablero). Cerca del
 		# centro gira suave; hacia los bordes llega a las ventanas de los lados (±100°), a la consola
 		# del techo (65° arriba) y a los mandos del asiento (30° abajo).
@@ -496,12 +514,68 @@ func _por_el_espacio(desde_km: float) -> void:
 	await _inyeccion_translunar()
 	await _separar_etapa_superior()
 	await _pilotar_hacia_la_luna()
-
-	var fundido := create_tween()
-	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.5)
-	await fundido.finished
+	await _viaje_a_la_luna()
+	# Sin pantalla negra: la vista de la órbita se disuelve sobre el comienzo del alunizaje.
 	_dialogo.callar()
-	get_tree().change_scene_to_file(SIGUIENTE_ESCENA)
+	Transicion.cambiar_escena(SIGUIENTE_ESCENA)
+
+
+## Viaje Tierra → Luna (unos 3 días y 384.400 km, en tiempo acelerado) y el frenado detrás de la
+## Luna para quedar en órbita. Comandante Junior descansa: la cabina queda en penumbra.
+## La Luna no tiene atmósfera: al llegar no hay "entrada en la atmósfera", sino un frenado con motor.
+func _viaje_a_la_luna() -> void:
+	_pilotando = false
+	_capa_forzada = "Rumbo a la Luna"
+	_texto_motores = "CÁPSULA\nVIAJE A LA LUNA"
+	for luz in _interior.find_children("*", "OmniLight3D", true, false):
+		create_tween().tween_property(luz, "light_energy", (luz as OmniLight3D).light_energy * 0.3, 3.0)
+	# Tiempo acelerado: 72 horas en 30 segundos (unas 10.000 veces más rápido).
+	_viajando = true
+	var viaje := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	viaje.tween_property(self, "_horas_viaje", 72.0, 30.0)
+	viaje.tween_property(self, "_altura_tierra_extra", 5200.0, 30.0)
+	viaje.tween_property(_tierra, "scale", Vector3.ONE * 0.45, 30.0)
+	viaje.tween_property(_luna, "scale", Vector3.ONE * 4.0, 30.0)
+	await _pausa(2.5)
+	_dialogo.decir("Ya vamos camino a la Luna. Por la ventana, la Tierra se ve cada vez más pequeña. El viaje dura unos tres días: yo vigilo todo mientras descansas.", "", "", {}, "m1_28_viaje")
+	await _esperar_horas(36.0)
+	_dialogo.decir("Ya vamos por la mitad del camino: ¡unos ciento noventa y dos mil kilómetros! Sin aire que nos frene, la nave sigue avanzando casi sin gastar combustible.", "", "", {}, "m1_29_mitad_camino")
+	await _esperar_horas(71.9)
+	_viajando = false
+
+	# Llegada: se frena por detrás de la Luna para quedar en órbita (toma desde afuera).
+	_panel_forzado = "LLEGANDO A LA LUNA\n384.400 km recorridos en unos 3 días"
+	_dialogo.decir("Ya llegamos a la Luna. Voy a frenar por detrás de ella para quedarnos en órbita. Ahí perderemos la señal con la Tierra un rato: la Luna tapa las ondas de radio.", "", "", {}, "m1_30_detras_luna")
+	_toma_afuera(Vector3(-14.0, 7.0, 24.0), 59.0)
+	await _pausa(3.5)
+	_tierra.hide()  # Quedó detrás de la Luna.
+	_mostrar_banner("SIN SEÑAL CON LA TIERRA\nla Luna tapa las ondas de radio")
+	await _pausa(2.0)
+	_mostrar_banner("INSERCIÓN EN ÓRBITA LUNAR")
+	_llama_capsula.show()
+	_temblor_motor = 0.25
+	Sonidos.tocar("propulsor.ogg")
+	# La Luna pasa de estar adelante a quedar debajo, enorme: la cápsula queda a 100 km de altura.
+	var radio_final := 70.0 * 14.0
+	var debajo := _cohete.global_position + Vector3(0, -(radio_final + 140.0), 0)
+	var frenado := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	frenado.tween_property(_luna, "global_position", debajo, 7.0)
+	frenado.tween_property(_luna, "scale", Vector3.ONE * 14.0, 7.0)
+	await frenado.finished
+	_llama_capsula.hide()
+	_temblor_motor = 0.0
+	_panel_forzado = "ÓRBITA LUNAR · 100 km sobre la Luna"
+	_capa_forzada = "Órbita lunar"
+	_texto_motores = "CÁPSULA\nEN ÓRBITA LUNAR"
+	Sonidos.tocar("logro.ogg")
+	_mostrar_banner("ÓRBITA LUNAR · 100 km")
+	_dialogo.decir("¡Estamos en órbita, a cien kilómetros de la Luna! Sigue descansando un poquito: en un rato preparamos el alunizaje.", "", "", {}, "m1_31_orbita_lunar")
+	await _pausa(6.0)
+
+
+func _esperar_horas(horas: float) -> void:
+	while _horas_viaje < horas:
+		await get_tree().process_frame
 
 
 ## Primera separación: los propulsores laterales ya gastaron su combustible.
@@ -536,6 +610,7 @@ func _separar_etapa_central() -> void:
 	_luz_motor.hide()
 	_texto_motores = "MOTORES\nAPAGADOS (MECO)"
 	_mostrar_banner("MECO · apagado de motores principales")
+	_capa_forzada = "Órbita terrestre"
 	await _separar("SEPARAR ETAPA CENTRAL",
 		"¡Apagado de motores principales! La etapa central ya nos subió hasta casi la órbita. Suéltala: pulsa Espacio o el botón de separación.",
 		"m1_19_meco")
@@ -570,6 +645,7 @@ func _inyeccion_translunar() -> void:
 	_temblor_motor = 0.0
 	Sonidos.tocar("logro.ogg")
 	_mostrar_banner("INYECCIÓN TRANSLUNAR COMPLETA\n¡Rumbo a la Luna!")
+	_capa_forzada = "Rumbo a la Luna"
 	await _pausa(2.0)
 
 
@@ -798,9 +874,16 @@ func _actualizar_ascenso(delta: float) -> void:
 	for datos in CAPAS:
 		if _km >= datos[0]:
 			capa = datos[1]
+	if _capa_forzada != "":
+		capa = _capa_forzada  # Después de la órbita terrestre ya no se habla de capas del aire.
 	var velocidad := _con_puntos(roundi(_velocidad(_km) / 10.0) * 10)
 	var altitud := _con_puntos(floori(_km))
 	_altitud_label.text = "ALTITUD %s km  ·  %s km/h aprox.\n%s" % [altitud, velocidad, capa.to_upper()]
+	if _viajando:
+		var recorrido := roundi(384400.0 * clampf(_horas_viaje / 72.0, 0.0, 1.0))
+		_altitud_label.text = "VIAJE A LA LUNA · hora %d de 72 (tiempo acelerado ×10.000)\n%s km de 384.400 km" % [floori(_horas_viaje), _con_puntos(recorrido)]
+	elif _panel_forzado != "":
+		_altitud_label.text = _panel_forzado
 	_pantallas[0].text = "CAPA\n%s" % ("ESPACIO" if _km >= 100.0 else capa.to_upper())
 	_pantallas[1].text = "ALTITUD\n%s km\n%s km/h" % [altitud, velocidad]
 	_pantallas[2].text = _texto_motores
@@ -817,9 +900,13 @@ func _actualizar_ascenso(delta: float) -> void:
 			var titila := _titileo(i)
 			_llamas[i].scale = Vector3(abierta * titila, (1.0 + 0.4 * (abierta - 1.0)) * (0.92 + 0.16 * titila), abierta * titila)
 		_luz_motor.light_energy = 6.0 * _titileo(7)
-	for i in 2:
-		var llama: Node3D = [_llama_superior, _llama_capsula][i]
-		if is_instance_valid(llama) and llama.visible:
+	# La llama de la etapa superior se borra con ella al soltarla: se revisa antes de usarla.
+	var llamas_chicas: Array = [_llama_superior, _llama_capsula]
+	for i in llamas_chicas.size():
+		if not is_instance_valid(llamas_chicas[i]):
+			continue
+		var llama: Node3D = llamas_chicas[i]
+		if llama.visible:
 			llama.scale = Vector3.ONE * _titileo(3 + i)
 	if is_instance_valid(_sonido_motor):
 		_sonido_motor.volume_db = lerpf(0.0, -32.0, clampf(_km / 70.0, 0.0, 1.0))

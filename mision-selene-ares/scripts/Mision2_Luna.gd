@@ -1,9 +1,14 @@
 extends Node3D
 ## Misión 2: el biodomo en el Polo Sur de la Luna (Escenas 2.2 y 2.3 del guion).
+## Se llega sin cortes desde el alunizaje: Comandante Junior baja la escalera del módulo (su primer
+## paso en la Luna) y camina hasta la esclusa del biodomo; al entrar empieza todo lo de adentro.
 ## El hambre y el agua bajan solas; cosechar, comer y purificar agua cuestan algo.
 ## Después llega una tormenta solar con datos reales de NASA DONKI y hay que subir el escudo.
 
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
+const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
+## La zona de aterrizaje del alunizaje queda a esta distancia del biodomo (igual que en Mision2_Alunizaje).
+const DISTANCIA_MODULO := 20.0
 const NasaApi := preload("res://scripts/NasaApi.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
 
@@ -66,6 +71,9 @@ var _espera_pitido := 0.0
 var _objetivos: Label
 var _flash: ColorRect
 var _atajo := ""
+## Llegada caminando desde el módulo: mientras dura, la tormenta no empieza a contar.
+var _llegada_afuera := false
+var _flecha: Node3D
 
 
 func _ready() -> void:
@@ -104,13 +112,19 @@ func _ready() -> void:
 	reloj.timeout.connect(_cada_tres_segundos)
 	add_child(reloj)
 	_buscar_tormenta()
-	_mostrar_llegada()
+	# Desde el alunizaje se llega caminando; con el Modo Jueces (tormenta o EVA) se empieza adentro.
+	if _atajo == "":
+		_llegar_caminando()
+	else:
+		_mostrar_llegada()
 
 
 func _process(delta: float) -> void:
 	if _eva:
 		_escanear(delta)
 		return
+	if _llegada_afuera:
+		return  # Todavía caminando desde el módulo: la tormenta espera.
 	if _tormenta:
 		_restante -= delta
 		_alarma.light_energy = 4.0 if fmod(_restante, 1.0) < 0.5 else 0.4  # 1 parpadeo por segundo.
@@ -142,6 +156,47 @@ func _mostrar_llegada() -> void:
 	if _atajo == "eva":
 		_empezar_eva()
 		return
+	_bienvenida_biodomo()
+
+
+## Llegada sin cortes: el módulo está donde aterrizó, a 20 m del biodomo. Comandante Junior baja
+## la escalera (primer paso en la Luna) y camina con la flecha hasta la esclusa.
+func _llegar_caminando() -> void:
+	_llegada_afuera = true
+	_fundido.modulate.a = 0.0
+	_llegada.modulate.a = 0.0
+	var hacia_domo := _base.position.normalized()
+	var lugar := _en_suelo(_base.position - hacia_domo * DISTANCIA_MODULO)
+	_crear_modulo_aterrizado(lugar, hacia_domo)
+	_flecha = FlechaGuia.new()
+	add_child(_flecha)
+	# Arriba de la escalera, mirando al biodomo (donde terminó la cámara del alunizaje).
+	_jugador.set_physics_process(false)
+	_jugador.rotation.y = atan2(-hacia_domo.x, -hacia_domo.z)
+	var arriba := lugar + hacia_domo * 2.3 + Vector3.UP * 2.6
+	var abajo := _en_suelo(lugar + hacia_domo * 2.6) + Vector3(0, 0.3, 0)
+	_jugador.global_position = arriba
+	await get_tree().create_timer(1.5, false).timeout
+	var escalera := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	escalera.tween_property(_jugador, "global_position", abajo, 2.4)
+	await escalera.finished
+	Sonidos.tocar("paso.ogg")
+	_jugador.set_physics_process(true)
+	_flecha.apuntar(_en_suelo(_base.position + Vector3(-15.0, 0, 0)) + Vector3(0, 2.6, 0))
+	_arti.decir("¡Ya estamos en la Luna! Es tu primer paso en otro mundo, Comandante. Aquí pesas unas seis veces menos. Camina hasta la esclusa del biodomo: la flecha te guía.", "", "", {}, "m2_01k_primer_paso")
+
+
+## Al usar la esclusa por primera vez: se entra al biodomo y empieza todo lo de adentro.
+func _entrar_por_primera_vez() -> void:
+	Sonidos.tocar("puerta.ogg")
+	_llegada_afuera = false
+	_flecha.ocultar()
+	Transicion.disolver(func() -> void: _jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0))
+	await get_tree().create_timer(1.0, false).timeout
+	_bienvenida_biodomo()
+
+
+func _bienvenida_biodomo() -> void:
 	_arti.decir(
 		"¡Llegamos al [url=biodomo]Biodomo[/url]! Fíjate en tus barras abajo: tienes hambre y sed. Camina a la Mesa de Nutrición para comer una barra de proteína o cosechar una lechuga. ¡Ojo! Si cosechas lechugas de más, bajará el oxígeno del domo hasta que crezcan nuevas.",
 		"¿Por qué bajaría el oxígeno?",
@@ -223,7 +278,10 @@ func _al_usar(estacion: String) -> void:
 			else:
 				_empezar_eva()
 		"entrar":
-			_terminar_eva(false)
+			if _llegada_afuera:
+				_entrar_por_primera_vez()
+			else:
+				_terminar_eva(false)
 		"roca":
 			if not _roca_ok:
 				Sonidos.tocar("picar.ogg")
@@ -514,6 +572,53 @@ func _crear_eva() -> void:
 	$UI.add_child(_flash)
 
 
+## El módulo de alunizaje quieto donde aterrizó (el mismo diseño de Mision2_Alunizaje, sin motor):
+## etapa de descenso dorada, cabina blanca con franja azul, cuatro patas y la escalera hacia el biodomo.
+func _crear_modulo_aterrizado(lugar: Vector3, hacia_domo: Vector3) -> void:
+	var modulo := Node3D.new()
+	add_child(modulo)
+	modulo.global_position = lugar
+	modulo.global_basis = Basis.looking_at(hacia_domo, Vector3.UP)
+	var dorado := Color(0.83, 0.64, 0.26)
+	var blanco := Color(0.9, 0.91, 0.93)
+	var oscuro := Color(0.2, 0.22, 0.27)
+	var piezas := [
+		[Fondo._cilindro(1.5, 1.5, 1.3, 8), dorado, Vector3(0, 1.55, 0)],
+		[Fondo._caja(Vector3(2.0, 1.5, 1.8)), blanco, Vector3(0, 2.95, 0)],
+		[Fondo._caja(Vector3(2.04, 0.22, 1.84)), Color(0.043, 0.239, 0.569), Vector3(0, 2.45, 0)],
+		[Fondo._caja(Vector3(0.9, 0.5, 0.05)), Color(0.08, 0.12, 0.2), Vector3(0, 3.2, -0.92)],
+		[Fondo._cilindro(0.3, 0.55, 0.6, 10), oscuro, Vector3(0, 0.6, 0)],
+	]
+	for x in [-1.0, 1.0]:
+		for z in [-1.0, 1.0]:
+			var arriba := Vector3(x * 0.95, 1.4, z * 0.95)
+			var abajo := Vector3(x * 1.9, 0.12, z * 1.9)
+			piezas.append([Fondo._cilindro(0.06, 0.06, arriba.distance_to(abajo), 6), oscuro.lightened(0.2), (arriba + abajo) / 2.0, Basis(Quaternion(Vector3.UP, (arriba - abajo).normalized()))])
+			piezas.append([Fondo._cilindro(0.3, 0.3, 0.1, 8), oscuro.lightened(0.2), Vector3(x * 1.9, 0.05, z * 1.9)])
+	# Escalera por el frente (−z, hacia el biodomo): dos largueros y peldaños.
+	for x in [-0.35, 0.35]:
+		piezas.append([Fondo._caja(Vector3(0.06, 2.3, 0.06)), oscuro.lightened(0.3), Vector3(x, 1.15, -1.55)])
+	for y in [0.4, 0.8, 1.2, 1.6, 2.0]:
+		piezas.append([Fondo._caja(Vector3(0.7, 0.05, 0.06)), oscuro.lightened(0.3), Vector3(0, y, -1.55)])
+	var material := Fondo.material_plano()
+	for datos in piezas:
+		var pieza := MeshInstance3D.new()
+		pieza.mesh = Fondo.malla_plana(datos[0], datos[1])
+		pieza.material_override = material
+		pieza.position = datos[2]
+		if datos.size() > 3:
+			pieza.basis = datos[3]
+		modulo.add_child(pieza)
+	# Que no se pueda atravesar.
+	var cuerpo := StaticBody3D.new()
+	var forma := CollisionShape3D.new()
+	forma.shape = BoxShape3D.new()
+	forma.shape.size = Vector3(2.4, 3.8, 2.2)
+	forma.position = Vector3(0, 1.9, 0)
+	cuerpo.add_child(forma)
+	modulo.add_child(cuerpo)
+
+
 ## Objeto que se puede usar afuera, con un poco de brillo para que se vea en la sombra.
 func _objeto(id: String, texto: String, posicion: Vector3, primitiva: PrimitiveMesh, color: Color) -> StaticBody3D:
 	var cuerpo := StaticBody3D.new()
@@ -546,6 +651,7 @@ func _en_suelo(posicion: Vector3) -> Vector3:
 func _empezar_eva() -> void:
 	Sonidos.tocar("puerta.ogg")
 	_eva = true
+	ControlesTactiles.mostrar_boton("foto", true)  # En pantalla táctil, la foto es un botón.
 	_jugador.global_position = _en_suelo(_base.position + Vector3(-18.0, 0, 0)) + Vector3(0, 0.3, 0)
 	_jugador.rotation.y = PI / 2.0  # Mirando hacia afuera, lejos del domo.
 	_objetivos.show()
@@ -561,6 +667,7 @@ func _empezar_eva() -> void:
 func _terminar_eva(rescate: bool) -> void:
 	Sonidos.tocar("puerta.ogg")
 	_eva = false
+	ControlesTactiles.mostrar_boton("foto", false)
 	_objetivos.hide()
 	_jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0)
 	if rescate:

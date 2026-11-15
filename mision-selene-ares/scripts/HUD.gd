@@ -47,7 +47,7 @@ func _conectar_jugador() -> void:
 
 
 func _mostrar_aviso(texto: String) -> void:
-	_aviso.text = "[E] %s" % texto
+	_aviso.text = ("[USAR] %s" if ControlesTactiles.activo else "[E] %s") % texto
 	_aviso.visible = texto != ""
 
 

@@ -25,6 +25,8 @@ Ajustes="*res://scripts/Ajustes.gd"
 GameManager="*res://scripts/GameManager.gd"
 Sonidos="*res://scripts/Sonidos.gd"
 MenuPausa="*res://scripts/MenuPausa.gd"
+ControlesTactiles="*res://scripts/ControlesTactiles.gd"
+Transicion="*res://scripts/Transicion.gd"
 
 [display]
 
@@ -34,6 +36,7 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=4
 
 [gui]
 
@@ -51,3 +54,6 @@ renderer/rendering_method.mobile="gl_compatibility"
 lights_and_shadows/directional_shadow/size=2048
 lights_and_shadows/positional_shadow/atlas_size=2048
 scaling_3d/scale.web=0.8
+scaling_3d/scale.mobile=0.75
+lights_and_shadows/directional_shadow/size.mobile=1024
+textures/vram_compression/import_etc2_astc=true

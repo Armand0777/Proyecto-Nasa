@@ -1,6 +1,7 @@
 extends CharacterBody3D
 ## Jugador en primera persona: camina con WASD o flechas, mira con el mouse, salta con Espacio
 ## y usa objetos con E o clic. La gravedad y el salto dependen del planeta (GameManager).
+## En pantalla táctil: joystick, arrastrar el dedo para mirar y botones (ControlesTactiles).
 
 ## Avisa al HUD qué se puede usar al frente ("" si no hay nada).
 signal objetivo_cambiado(texto: String)
@@ -19,6 +20,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if ControlesTactiles.activo and (event is InputEventMouseMotion or event is InputEventMouseButton):
+		return  # En pantalla táctil se mira arrastrando el dedo y se usa con el botón USAR.
 	var capturado := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and capturado:
 		var giro: float = sensibilidad_base * Ajustes.sensibilidad_mouse
@@ -37,6 +40,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if ControlesTactiles.activo:
+		var giro := ControlesTactiles.tomar_mirada()
+		rotate_y(-giro.x)
+		_camara.rotation.x = clampf(_camara.rotation.x - giro.y, deg_to_rad(-85.0), deg_to_rad(85.0))
 	var ambiente := GameManager.ambiente()
 	if not is_on_floor():
 		velocity.y -= ambiente["gravedad"] * delta
