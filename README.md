@@ -45,7 +45,9 @@ Perder nunca castiga: si un recurso se acaba, A.R.T.I. ayuda con una reserva y e
 | Pilotar el descenso a la Luna | **Espacio** (o **W**) frena · **A** y **D** (o **← →**) mueven el módulo de lado |
 | Guiar las cápsulas a Marte (escolta) | **A** y **D** las empujan de costado · **W** acelera · **S** frena · **Espacio** lanza, prende el escudo o abre el paracaídas |
 
-En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantalla completa y la voz de A.R.T.I.
+En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantalla completa, la voz de A.R.T.I. y el idioma.
+
+**Idioma / Language:** el juego entero se puede jugar en **español** o en **inglés**. Se elige con el botón «Idioma: Español» del menú principal o en Ajustes (también desde la pausa), y queda guardado. En inglés, A.R.T.I. usa una voz en inglés del sistema o del navegador.
 
 ### Modo Jueces
 

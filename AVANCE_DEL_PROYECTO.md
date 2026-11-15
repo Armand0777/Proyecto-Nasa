@@ -339,7 +339,8 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [ ] **Versión web:** el preset ya está en `export_presets.cfg` (sin hilos, para itch.io), pero **nunca se exportó**. Hay que instalar las *plantillas de exportación* de Godot 4.7.2 (Editor → Administrar plantillas de exportación), exportar a `build/web/` y probar en el navegador (voz, mouse, sonidos y DONKI).
 - [ ] **Subir a itch.io** para que los jueces jueguen en el navegador.
 - [ ] **Grabar la voz de A.R.T.I.** siguiendo `guion_doblaje_arti.md` y copiar los `.ogg` a `audio/voz_arti/`.
-- [ ] **Opción en inglés:** está en pausa y no hay nada escrito. La idea era un `Traducciones.gd` con un diccionario EN (el texto en español como clave) y un selector de idioma en Ajustes.
+- [x] **Opción en inglés:** todo el juego (menús, las tres misiones, Aurora, el rover y el cierre) en español o inglés. Traducciones en `scripts/textos/Ingles_*.gd` (el texto en español es la clave), selector «Idioma» en el menú principal y en Ajustes, y A.R.T.I. con voz del sistema en inglés. `herramientas/revisar_ingles.gd` lista los textos nuevos que falten.
+- [ ] Revisión del inglés por alguien del equipo (sobre todo las frases de A.R.T.I.) y probar la voz en inglés en la PC y en el navegador.
 - [ ] **README:** completar los nombres de los 6 integrantes y elegir la licencia del proyecto (por ejemplo MIT).
 - [ ] Música de fondo (opcional; solo CC0 o con crédito en el README).
 

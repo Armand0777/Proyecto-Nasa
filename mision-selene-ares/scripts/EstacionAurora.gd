@@ -105,8 +105,8 @@ func _crear_letreros() -> void:
 	for i in 12:
 		var angulo := i * TAU / 12.0
 		var letrero := Label3D.new()
-		var nombre: String = "HANGAR %02d" % (i / 3 + 1) if i % 3 == 0 else ("SALA DE CONTROL · ROVER" if i == 4 else nombres[i % 4])
-		letrero.text = "%02d / %s" % [i + 1, nombre]
+		var nombre: String = tr("HANGAR %02d") % (i / 3 + 1) if i % 3 == 0 else ("SALA DE CONTROL · ROVER" if i == 4 else nombres[i % 4])
+		letrero.text = "%02d / %s" % [i + 1, tr(nombre)]
 		letrero.font_size = 64
 		letrero.outline_size = 6
 		letrero.pixel_size = 0.004

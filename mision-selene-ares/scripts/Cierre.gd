@@ -107,16 +107,16 @@ func _panel_ciencia() -> PanelContainer:
 	texto.fit_content = true
 	texto.custom_minimum_size = Vector2(1100, 0)
 	texto.text = "\n".join([
-		"• [b]NASA DONKI[/b] (base de datos del clima espacial): la tormenta solar de la Luna usa la llamarada solar más fuerte de los últimos 30 días. En esta partida: %s." % GameManager.estado_donki,
-		"• [b]NASA NeoWs[/b] (vigilancia de asteroides): en el viaje a la Luna, la pantalla muestra los asteroides reales que pasan cerca de la Tierra ese día. En esta partida: %s." % GameManager.estado_neows,
-		"• [b]NASA OSDR[/b] (base de datos abierta de ciencia espacial): el chequeo médico en órbita lunar usa el estudio OSD-575, que analizó la sangre de los 4 astronautas de Inspiration4 antes y después de 3 días en órbita. En esta partida: %s." % GameManager.estado_osdr,
-		"• [b]Programa Artemis[/b] (NASA): la base de lanzamiento, el cohete de tanque naranja y la cápsula se inspiran en él.",
-		"• [b]Huerto Veggie[/b] (Estación Espacial): la luz rosada de cultivo del biodomo viene de sus LEDs rojos y azules.",
-		"• [b]Rovers Curiosity y Perseverance[/b]: el cielo caramelo y el atardecer azul de Marte, el viento que grabaron sus micrófonos y MOXIE, que sacó oxígeno del aire marciano.",
-		"• [b]Rover Opportunity[/b]: en 2018 una tormenta de polvo tapó el Sol durante semanas y lo dejó sin energía.",
-		"• [b]Física[/b]: el retraso de las señales (Luna 1,3 s; Marte hasta 20 minutos, aquí 5 s). La gravedad está ajustada para jugar: la real es 1,62 m/s² en la Luna y 3,72 m/s² en Marte.",
+		tr("• [b]NASA DONKI[/b] (base de datos del clima espacial): la tormenta solar de la Luna usa la llamarada solar más fuerte de los últimos 30 días. En esta partida: %s.") % tr(GameManager.estado_donki),
+		tr("• [b]NASA NeoWs[/b] (vigilancia de asteroides): en el viaje a la Luna, la pantalla muestra los asteroides reales que pasan cerca de la Tierra ese día. En esta partida: %s.") % tr(GameManager.estado_neows),
+		tr("• [b]NASA OSDR[/b] (base de datos abierta de ciencia espacial): el chequeo médico en órbita lunar usa el estudio OSD-575, que analizó la sangre de los 4 astronautas de Inspiration4 antes y después de 3 días en órbita. En esta partida: %s.") % tr(GameManager.estado_osdr),
+		tr("• [b]Programa Artemis[/b] (NASA): la base de lanzamiento, el cohete de tanque naranja y la cápsula se inspiran en él."),
+		tr("• [b]Huerto Veggie[/b] (Estación Espacial): la luz rosada de cultivo del biodomo viene de sus LEDs rojos y azules."),
+		tr("• [b]Rovers Curiosity y Perseverance[/b]: el cielo caramelo y el atardecer azul de Marte, el viento que grabaron sus micrófonos y MOXIE, que sacó oxígeno del aire marciano."),
+		tr("• [b]Rover Opportunity[/b]: en 2018 una tormenta de polvo tapó el Sol durante semanas y lo dejó sin energía."),
+		tr("• [b]Física[/b]: el retraso de las señales (Luna 1,3 s; Marte hasta 20 minutos, aquí 5 s). La gravedad está ajustada para jugar: la real es 1,62 m/s² en la Luna y 3,72 m/s² en Marte."),
 		"",
-		"Fuentes: kauai.ccmc.gsfc.nasa.gov/DONKI · api.nasa.gov (NeoWs) · osdr.nasa.gov/bio/repo/data/studies/OSD-575 · nasa.gov/humans-in-space/artemis · science.nasa.gov/mission/mars-2020-perseverance",
+		tr("Fuentes: ") + "kauai.ccmc.gsfc.nasa.gov/DONKI · api.nasa.gov (NeoWs) · osdr.nasa.gov/bio/repo/data/studies/OSD-575 · nasa.gov/humans-in-space/artemis · science.nasa.gov/mission/mars-2020-perseverance",
 	])
 	caja.add_child(texto)
 	var cerrar := Button.new()

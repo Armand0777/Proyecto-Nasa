@@ -335,7 +335,7 @@ func _preparar_capsula() -> void:
 	_frags.clear()
 	for i in 3:
 		_nodos_capsula[i].visible = i == _cap or _estado[i]["aterrizo"]
-	_rotulo_camara.text = "● CÁMARA · %s" % CAPSULAS[_cap][1]
+	_rotulo_camara.text = tr("● CÁMARA · %s") % tr(CAPSULAS[_cap][1])
 	_camara_capsula.environment = null  # En el espacio: el cielo de la escena.
 	_actualizar_3d(0.0)
 
@@ -629,7 +629,7 @@ func _entrar_a_marte() -> void:
 	(nodo.get_node("Escudo") as Node3D).hide()
 	(nodo.get_node("Plasma") as Node3D).show()
 	_camara_capsula.environment = _cielo_marte
-	_rotulo_camara.text = "● DESCENSO · %s" % CAPSULAS[_cap][1]
+	_rotulo_camara.text = tr("● DESCENSO · %s") % tr(CAPSULAS[_cap][1])
 	_arti.decir("¡Entró a la atmósfera! El escudo térmico se pone al rojo vivo: el aire la frena y la calienta.", "", "", {}, "m3_21_calor_entrada")
 
 
@@ -1502,7 +1502,7 @@ func _crear_monitores() -> void:
 	var capa := CanvasLayer.new()
 	_vistas[2].add_child(capa)
 	_rotulo_camara = Label.new()
-	_rotulo_camara.text = "● CÁMARA · %s" % CAPSULAS[1][1]
+	_rotulo_camara.text = tr("● CÁMARA · %s") % tr(CAPSULAS[1][1])
 	_rotulo_camara.position = Vector2(24, 18)
 	_rotulo_camara.add_theme_font_size_override("font_size", 32)
 	_rotulo_camara.add_theme_color_override("font_color", Color.WHITE)
@@ -1524,7 +1524,8 @@ class Lienzo extends Control:
 
 
 func _texto(lienzo: Control, posicion: Vector2, texto: String, tamano: int, color: Color, ancho := -1.0, alineacion := HORIZONTAL_ALIGNMENT_LEFT) -> void:
-	lienzo.draw_string(lienzo.get_theme_default_font(), posicion, texto, alineacion, ancho, tamano, color)
+	# Lo dibujado no se traduce solo: tr() lo pasa al inglés en ese modo.
+	lienzo.draw_string(lienzo.get_theme_default_font(), posicion, tr(texto), alineacion, ancho, tamano, color)
 
 
 ## Radar: la cápsula desde arriba, avanzando hacia Marte (arriba). Todo en la misma escala, con
@@ -1607,7 +1608,7 @@ func _dibujar_radar(r: Control) -> void:
 		r.draw_arc(p, radio_capsula + 18.0, 0.0, TAU, 32, Color(ROJO, 1.0 - (_t - _golpe) / 0.6), 6.0)
 	# Arriba: título y tiempo. Abajo: la cápsula y la señal.
 	_texto(r, Vector2(28, 50), "RADAR · ÓRBITA DE MARTE", 36, CELESTE)
-	var llegada := "Llegada en %d s" % maxi(0, ceili(_d * CAPSULAS[_cap][10] / maxf(_ritmo, 0.1)))
+	var llegada := tr("Llegada en %d s") % maxi(0, ceili(_d * CAPSULAS[_cap][10] / maxf(_ritmo, 0.1)))
 	_texto(r, Vector2(tam.x - 380, 50), llegada if _fase == "viaje" else "EN LA RAMPA", 36, AMARILLO, 352, HORIZONTAL_ALIGNMENT_RIGHT)
 	_texto(r, Vector2(28, tam.y - 30), CAPSULAS[_cap][1], 34, color)
 	if _fase == "espera":
@@ -1712,7 +1713,7 @@ func _dibujar_altimetro(r: Control) -> void:
 		aviso = "Se abrió solo,\nmuy tarde"
 		color_aviso = NARANJA
 	var linea := 0
-	for texto in aviso.split("\n"):
+	for texto in tr(aviso).split("\n"):
 		_texto(r, Vector2(x0, 480 + linea * 56), texto, 46, color_aviso)
 		linea += 1
 
@@ -1917,8 +1918,8 @@ func _mostrar_resultado(perfecto: bool) -> void:
 		fila.add_child(franja)
 		var texto := Label.new()
 		var perdida := roundi((100.0 - e["integridad"]) * 0.3)
-		var efecto := "llega completa." if perdida == 0 else "en Marte habrá %d %% menos de %s." % [perdida, ["energía", "soporte vital", "comida"][i]]
-		texto.text = "%s · integridad %d %% · %s · %s\nLleva %s: %s" % [CAPSULAS[i][1], roundi(e["integridad"]), e["resultado"], e["paracaidas"], CAPSULAS[i][3], efecto]
+		var efecto := tr("llega completa.") if perdida == 0 else tr("en Marte habrá %d %% menos de %s.") % [perdida, tr(["energía", "soporte vital", "comida"][i])]
+		texto.text = tr("%s · integridad %d %% · %s · %s\nLleva %s: %s") % [tr(CAPSULAS[i][1]), roundi(e["integridad"]), tr(e["resultado"]), tr(e["paracaidas"]), tr(CAPSULAS[i][3]), efecto]
 		texto.add_theme_font_size_override("font_size", 24)
 		fila.add_child(texto)
 		caja.add_child(fila)

@@ -74,7 +74,7 @@ func _llegar() -> void:
 
 func _preparar_sol() -> void:
 	var tormenta: bool = SOLES[_sol]
-	_titulo.text = "Sol %d de %d · %s" % [_sol + 1, SOLES.size(), "TORMENTA DE POLVO" if tormenta else "cielo despejado"]
+	_titulo.text = tr("Sol %d de %d · %s") % [_sol + 1, SOLES.size(), tr("TORMENTA DE POLVO" if tormenta else "cielo despejado")]
 	_titulo.add_theme_color_override("font_color", ROJO if tormenta else Color(0.949, 0.961, 1.0))
 	# Tormenta: el aire se llena de polvo y llega menos luz.
 	var tween := create_tween().set_parallel()
@@ -117,8 +117,8 @@ func _total() -> float:
 
 func _actualizar() -> void:
 	var disponible := _solar() + GameManager.recursos["energia"]
-	_energia.text = "Paneles solares hoy: %d · Batería: %d" % [_solar(), GameManager.recursos["energia"]]
-	_uso.text = "Vas a usar %d de %d" % [_total(), disponible]
+	_energia.text = tr("Paneles solares hoy: %d · Batería: %d") % [_solar(), GameManager.recursos["energia"]]
+	_uso.text = tr("Vas a usar %d de %d") % [_total(), disponible]
 	_uso.add_theme_color_override("font_color", ROJO if _total() > disponible else Color(0.949, 0.961, 1.0))
 	_terminar.disabled = _total() > disponible
 
@@ -132,23 +132,23 @@ func _terminar_sol() -> void:
 	var problemas: Array[String] = []
 	if _deslizadores["calefaccion"].value < NECESIDAD["calefaccion"]:
 		GameManager.cambiar("soporte_vital", -15.0)
-		problemas.append("las plantas pasaron frío (afuera hay unos 60 grados bajo cero)")
+		problemas.append(tr("las plantas pasaron frío (afuera hay unos 60 grados bajo cero)"))
 	if _deslizadores["oxigeno"].value < NECESIDAD["oxigeno"]:
 		GameManager.cambiar("soporte_vital", -20.0)
-		problemas.append("faltó oxígeno en el domo")
+		problemas.append(tr("faltó oxígeno en el domo"))
 	if _deslizadores["escudo"].value < NECESIDAD["escudo"]:
 		GameManager.cambiar("escudo", -10.0)
 		GameManager.cambiar("soporte_vital", -10.0)
-		problemas.append("entró más radiación (Marte casi no tiene campo magnético y su aire es muy delgado)")
-	var resumen := "¡Sol %d superado sin problemas!" % (_sol + 1)
+		problemas.append(tr("entró más radiación (Marte casi no tiene campo magnético y su aire es muy delgado)"))
+	var resumen := tr("¡Sol %d superado sin problemas!") % (_sol + 1)
 	if not problemas.is_empty():
-		resumen = "Sol %d superado, pero %s." % [_sol + 1, ", y ".join(problemas)]
+		resumen = tr("Sol %d superado, pero %s.") % [_sol + 1, tr(", y ").join(problemas)]
 	if GameManager.recursos["soporte_vital"] <= 0.0:
 		GameManager.cambiar("soporte_vital", 30.0)
-		resumen += " Usé el oxígeno de emergencia de las cápsulas: sin castigo, seguimos aprendiendo."
+		resumen += tr(" Usé el oxígeno de emergencia de las cápsulas: sin castigo, seguimos aprendiendo.")
 	_sol += 1
 	if _sol >= SOLES.size():
-		_arti.decir(resumen + " ¡Sobrevivimos a las tormentas de Marte!")
+		_arti.decir(resumen + tr(" ¡Sobrevivimos a las tormentas de Marte!"))
 		_terminar_mision()
 		return
 	_arti.decir(resumen)
@@ -196,7 +196,7 @@ func _crear_tablero() -> void:
 	for sistema in NECESIDAD:
 		var fila := HBoxContainer.new()
 		var nombre := Label.new()
-		nombre.text = "%s\n(necesita %d)" % [NOMBRES[sistema], NECESIDAD[sistema]]
+		nombre.text = tr("%s\n(necesita %d)") % [tr(NOMBRES[sistema]), NECESIDAD[sistema]]
 		nombre.custom_minimum_size = Vector2(380, 0)
 		fila.add_child(nombre)
 		var deslizador := HSlider.new()

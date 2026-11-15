@@ -891,8 +891,8 @@ func _mostrar_asteroides(resultado: Dictionary) -> void:
 		return
 	var dato: Dictionary = resultado.dato
 	var cuando := tr("HOY") if dato.estado == "EN VIVO" else tr("EL %s") % dato.fecha
-	GameManager.estado_neows = "%d asteroides el %s; el más cercano, %s, pasó a %s km (%s)" % [
-		dato.cantidad, dato.fecha, dato.nombre, _con_puntos(int(dato.km)), dato.estado]
+	GameManager.estado_neows = tr("%d asteroides el %s; el más cercano, %s, pasó a %s km (%s)") % [
+		dato.cantidad, dato.fecha, dato.nombre, _con_puntos(int(dato.km)), tr(dato.estado)]
 	_dialogo.decir("Mira la pantalla, Comandante: la NASA vigila los asteroides que pasan cerca de la Tierra y calcula su camino con muchos años de anticipación. Ahí ves los que pasan en estos días.", "", "", {}, "m1_28b_asteroides")
 	_banner.text = tr("ASTEROIDES CERCA DE LA TIERRA %s: %d\nEl más cercano: %s · unos %d m · pasa a %s km (%.1f veces la distancia a la Luna)\nFuente: NASA NeoWs · %s") % [
 		cuando, dato.cantidad, dato.nombre, maxi(1, roundi(dato.metros)), _con_puntos(int(dato.km)), dato.lunas, tr(dato.estado)]

@@ -165,7 +165,7 @@ func _boton(padre: Node, texto: String, accion: Callable) -> Button:
 
 
 func _deslizador(padre: Node, titulo: String, minimo: float, maximo: float, clave: String, accion: Callable) -> void:
-	var texto := _etiqueta(padre, "%s  0°" % titulo, 14)
+	var texto := _etiqueta(padre, "%s  0°" % tr(titulo), 14)
 	var barra := HSlider.new()
 	barra.min_value = minimo
 	barra.max_value = maximo
@@ -173,7 +173,7 @@ func _deslizador(padre: Node, titulo: String, minimo: float, maximo: float, clav
 	barra.focus_mode = Control.FOCUS_NONE
 	barra.custom_minimum_size.y = 27
 	barra.value_changed.connect(func(v: float) -> void:
-		texto.text = "%s  %d%s" % [titulo, v, "%" if clave == "pinza" else "°"]
+		texto.text = "%s  %d%s" % [tr(titulo), v, "%" if clave == "pinza" else "°"]
 		accion.call(v))
 	padre.add_child(barra)
 	_deslizadores[clave] = barra
@@ -362,9 +362,9 @@ func _physics_process(delta: float) -> void:
 		_direccion[i].rotation.y = lerp_angle(_direccion[i].rotation.y, doblar, 1.0 - exp(-8.0 * delta))
 	_mover_articulaciones(delta)
 	_actualizar_camara(delta)
-	_estado.text = "%04.1f km/h    |    RECORRIDO %05.1f m    |    %s" % [
+	_estado.text = tr("%04.1f km/h    |    RECORRIDO %05.1f m    |    %s") % [
 		absf(andado / maxf(delta, 0.001)) * 3.6, _recorrido,
-		"FRENANDO" if frenando else ("REVERSA" if _rapidez < -0.1 else "LISTO")]
+		tr("FRENANDO" if frenando else ("REVERSA" if _rapidez < -0.1 else "LISTO"))]
 	if absf(_rover.position.x) > 150.0 or absf(_rover.position.z) > 150.0 or _rover.position.y < _inicio.y - 20.0:
 		_reiniciar_rover()
 
