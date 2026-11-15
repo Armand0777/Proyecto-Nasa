@@ -115,6 +115,8 @@ var _apuntado: Node = null
 var _luces_bajas := false
 var _energia_luces := {}
 var _radio_i := 0
+## Giro de la vista libre de afuera alrededor de la cápsula (izquierda-derecha, arriba-abajo).
+var _orbita := Vector2.ZERO
 ## Viaje Tierra → Luna: horas de misión (0 a 72) que avanzan en tiempo acelerado.
 var _viajando := false
 var _horas_viaje := 0.0
@@ -231,7 +233,11 @@ func _process(delta: float) -> void:
 		ControlesTactiles.usar_joystick(_pilotando and not _rumbo_listo)
 		ControlesTactiles.mostrar_boton("usar", mirando)
 		ControlesTactiles.mostrar_boton("accion", _aviso_accion.visible, "ENCENDER" if _esperando_encendido else "SEPARAR")
-		if mirando:
+		ControlesTactiles.mostrar_boton("camara", _puede_cambiar_camara())
+		if _toma == "libre":
+			ControlesTactiles.usar_mirada(true)
+			_girar_orbita(ControlesTactiles.tomar_mirada())
+		elif mirando:
 			_girar_mirada(ControlesTactiles.tomar_mirada())
 	# Punto en el centro (como al caminar) y aviso del botón al que se apunta.
 	if _sentado:
@@ -264,9 +270,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Con mouse: se mira con el mouse capturado (punto en el centro) y se usa con clic o E.
 	if _sentado and not ControlesTactiles.activo:
 		if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			var giro: float = 0.0025 * Ajustes.sensibilidad_mouse
 			if _puede_mirar():
-				var giro: float = 0.0025 * Ajustes.sensibilidad_mouse
 				_girar_mirada(event.relative * giro)
+			elif _toma == "libre":
+				_girar_orbita(event.relative * giro)
 			return
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -278,6 +286,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _sentado and event.is_action_pressed("interactuar"):
 		_usar_apuntado()
+		return
+	if event.physical_keycode == KEY_C and _puede_cambiar_camara():
+		_cambiar_vista()
 		return
 	if _en_puzle:
 		var indice := [KEY_1, KEY_2, KEY_3].find(event.physical_keycode)
@@ -399,6 +410,45 @@ func _sentarse(con_puzle: bool) -> void:
 
 func _puede_mirar() -> bool:
 	return _sentado and _toma == "" and not _pilotando
+
+
+## En el espacio se puede cambiar entre la vista de adentro y una de afuera (salvo al pilotar y
+## durante las tomas de las separaciones, que ya muestran lo importante).
+func _puede_cambiar_camara() -> bool:
+	return _en_espacio and _sentado and not _pilotando and (_toma == "" or _toma == "libre")
+
+
+func _cambiar_vista() -> void:
+	if _toma == "libre":
+		_toma_adentro()
+	else:
+		_toma_libre()
+
+
+## Vista libre desde afuera: detrás de la cápsula, mirando hacia la Luna (o hacia adelante si todavía
+## no se ve). Con el mouse (o arrastrando el dedo) se gira alrededor de la cápsula.
+func _toma_libre() -> void:
+	_toma = "libre"
+	_orbita = Vector2.ZERO
+	_vista_exterior(true)
+	_camara_ext.make_current()
+
+
+func _girar_orbita(giro: Vector2) -> void:
+	_orbita.x -= giro.x
+	_orbita.y = clampf(_orbita.y - giro.y, -1.1, 1.1)
+
+
+func _ubicar_camara_libre() -> void:
+	var centro := _cohete.to_global(Vector3(0, 60.0, 0))
+	var objetivo := _luna.global_position if _luna.visible else _cohete.to_global(Vector3(0, 60.0, -200.0))
+	var hacia := (objetivo - centro).normalized()
+	var atras := (-hacia * 17.0).rotated(Vector3.UP, _orbita.x)
+	var eje := atras.cross(Vector3.UP)
+	if eje.length() > 0.01:
+		atras = atras.rotated(eje.normalized(), _orbita.y)
+	_camara_ext.global_position = centro + atras + Vector3.UP * 3.0
+	_camara_ext.look_at(centro + hacia * 25.0, Vector3.UP)
 
 
 ## Gira la vista (en radianes): hasta las ventanas de los lados, la consola del techo y el panel auxiliar.
@@ -730,6 +780,10 @@ func _viaje_a_la_luna() -> void:
 		create_tween().tween_property(luz, "light_energy", (luz as OmniLight3D).light_energy * 0.3, 3.0)
 	# Tiempo acelerado: 72 horas en 30 segundos (unas 10.000 veces más rápido).
 	_viajando = true
+	# Empieza desde afuera: la cápsula avanza hacia la Luna, que se ve crecer. Con C se va adentro.
+	_toma_libre()
+	_tiempo_label.text = "Cámara: %s  (adentro / afuera)" % ("botón CÁMARA" if ControlesTactiles.activo else "tecla C · mouse para girar")
+	_tiempo_label.show()
 	var viaje := create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	viaje.tween_property(self, "_horas_viaje", 72.0, 30.0)
 	viaje.tween_property(self, "_altura_tierra_extra", 5200.0, 30.0)
@@ -741,6 +795,7 @@ func _viaje_a_la_luna() -> void:
 	_dialogo.decir("Ya vamos por la mitad del camino: ¡unos ciento noventa y dos mil kilómetros! Sin aire que nos frene, la nave sigue avanzando casi sin gastar combustible.", "", "", {}, "m1_29_mitad_camino")
 	await _esperar_horas(71.9)
 	_viajando = false
+	_tiempo_label.hide()
 
 	# Llegada: se frena por detrás de la Luna para quedar en órbita (toma desde afuera).
 	_panel_forzado = "LLEGANDO A LA LUNA\n384.400 km recorridos en unos 3 días"
@@ -1123,6 +1178,8 @@ func _actualizar_ascenso(delta: float) -> void:
 		_camara_ext.global_position = _cohete.to_global(giro)
 		_camara_ext.look_at(_cohete.to_global(Vector3(0, _toma_alto, 0)), _cohete.global_basis.y)
 		_maniobrar(delta)
+	elif _toma == "libre":
+		_ubicar_camara_libre()
 
 
 ## Titileo suave de una llama (entre ~0.9 y ~1.1): sumas de senos, distinto para cada «semilla».

@@ -82,6 +82,8 @@ var _barra_combustible: ProgressBar
 var _boton_auto: Button
 # Fases, patas, contacto y cámaras.
 var _aproximando := false
+## Metros que le faltan para llegar sobre la zona: en la aproximación llega en diagonal, de lejos.
+var _avance := 0.0
 var _texto_fase: Label
 var _texto_lado: Label
 var _texto_contacto: Label
@@ -223,19 +225,22 @@ func _alunizar() -> void:
 func _aproximacion() -> void:
 	_desvio = DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
 	_altura_abs = _zona.y + ALTURA_APROXIMACION
+	_avance = 320.0
 	_vx = 0.0
 	_vy = 0.0
 	_combustible = _combustible_total
 	_plegar_patas(1.0)
 	_modulo.global_position = _posicion()
-	_camara_descenso.global_position = _posicion() - _frente * 14.0 + Vector3.UP * 9.0
+	_camara_descenso.global_position = _lugar_camara(_posicion())
 	_camara_activa().make_current()
 	_panel_descenso.show()
 	_texto_fase.text = "FASE 1 · Separación y frenado (automático)"
 	_aproximando = true
 	_arti.decir("Nos separamos de la cápsula, que se queda en órbita esperándonos. ¡El módulo de alunizaje enciende su motor para frenar!", "", "", {}, "m2_01i_separacion")
-	var bajada := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	bajada.tween_property(self, "_altura_abs", _zona.y + ALTURA_INICIAL, 10.0)
+	# Baja en diagonal: de 420 m de alto y 320 m antes de la zona, hasta 120 m justo encima.
+	var bajada := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).set_parallel()
+	bajada.tween_property(self, "_altura_abs", _zona.y + ALTURA_INICIAL, 12.0)
+	bajada.tween_property(self, "_avance", 0.0, 12.0)
 	await _pausa(5.0)
 	_texto_fase.text = "FASE 2 · Aproximación: patas desplegadas"
 	Sonidos.tocar("interruptor.ogg")
@@ -256,12 +261,13 @@ func _empezar_descenso(reiniciar := true) -> void:
 	if reiniciar:
 		_desvio = DESVIO_INICIAL * (1.0 if randf() < 0.5 else -1.0)
 		_altura_abs = _zona.y + ALTURA_INICIAL
+		_avance = 0.0
 		_vx = 0.0
 		_combustible = _combustible_total
 		_plegar_patas(0.0)
 		_modulo.global_position = _posicion()
 		_modulo.scale = Vector3.ONE
-		_camara_descenso.global_position = _posicion() - _frente * 14.0 + Vector3.UP * 9.0
+		_camara_descenso.global_position = _lugar_camara(_posicion())
 	_vy = -BAJADA_INICIAL
 	_aviso_combustible = 0
 	_camara_activa().make_current()
@@ -335,7 +341,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _posicion() -> Vector3:
-	var punto := _zona + _lado * _desvio
+	var punto := _zona + _lado * _desvio - _frente * _avance
 	punto.y = _altura_abs
 	return punto
 
@@ -367,11 +373,18 @@ func _mover_modulo(frenar: bool, lado: float, delta: float) -> void:
 		_sonido_motor.play()
 	elif not frenar and _sonido_motor.playing:
 		_sonido_motor.stop()
-	# Desde atrás y arriba, mirando por debajo del módulo: así al acercarse se ve el círculo en el suelo.
-	var objetivo := posicion - _frente * 14.0 + Vector3.UP * 9.0
-	objetivo.y = maxf(objetivo.y, _suelo(objetivo) + 2.5)
+	# Desde atrás, mirando hacia adelante: se ven el horizonte, la Tierra en el cielo y el biodomo a
+	# lo lejos. Bien arriba la vista baja un poco más; cerca del suelo queda casi derecha.
+	var objetivo := _lugar_camara(posicion)
 	_camara_descenso.global_position = _camara_descenso.global_position.lerp(objetivo, 1.0 - exp(-4.0 * delta))
-	_camara_descenso.look_at(posicion - Vector3.UP * minf(_altura() * 0.6, 10.0))
+	_camara_descenso.look_at(posicion + _frente * 60.0 - Vector3.UP * minf(_altura() * 0.35, 40.0))
+
+
+## Dónde va la cámara de afuera: 18 m detrás del módulo y 5 m arriba (nunca debajo del suelo).
+func _lugar_camara(posicion: Vector3) -> Vector3:
+	var lugar := posicion - _frente * 18.0 + Vector3.UP * 5.0
+	lugar.y = maxf(lugar.y, _suelo(lugar) + 2.5)
+	return lugar
 
 
 func _actualizar_panel_descenso() -> void:
@@ -461,7 +474,13 @@ func _alunizaje_logrado() -> void:
 	var vuelo := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	vuelo.tween_method(func(t: float) -> void: _camara_descenso.global_transform = desde.interpolate_with(hasta, t), 0.0, 1.0, 4.0)
 	await vuelo.finished
-	await _pausa(0.8)
+	await _pausa(1.2)
+	# Y entra a la cabina del módulo, mirando hacia la escotilla: así empieza la escena del biodomo,
+	# donde Comandante Junior abre la escotilla y baja por la escalera con A.R.T.I.
+	var adentro := Transform3D(_modulo.global_basis, _modulo.to_global(Vector3(-0.1, 2.95, 0.55)))
+	var entrar := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	entrar.tween_method(func(t: float) -> void: _camara_descenso.global_transform = hasta.interpolate_with(adentro, t), 0.0, 1.0, 1.6)
+	await entrar.finished
 	_arti.callar()
 	Transicion.cambiar_escena(SIGUIENTE_ESCENA)
 

@@ -9,6 +9,7 @@ const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
 ## La zona de aterrizaje del alunizaje queda a esta distancia del biodomo (igual que en Mision2_Alunizaje).
 const DISTANCIA_MODULO := 20.0
+const ARTI_ESCENA := preload("res://scenes/ARTI.tscn")
 const NasaApi := preload("res://scripts/NasaApi.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
 
@@ -74,6 +75,16 @@ var _atajo := ""
 ## Llegada caminando desde el módulo: mientras dura, la tormenta no empieza a contar.
 var _llegada_afuera := false
 var _flecha: Node3D
+# Llegada: adentro del módulo, escotilla, escalera y A.R.T.I. acompañando hasta la esclusa.
+var _modulo_llegada: Node3D
+var _puerta_modulo: Node3D
+var _camara_llegada: Camera3D
+var _esperando_escotilla := false
+var _arti3d: Node3D
+var _arti_sigue := false
+var _esclusa := Vector3.ZERO
+var _recordatorio := 0.0
+var _avisado_cerca := false
 
 
 func _ready() -> void:
@@ -124,6 +135,7 @@ func _process(delta: float) -> void:
 		_escanear(delta)
 		return
 	if _llegada_afuera:
+		_acompanar(delta)
 		return  # Todavía caminando desde el módulo: la tormenta espera.
 	if _tormenta:
 		_restante -= delta
@@ -138,6 +150,13 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Dentro del módulo recién aterrizado: E, USAR o clic abren la escotilla.
+	if _esperando_escotilla:
+		var clic: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+		if clic or event.is_action_pressed("interactuar"):
+			get_viewport().set_input_as_handled()
+			_abrir_escotilla()
+		return
 	if _panel.visible and event.is_action_pressed("ui_cancel"):
 		_cerrar_panel()
 		get_viewport().set_input_as_handled()
@@ -159,8 +178,8 @@ func _mostrar_llegada() -> void:
 	_bienvenida_biodomo()
 
 
-## Llegada sin cortes: el módulo está donde aterrizó, a 20 m del biodomo. Comandante Junior baja
-## la escalera (primer paso en la Luna) y camina con la flecha hasta la esclusa.
+## Llegada sin cortes: el módulo está donde aterrizó, a 20 m del biodomo. Se empieza adentro, mirando
+## la escotilla cerrada, con A.R.T.I. al lado (ahí terminó la cámara del alunizaje).
 func _llegar_caminando() -> void:
 	_llegada_afuera = true
 	_fundido.modulate.a = 0.0
@@ -168,30 +187,123 @@ func _llegar_caminando() -> void:
 	var hacia_domo := _base.position.normalized()
 	var lugar := _en_suelo(_base.position - hacia_domo * DISTANCIA_MODULO)
 	_crear_modulo_aterrizado(lugar, hacia_domo)
+	_esclusa = _en_suelo(_base.position + Vector3(-15.0, 0, 0))
 	_flecha = FlechaGuia.new()
 	add_child(_flecha)
-	# Arriba de la escalera, mirando al biodomo (donde terminó la cámara del alunizaje).
+	_arti3d = ARTI_ESCENA.instantiate()
+	_modulo_llegada.add_child(_arti3d)
+	_arti3d.position = Vector3(0.45, 1.6, -0.3)  # Adelante a la derecha; la esfera (1,35 m arriba) queda a la altura de los ojos.
+	_arti3d.get_node("Sombra").hide()  # Adentro no hay suelo donde poner la sombra.
 	_jugador.set_physics_process(false)
+	$HUD/Mira.hide()
+	_camara_llegada = Camera3D.new()
+	_camara_llegada.fov = 75.0
+	_modulo_llegada.add_child(_camara_llegada)
+	_camara_llegada.position = Vector3(-0.1, 2.95, 0.55)
+	_camara_llegada.make_current()
+	await get_tree().create_timer(1.8, false).timeout
+	_esperando_escotilla = true
+	ControlesTactiles.mostrar_boton("usar", true)
+	var aviso: Label = $HUD/Aviso
+	aviso.text = ("[USAR] %s" if ControlesTactiles.activo else "[E] %s") % "Abrir la escotilla"
+	aviso.show()
+	_arti.decir("¡Llegamos a salvo! Revisé tu traje: todo en orden. Abre la escotilla y bajemos juntos por la escalera.", "", "", {}, "m2_01l_abrir_escotilla")
+
+
+## Se abre la escotilla, se sale al porche y se baja la escalera mirándola (como los astronautas
+## de verdad), con A.R.T.I. bajando al lado. Abajo se da vuelta y se ve el biodomo.
+func _abrir_escotilla() -> void:
+	_esperando_escotilla = false
+	ControlesTactiles.mostrar_boton("usar", false)
+	$HUD/Aviso.hide()
+	Sonidos.tocar("puerta.ogg")
+	var puerta := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	puerta.tween_property(_puerta_modulo, "rotation:y", 1.9, 1.1)
+	await puerta.finished
+	# Al porche, mirando afuera; A.R.T.I. sale flotando por la escotilla.
+	var porche := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).set_parallel()
+	# La cámara sale un poco después, para no chocar con A.R.T.I., que va adelante.
+	porche.tween_property(_camara_llegada, "position", Vector3(0.0, 2.95, -1.2), 1.6).set_delay(0.6)
+	porche.tween_property(_camara_llegada, "rotation:x", -0.25, 1.6).set_delay(0.6)
+	_arti_mover([Vector3(0.0, 1.65, -0.7), Vector3(0.0, 1.7, -1.8), Vector3(0.9, 1.0, -2.4)], 0.9)
+	await porche.finished
+	# Se da vuelta hacia la escalera (de espaldas al paisaje) y baja peldaño a peldaño.
+	var vuelta := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).set_parallel()
+	vuelta.tween_property(_camara_llegada, "rotation", Vector3(-0.35, PI, 0.0), 0.9)
+	vuelta.tween_property(_camara_llegada, "position:z", -1.95, 0.9)
+	await vuelta.finished
+	for peldano in 4:
+		var bajar := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		bajar.tween_property(_camara_llegada, "position:y", 2.95 - (peldano + 1) * 0.34, 0.45)
+		await bajar.finished
+		Sonidos.tocar("paso.ogg", -6.0, 0.1)
+	_arti3d.get_node("Sombra").show()
+	_arti_mover([Vector3(0.9, 0.0, -3.4)], 1.4)  # Queda adelante a la derecha: se ve al darse vuelta.
+	# Abajo: se da vuelta y ahí está el biodomo.
+	var mirar := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	mirar.tween_property(_camara_llegada, "rotation", Vector3(0.0, 0.0, 0.0), 1.4)
+	await mirar.finished
+	# Ahora camina el jugador, donde quedó la cámara.
+	var hacia_domo := _base.position.normalized()
+	_jugador.global_position = _en_suelo(_camara_llegada.global_position) + Vector3(0, 0.1, 0)
 	_jugador.rotation.y = atan2(-hacia_domo.x, -hacia_domo.z)
-	var arriba := lugar + hacia_domo * 2.3 + Vector3.UP * 2.6
-	var abajo := _en_suelo(lugar + hacia_domo * 2.6) + Vector3(0, 0.3, 0)
-	_jugador.global_position = arriba
-	await get_tree().create_timer(1.5, false).timeout
-	var escalera := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	escalera.tween_property(_jugador, "global_position", abajo, 2.4)
-	await escalera.finished
-	Sonidos.tocar("paso.ogg")
+	$Player/Camara.rotation.x = 0.0
+	$Player/Camara.make_current()
+	_camara_llegada.queue_free()
+	$HUD/Mira.show()
 	_jugador.set_physics_process(true)
-	_flecha.apuntar(_en_suelo(_base.position + Vector3(-15.0, 0, 0)) + Vector3(0, 2.6, 0))
+	_arti3d.reparent(self, true)
+	_arti_sigue = true
+	_flecha.apuntar(_esclusa + Vector3(0, 2.6, 0))
 	_arti.decir("¡Ya estamos en la Luna! Es tu primer paso en otro mundo, Comandante. Aquí pesas unas seis veces menos. Camina hasta la esclusa del biodomo: la flecha te guía.", "", "", {}, "m2_01k_primer_paso")
+	await get_tree().create_timer(8.0, false).timeout
+	if _llegada_afuera:
+		_arti.decir("Yo voy contigo. Ve al biodomo: adentro hay comida, agua y aire para respirar sin el casco.", "", "", {}, "m2_01m_ve_al_biodomo")
 
 
-## Al usar la esclusa por primera vez: se entra al biodomo y empieza todo lo de adentro.
+## A.R.T.I. va al lado del jugador (a la derecha), mirando hacia donde mira el jugador.
+## Si tarda en llegar, le recuerda el camino; cerca de la esclusa le dice cómo entrar.
+func _acompanar(delta: float) -> void:
+	if not _arti_sigue:
+		return
+	var jugador := _jugador.global_position
+	var meta := _en_suelo(jugador + _jugador.global_basis * Vector3(1.3, 0.0, -0.4))
+	var distancia := _arti3d.global_position.distance_to(meta)
+	_arti3d.global_position = _arti3d.global_position.lerp(meta, minf(1.0, delta * 2.5))
+	_arti3d.set("moviendose", distancia > 0.4)
+	var adelante := -_jugador.global_basis.z
+	adelante.y = 0.0
+	if adelante.length() > 0.1:
+		_arti3d.global_basis = _arti3d.global_basis.slerp(Basis.looking_at(adelante.normalized()), minf(1.0, delta * 3.0)).orthonormalized()
+	_recordatorio += delta
+	if jugador.distance_to(_esclusa) < 7.0 and not _avisado_cerca:
+		_avisado_cerca = true
+		_arti.decir("¡Ya casi! Mira la puerta de la esclusa y pulsa E para entrar al biodomo.")
+	elif _recordatorio > 30.0 and not _avisado_cerca:
+		_recordatorio = 0.0
+		_arti.decir("La esclusa del biodomo está donde apunta la flecha turquesa. ¡Vamos, yo te sigo!")
+
+
+## Mueve a A.R.T.I. por varios puntos (en coordenadas del módulo), «segundos» en cada tramo.
+func _arti_mover(puntos: Array, segundos: float) -> void:
+	_arti3d.set("moviendose", true)
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	for punto in puntos:
+		tween.tween_property(_arti3d, "position", punto, segundos)
+	tween.tween_callback(func() -> void: _arti3d.set("moviendose", false))
+
+
+## Al usar la esclusa por primera vez: se entra al biodomo (A.R.T.I. también) y empieza todo lo de adentro.
 func _entrar_por_primera_vez() -> void:
 	Sonidos.tocar("puerta.ogg")
 	_llegada_afuera = false
+	_arti_sigue = false
 	_flecha.ocultar()
-	Transicion.disolver(func() -> void: _jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0))
+	var adentro := func() -> void:
+		_jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0)
+		_arti3d.global_position = _base.position + Vector3(-4.2, 0.6, 1.3)
+		_arti3d.set("moviendose", false)
+	Transicion.disolver(adentro)
 	await get_tree().create_timer(1.0, false).timeout
 	_bienvenida_biodomo()
 
@@ -582,13 +694,30 @@ func _crear_modulo_aterrizado(lugar: Vector3, hacia_domo: Vector3) -> void:
 	var dorado := Color(0.83, 0.64, 0.26)
 	var blanco := Color(0.9, 0.91, 0.93)
 	var oscuro := Color(0.2, 0.22, 0.27)
+	var azul := Color(0.043, 0.239, 0.569)
+	var gris := Color(0.55, 0.57, 0.6)
+	# Cabina hueca (se empieza adentro): piso, techo, paredes y el frente con el hueco de la escotilla.
 	var piezas := [
 		[Fondo._cilindro(1.5, 1.5, 1.3, 8), dorado, Vector3(0, 1.55, 0)],
-		[Fondo._caja(Vector3(2.0, 1.5, 1.8)), blanco, Vector3(0, 2.95, 0)],
-		[Fondo._caja(Vector3(2.04, 0.22, 1.84)), Color(0.043, 0.239, 0.569), Vector3(0, 2.45, 0)],
-		[Fondo._caja(Vector3(0.9, 0.5, 0.05)), Color(0.08, 0.12, 0.2), Vector3(0, 3.2, -0.92)],
 		[Fondo._cilindro(0.3, 0.55, 0.6, 10), oscuro, Vector3(0, 0.6, 0)],
+		[Fondo._caja(Vector3(2.0, 0.06, 1.8)), gris, Vector3(0, 2.23, 0)],
+		[Fondo._caja(Vector3(2.0, 0.06, 1.8)), blanco, Vector3(0, 3.67, 0)],
+		[Fondo._caja(Vector3(2.0, 1.5, 0.06)), blanco, Vector3(0, 2.95, 0.87)],
+		[Fondo._caja(Vector3(0.6, 1.5, 0.06)), blanco, Vector3(-0.7, 2.95, -0.87)],
+		[Fondo._caja(Vector3(0.6, 1.5, 0.06)), blanco, Vector3(0.7, 2.95, -0.87)],
+		[Fondo._caja(Vector3(0.8, 0.3, 0.06)), blanco, Vector3(0, 3.55, -0.87)],
+		# Franja azul por fuera, sin tapar la escotilla.
+		[Fondo._caja(Vector3(2.04, 0.22, 0.04)), azul, Vector3(0, 2.45, 0.9)],
+		[Fondo._caja(Vector3(0.6, 0.22, 0.04)), azul, Vector3(-0.72, 2.45, -0.9)],
+		[Fondo._caja(Vector3(0.6, 0.22, 0.04)), azul, Vector3(0.72, 2.45, -0.9)],
+		# Tablero de mando en la pared de atrás y el porche de la escotilla.
+		[Fondo._caja(Vector3(1.3, 0.45, 0.2)), oscuro, Vector3(0, 2.75, 0.74)],
+		[Fondo._caja(Vector3(1.0, 0.25, 0.02)), Color(0.18, 0.6, 0.62), Vector3(0, 2.86, 0.63)],
+		[Fondo._caja(Vector3(1.0, 0.06, 0.6)), gris, Vector3(0, 2.2, -1.2)],
 	]
+	for x in [-0.97, 0.97]:
+		piezas.append([Fondo._caja(Vector3(0.06, 1.5, 1.8)), blanco, Vector3(x, 2.95, 0)])
+		piezas.append([Fondo._caja(Vector3(0.04, 0.22, 1.84)), azul, Vector3(x * 1.03, 2.45, 0)])
 	for x in [-1.0, 1.0]:
 		for z in [-1.0, 1.0]:
 			var arriba := Vector3(x * 0.95, 1.4, z * 0.95)
@@ -609,6 +738,24 @@ func _crear_modulo_aterrizado(lugar: Vector3, hacia_domo: Vector3) -> void:
 		if datos.size() > 3:
 			pieza.basis = datos[3]
 		modulo.add_child(pieza)
+	# Escotilla con bisagra en el borde izquierdo (se abre hacia afuera) y su ventanita.
+	_puerta_modulo = Node3D.new()
+	_puerta_modulo.position = Vector3(-0.4, 2.2, -0.9)
+	modulo.add_child(_puerta_modulo)
+	for datos in [[Vector3(0.8, 1.2, 0.05), blanco.darkened(0.08), Vector3(0.4, 0.6, 0)], [Vector3(0.3, 0.3, 0.02), Color(0.25, 0.45, 0.6), Vector3(0.4, 0.8, -0.03)], [Vector3(0.12, 0.05, 0.05), oscuro, Vector3(0.68, 0.55, -0.05)]]:
+		var pieza := MeshInstance3D.new()
+		pieza.mesh = Fondo.malla_plana(Fondo._caja(datos[0]), datos[1])
+		pieza.material_override = material
+		pieza.position = datos[2]
+		_puerta_modulo.add_child(pieza)
+	# Luz de cabina: adentro no llega el Sol.
+	var luz := OmniLight3D.new()
+	luz.light_color = Color(1.0, 0.95, 0.85)
+	luz.light_energy = 1.3
+	luz.omni_range = 2.6
+	luz.position = Vector3(0, 3.4, 0.2)
+	modulo.add_child(luz)
+	_modulo_llegada = modulo
 	# Que no se pueda atravesar.
 	var cuerpo := StaticBody3D.new()
 	var forma := CollisionShape3D.new()

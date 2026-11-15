@@ -27,8 +27,30 @@ func _ready() -> void:
 		# Ni encima del biodomo ni debajo de la cámara.
 		if centro.distance_to(posicion_domo) > radio + radio_domo + 20.0 and centro.length() > radio + 8.0:
 			_crateres.append(Vector4(centro.x, centro.y, radio, radio * 0.22))
+	terreno_suave = true  # Sin «píxeles»: luz suave y el color lo pinta el shader del regolito.
 	super()
+	_pintar_regolito()
 	_crear_biodomo()
+
+
+## Suelo lunar con textura propia: manchas grandes más oscuras (como los «mares» que se ven desde la
+## Tierra), granos finos de regolito y variaciones medianas. Todo con luz suave, sin facetas.
+func _pintar_regolito() -> void:
+	var material := ShaderMaterial.new()
+	material.shader = preload("res://shaders/SueloLunar.gdshader")
+	for datos in [["manchas", 1.2, 3, 71], ["grano", 6.0, 4, 72]]:
+		var ruido := FastNoiseLite.new()
+		ruido.seed = datos[3]
+		ruido.frequency = datos[1] / 256.0
+		ruido.fractal_octaves = datos[2]
+		var textura := NoiseTexture2D.new()
+		textura.width = 256
+		textura.height = 256
+		textura.seamless = true
+		textura.generate_mipmaps = true
+		textura.noise = ruido
+		material.set_shader_parameter(datos[0], textura)
+	_terreno.material_override = material
 
 
 ## Suelo con cráteres (hoyo con borde levantado) y plano donde está el biodomo.
@@ -110,22 +132,6 @@ func _crear_biodomo() -> void:
 	luz.omni_range = radio_domo * 2.4
 	luz.position = Vector3(0, radio_domo * 0.55, 0)
 	base.add_child(luz)
-
-	_crear_paneles(base)
-
-
-## Paneles solares de pie. Dato real: en el Polo Sur el Sol va casi pegado al horizonte,
-## así que los paneles se ponen verticales y giran siguiéndolo.
-func _crear_paneles(base: Node3D) -> void:
-	for n in 3:
-		var local := Vector3(-radio_domo - 9.0 - n * 6.5, 0.0, 5.0 - n * 3.0)
-		var mundo := base.position + local
-		var soporte := Node3D.new()
-		soporte.position = Vector3(local.x, _altura_en_malla(mundo.x, mundo.z), local.z)
-		soporte.rotation.y = deg_to_rad(azimut_sol)
-		base.add_child(soporte)
-		_agregar(soporte, malla_plana(_cilindro(0.15, 0.15, 3.0, 6), COLOR_BLANCO), Vector3(0, 1.5, 0))
-		_agregar(soporte, malla_plana(_caja(Vector3(5.0, 3.4, 0.16)), COLOR_PANEL), Vector3(0, 4.6, 0))
 
 
 ## Las aristas de una malla como líneas: la estructura de barras de la cúpula.

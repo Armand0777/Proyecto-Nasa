@@ -16,6 +16,8 @@ extends Node3D
 @export var celdas := 81
 @export var cantidad_rocas := 45
 @export var semilla := 7
+## true: el terreno se ve suave (sin facetas); el color lo puede pintar un shader (como en la Luna).
+@export var terreno_suave := false
 
 @onready var _pivote: Node3D = $Pivote
 @onready var _camara: Camera3D = $Pivote/Camara
@@ -148,7 +150,8 @@ func _crear_terreno() -> ArrayMesh:
 			_alturas[j * (celdas + 1) + i] = _altura(punto.x, punto.y)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_smooth_group(-1)
+	# Low-poly (caras planas) o, con terreno_suave, normales promediadas: luz suave sin facetas.
+	st.set_smooth_group(0 if terreno_suave else -1)
 	for j in celdas:
 		for i in celdas:
 			var a := _vertice(i, j)

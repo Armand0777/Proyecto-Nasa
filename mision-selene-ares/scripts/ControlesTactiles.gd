@@ -30,6 +30,7 @@ const BOTONES := {
 	"foto": ["FOTO", KEY_F, COLOR_AMARILLO, 120.0],
 	"accion": ["ACCIÓN", KEY_SPACE, COLOR_AMARILLO, 165.0],
 	"pausa": ["II", KEY_ESCAPE, Color(0.85, 0.88, 0.95), 90.0],
+	"camara": ["CÁMARA", KEY_C, Color(0.55, 0.75, 1.0), 110.0],
 }
 
 ## true en teléfonos y tablets (o con --tactil en la PC).
@@ -135,6 +136,7 @@ func _process(_delta: float) -> void:
 		"foto": _caminando and _pedidos.get("foto", false),
 		"accion": _pedidos.get("accion", false),
 		"pausa": not en_menu,
+		"camara": _pedidos.get("camara", false),
 	}
 	for nombre in _botones:
 		_botones[nombre].visible = mostrar[nombre]
@@ -263,6 +265,7 @@ func _ubicar_botones() -> void:
 		"foto": Vector2(vista.x - 430.0, vista.y - 85.0),
 		"accion": Vector2(vista.x - 130.0, vista.y - 100.0),
 		"pausa": Vector2(vista.x - 80.0, 150.0),
+		"camara": Vector2(vista.x - 80.0, 270.0),
 	}
 	for nombre in _botones:
 		var boton: Panel = _botones[nombre]
