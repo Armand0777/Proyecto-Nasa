@@ -21,6 +21,9 @@ var _botones := {}
 
 
 func _ready() -> void:
+	# Los contenedores dejan pasar los clics que caen entre las tarjetas; así no llegan al juego
+	# (el jugador capturaba el mouse y desaparecía el cursor).
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	for id in GameManager.CARGA:
 		var item: Dictionary = GameManager.CARGA[id]
 		var boton := Button.new()

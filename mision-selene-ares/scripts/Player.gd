@@ -32,6 +32,8 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if ControlesTactiles.activo and (event is InputEventMouseMotion or event is InputEventMouseButton):
 		return  # En pantalla táctil se mira arrastrando el dedo y se usa con el botón USAR.
+	if not is_physics_processing():
+		return  # Quieto (una ventana abierta, como la carga, o una cinemática): el clic no captura el mouse.
 	var capturado := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and capturado:
 		var giro: float = sensibilidad_base * Ajustes.sensibilidad_mouse
