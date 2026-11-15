@@ -21,6 +21,9 @@ var _objetivo: Node = null
 var corriendo := false
 var _rapidez := 0.0
 var _fov_base := 75.0
+## Escalera en la que está (la pone Escalera.gd al entrar en su área), o null.
+var escalera: Area3D = null
+var _espera_peldano := 0.0
 
 
 func _ready() -> void:
@@ -56,6 +59,10 @@ func _physics_process(delta: float) -> void:
 		var giro := ControlesTactiles.tomar_mirada()
 		rotate_y(-giro.x)
 		_camara.rotation.x = clampf(_camara.rotation.x - giro.y, deg_to_rad(-85.0), deg_to_rad(85.0))
+	if _trepando():
+		_trepar(delta)
+		_buscar_objetivo()
+		return
 	var ambiente := GameManager.ambiente()
 	if not is_on_floor():
 		velocity.y -= ambiente["gravedad"] * delta
@@ -78,6 +85,46 @@ func _physics_process(delta: float) -> void:
 		_camara.fov = lerpf(_camara.fov, meta, minf(1.0, delta * 6.0))
 	_sonar_pasos(delta, entrada)
 	_buscar_objetivo()
+
+
+## true si está agarrado a la escalera. Arriba, ya parado en el porche, camina normal; abajo, en el
+## suelo, solo trepa si mira a la escalera y avanza (si no, camina normal y se aleja).
+func _trepando() -> bool:
+	if escalera == null or not is_instance_valid(escalera):
+		return false
+	var p := escalera.to_local(global_position)
+	var alto: float = escalera.get("alto")
+	if p.y >= alto - 0.05 and p.z > 0.15:
+		return false
+	if is_on_floor() and p.y < 0.6:
+		var mira_escalera := (-global_basis.z).dot(escalera.global_basis.z) > 0.3
+		if not mira_escalera or Input.get_axis("atras", "adelante") <= 0.0:
+			return false
+	return true
+
+
+## En la escalera: sube o baja sin gravedad, pegado a los peldaños. Arriba pasa solo al porche.
+func _trepar(delta: float) -> void:
+	var base := escalera.global_basis
+	var p := escalera.to_local(global_position)
+	var alto: float = escalera.get("alto")
+	var mira_escalera := (-global_basis.z).dot(base.z) > -0.2
+	var subir := Input.get_axis("atras", "adelante") * (1.0 if mira_escalera else -1.0)
+	corriendo = false
+	# Pegado a la escalera: centrado y a medio metro de los peldaños.
+	var hacia_pared := clampf((-0.45 - p.z) * 4.0, -1.5, 1.5)
+	if p.y >= alto - 0.15 and subir > 0.0:
+		hacia_pared = 2.2  # Arriba de todo: sigue hacia el porche.
+	velocity = base.y * subir * 1.9 + base.z * hacia_pared + base.x * clampf(-p.x * 4.0, -1.0, 1.0)
+	if Input.is_action_just_pressed("saltar"):
+		velocity = -base.z * 2.5 + Vector3.UP * 1.5  # Se suelta hacia atrás.
+		escalera = null
+	move_and_slide()
+	# Un sonido metálico por peldaño.
+	_espera_peldano -= delta
+	if subir != 0.0 and _espera_peldano <= 0.0:
+		Sonidos.tocar("paso.ogg", -14.0, 0.15)
+		_espera_peldano = 0.32
 
 
 var _espera_paso := 0.0

@@ -15,6 +15,7 @@ extends Node3D
 
 const SIGUIENTE_ESCENA := "res://scenes/Mision2_Luna.tscn"
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
+const ModuloLunar := preload("res://scripts/ModuloLunar.gd")
 ## [id, nombre, zona verde mínima, máxima, para qué sirve]
 const SISTEMAS := [
 	["propulsores", "Propulsores de freno", 40.0, 55.0, "frenan la caída: sin aire, en la Luna no sirven los paracaídas"],
@@ -92,6 +93,15 @@ var _ejes_patas: Array[Vector3] = []
 var _camara_cabina: Camera3D
 var _vista_cabina := false
 var _boton_camara: Button
+# Cámara de afuera que el jugador mueve: arrastrando gira alrededor del módulo (por arriba o por
+# debajo) y con la rueda se acerca o se aleja. Sin tocarla, sigue al módulo desde atrás.
+const DISTANCIA_CAMARA := 18.7
+const INCLINACION_CAMARA := 0.27  # Unos 15° por encima del módulo.
+var _orbita := Vector2.ZERO  # Giro alrededor (x) y cuánto más arriba o abajo (y), en radianes.
+var _distancia := DISTANCIA_CAMARA
+var _camara_libre := false
+var _peso_libre := 0.0  # De 0 (mira adelante, al horizonte) a 1 (mira el módulo).
+var _arrastrando := false
 
 
 func _ready() -> void:
@@ -291,6 +301,10 @@ func _camara_activa() -> Camera3D:
 ## Botón de cámara: desde afuera (atrás y arriba) o desde la ventana del módulo, mirando abajo.
 func _cambiar_camara() -> void:
 	_vista_cabina = not _vista_cabina
+	if not _vista_cabina:
+		_orbita = Vector2.ZERO
+		_distancia = DISTANCIA_CAMARA
+		_camara_libre = false
 	_camara_activa().make_current()
 	_boton_camara.text = "Cámara: %s" % ("ventana del módulo" if _vista_cabina else "desde afuera")
 
@@ -306,6 +320,11 @@ func _physics_process(delta: float) -> void:
 	# Pantalla táctil: joystick para moverse de lado (arriba también frena) y botón FRENAR.
 	ControlesTactiles.usar_joystick(_volando and not _piloto_auto)
 	ControlesTactiles.mostrar_boton("accion", _volando and not _piloto_auto, "FRENAR")
+	ControlesTactiles.usar_mirada(_volando or _aproximando)
+	if ControlesTactiles.activo:
+		var giro := ControlesTactiles.tomar_mirada()
+		if giro != Vector2.ZERO:
+			_girar_camara(giro)
 	if _aproximando:
 		# Fases automáticas: la altura la baja un Tween; el motor va frenando todo el tiempo.
 		_mover_modulo(true, 0.0, delta)
@@ -376,16 +395,52 @@ func _mover_modulo(frenar: bool, lado: float, delta: float) -> void:
 		_sonido_motor.stop()
 	# Desde atrás, mirando hacia adelante: se ven el horizonte, la Tierra en el cielo y el biodomo a
 	# lo lejos. Bien arriba la vista baja un poco más; cerca del suelo queda casi derecha.
+	# Si el jugador movió la cámara, mira al módulo (así se ve por arriba, de lado o por debajo).
 	var objetivo := _lugar_camara(posicion)
-	_camara_descenso.global_position = _camara_descenso.global_position.lerp(objetivo, 1.0 - exp(-4.0 * delta))
-	_camara_descenso.look_at(posicion + _frente * 60.0 - Vector3.UP * minf(_altura() * 0.35, 40.0))
+	_camara_descenso.global_position = _camara_descenso.global_position.lerp(objetivo, 1.0 - exp(-6.0 * delta))
+	_peso_libre = move_toward(_peso_libre, 1.0 if _camara_libre else 0.0, delta * 2.0)
+	var adelante := posicion + _frente * 60.0 - Vector3.UP * minf(_altura() * 0.35, 40.0)
+	var al_modulo := posicion + Vector3.UP * (ModuloLunar.PISO * 0.8)
+	_camara_descenso.look_at(adelante.lerp(al_modulo, _peso_libre))
 
 
-## Dónde va la cámara de afuera: 18 m detrás del módulo y 5 m arriba (nunca debajo del suelo).
+## Dónde va la cámara de afuera: sin tocarla, 18 m detrás del módulo y 5 m arriba. El jugador la
+## gira alrededor y la acerca o aleja. Nunca queda debajo del suelo.
 func _lugar_camara(posicion: Vector3) -> Vector3:
-	var lugar := posicion - _frente * 18.0 + Vector3.UP * 5.0
-	lugar.y = maxf(lugar.y, _suelo(lugar) + 2.5)
+	var atras := (-_frente).rotated(Vector3.UP, _orbita.x)
+	var inclinacion := clampf(INCLINACION_CAMARA + _orbita.y, -1.2, 1.45)
+	var lugar := posicion + Vector3.UP * 1.5 + (atras * cos(inclinacion) + Vector3.UP * sin(inclinacion)) * _distancia
+	lugar.y = maxf(lugar.y, _suelo(lugar) + 0.8)
 	return lugar
+
+
+## Mouse: arrastrar (botón izquierdo o derecho) gira la cámara de afuera; la rueda acerca o aleja.
+func _unhandled_input(event: InputEvent) -> void:
+	if ControlesTactiles.activo or not (_volando or _aproximando):
+		return
+	if event is InputEventMouseButton:
+		var boton := event as InputEventMouseButton
+		if boton.button_index == MOUSE_BUTTON_LEFT or boton.button_index == MOUSE_BUTTON_RIGHT:
+			_arrastrando = boton.pressed
+		elif boton.pressed and boton.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_acercar(0.88)
+		elif boton.pressed and boton.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_acercar(1.14)
+	elif event is InputEventMouseMotion and _arrastrando:
+		_girar_camara((event as InputEventMouseMotion).relative * 0.006)
+
+
+func _girar_camara(giro: Vector2) -> void:
+	if _vista_cabina:
+		_cambiar_camara()  # Al mover la cámara se sale de la vista de la ventana.
+	_orbita.x -= giro.x
+	_orbita.y = clampf(_orbita.y + giro.y, -1.2 - INCLINACION_CAMARA, 1.45 - INCLINACION_CAMARA)
+	_camara_libre = true
+
+
+func _acercar(factor: float) -> void:
+	_distancia = clampf(_distancia * factor, 7.0, 70.0)
+	_camara_libre = true
 
 
 func _actualizar_panel_descenso() -> void:
@@ -467,21 +522,18 @@ func _alunizaje_logrado() -> void:
 	_panel_descenso.hide()
 	if _vista_cabina:
 		_cambiar_camara()
-	# La cámara llega a la escotilla del módulo, mirando al biodomo: así empieza la escena del biodomo.
-	var domo: Vector2 = $Exterior.posicion_domo
-	var mirar := Vector3(domo.x, _suelo(Vector3(domo.x, 0, domo.y)) + 2.5, domo.y)
+	# La cámara da una vuelta hasta una toma del módulo aterrizado, de frente y un poco de costado
+	# (se ven la escotilla, el porche y la escalera). De ahí, disolviendo, se pasa adentro de la
+	# cabina: la escena del biodomo empieza con Comandante Junior parado frente a la escotilla.
+	var mirar := _modulo.to_global(Vector3(0, ModuloLunar.PISO, 0))
+	var lugar := _modulo.to_global(Vector3(4.5, 3.4, -8.5))
+	lugar.y = maxf(lugar.y, _suelo(lugar) + 1.5)
 	var desde := _camara_descenso.global_transform
-	var hasta := Transform3D(Basis.IDENTITY, _modulo.global_position + _frente * 1.2 + Vector3.UP * 3.2).looking_at(mirar)
+	var hasta := Transform3D(Basis.IDENTITY, lugar).looking_at(mirar)
 	var vuelo := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	vuelo.tween_method(func(t: float) -> void: _camara_descenso.global_transform = desde.interpolate_with(hasta, t), 0.0, 1.0, 4.0)
 	await vuelo.finished
-	await _pausa(1.2)
-	# Y entra a la cabina del módulo, mirando hacia la escotilla: así empieza la escena del biodomo,
-	# donde Comandante Junior abre la escotilla y baja por la escalera con A.R.T.I.
-	var adentro := Transform3D(_modulo.global_basis, _modulo.to_global(Vector3(-0.1, 2.95, 0.55)))
-	var entrar := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	entrar.tween_method(func(t: float) -> void: _camara_descenso.global_transform = hasta.interpolate_with(adentro, t), 0.0, 1.0, 1.6)
-	await entrar.finished
+	await _pausa(1.5)
 	_arti.callar()
 	Transicion.cambiar_escena(SIGUIENTE_ESCENA)
 
@@ -516,61 +568,21 @@ func _quitar_rocas_de_la_zona() -> void:
 			roca.hide()
 
 
-## Módulo de aterrizaje low-poly (mira a −z, con las patas en y = 0): etapa de descenso dorada, la
-## cabina blanca con la Bio-Box, cuatro patas, la tobera del motor, su llama y los propulsores de lado.
+## Módulo de alunizaje (ModuloLunar.gd, el mismo que queda aterrizado junto al biodomo), con la
+## llama del motor, los propulsores de lado y la cámara desde la ventana de la cabina.
 func _crear_modulo() -> void:
-	var material := Fondo.material_plano()
-	_modulo = Node3D.new()
-	add_child(_modulo)
-	var dorado := Color(0.83, 0.64, 0.26)
-	var blanco := Color(0.9, 0.91, 0.93)
-	var oscuro := Color(0.2, 0.22, 0.27)
-	var piezas := [
-		[Fondo._cilindro(1.5, 1.5, 1.3, 8), dorado, Vector3(0, 1.55, 0)],
-		[Fondo._caja(Vector3(2.0, 1.5, 1.8)), blanco, Vector3(0, 2.95, 0)],
-		[Fondo._caja(Vector3(2.04, 0.22, 1.84)), Color(0.043, 0.239, 0.569), Vector3(0, 2.45, 0)],
-		[Fondo._caja(Vector3(0.9, 0.5, 0.05)), Color(0.08, 0.12, 0.2), Vector3(0, 3.2, -0.92)],
-		[Fondo._cilindro(0.3, 0.55, 0.6, 10), oscuro, Vector3(0, 0.6, 0)],
-		[Fondo._cilindro(0.03, 0.03, 0.9, 4), oscuro, Vector3(0.6, 4.1, 0.4)],
-		[Fondo._cilindro(0.3, 0.05, 0.15, 8), blanco, Vector3(0.6, 4.55, 0.4)],
-	]
-	# Cuatro patas, cada una con su bisagra arriba: en vuelo van plegadas hacia arriba y al acercarse
-	# al suelo se despliegan (_plegar_patas). La pata y su pie giran juntos alrededor de la bisagra.
-	for x in [-1.0, 1.0]:
-		for z in [-1.0, 1.0]:
-			var arriba := Vector3(x * 0.95, 1.4, z * 0.95)
-			var abajo := Vector3(x * 1.9, 0.12, z * 1.9)
-			var bisagra := Node3D.new()
-			bisagra.position = arriba
-			_modulo.add_child(bisagra)
-			var pata := MeshInstance3D.new()
-			pata.mesh = Fondo.malla_plana(Fondo._cilindro(0.06, 0.06, arriba.distance_to(abajo), 6), oscuro.lightened(0.2))
-			pata.material_override = material
-			pata.position = (abajo - arriba) / 2.0
-			pata.basis = Basis(Quaternion(Vector3.UP, (arriba - abajo).normalized()))
-			bisagra.add_child(pata)
-			var pie := MeshInstance3D.new()
-			pie.mesh = Fondo.malla_plana(Fondo._cilindro(0.3, 0.3, 0.1, 8), oscuro.lightened(0.2))
-			pie.material_override = material
-			pie.position = Vector3(x * 1.9, 0.05, z * 1.9) - arriba
-			bisagra.add_child(pie)
-			_patas.append(bisagra)
-			# Eje horizontal, de costado a la pata: girando en negativo el pie sube hacia afuera.
-			_ejes_patas.append(Vector3(z, 0.0, -x).normalized())
-	# Cámara desde la ventana del módulo, mirando hacia adelante y abajo.
+	var modulo := ModuloLunar.new()
+	add_child(modulo)
+	modulo.construir(false)
+	_modulo = modulo
+	_patas = modulo.patas
+	_ejes_patas = modulo.ejes_patas
+	# Cámara desde la ventana de la derecha de la cabina, mirando hacia adelante y abajo.
 	_camara_cabina = Camera3D.new()
 	_camara_cabina.fov = 72.0
-	_camara_cabina.position = Vector3(0, 3.25, -0.98)
-	_camara_cabina.rotation_degrees.x = -38.0
+	_camara_cabina.position = Vector3(0.78, ModuloLunar.PISO + 1.6, -0.62)
+	_camara_cabina.rotation_degrees = Vector3(-34.0, -45.0, 0.0)
 	_modulo.add_child(_camara_cabina)
-	for datos in piezas:
-		var pieza := MeshInstance3D.new()
-		pieza.mesh = Fondo.malla_plana(datos[0], datos[1])
-		pieza.material_override = material
-		pieza.position = datos[2]
-		if datos.size() > 3:
-			pieza.basis = datos[3]
-		_modulo.add_child(pieza)
 	# Llamas: conos que brillan solos (sin sombra). En el vacío casi no se ven; aquí sí, para saber cuándo frenas.
 	var fuego := StandardMaterial3D.new()
 	fuego.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -579,14 +591,14 @@ func _crear_modulo() -> void:
 	_llama = MeshInstance3D.new()
 	_llama.mesh = Fondo._cilindro(0.5, 0.0, 2.2, 10)
 	_llama.material_override = fuego
-	_llama.position.y = -0.8
+	_llama.position.y = -1.0
 	_llama.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_modulo.add_child(_llama)
 	for signo in [-1.0, 1.0]:
 		var chorro := MeshInstance3D.new()
 		chorro.mesh = Fondo._cilindro(0.12, 0.0, 0.7, 6)
 		chorro.material_override = fuego
-		chorro.position = Vector3(signo * 1.85, 2.3, 0)
+		chorro.position = Vector3(signo * 2.15, 1.6, 0)
 		chorro.rotation.z = signo * PI / 2.0  # Apunta hacia afuera de su lado.
 		chorro.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_modulo.add_child(chorro)
@@ -679,7 +691,7 @@ func _crear_panel_descenso() -> void:
 	_texto_calibracion.text = "Tu calibración: combustible para %d s · zona de %d m · los amortiguadores aguantan hasta %s m/s" % [roundi(_combustible_total), roundi(_radio_zona), _decimal(_limite_bajada)]
 	_texto_calibracion.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var ayuda := _etiqueta(caja, 18)
-	ayuda.text = "Espacio (o W): frenar · A y D (o ← →): moverte de lado"
+	ayuda.text = "Espacio (o W): frenar · A y D (o ← →): moverte de lado\n%s" % ("Arrastra el dedo a la derecha: mover la cámara" if ControlesTactiles.activo else "Arrastra con el mouse: mover la cámara · rueda: acercar o alejar")
 	ayuda.modulate = Color(1, 1, 1, 0.75)
 	_boton_auto = Button.new()
 	_boton_auto.text = "Que aterrice A.R.T.I."
