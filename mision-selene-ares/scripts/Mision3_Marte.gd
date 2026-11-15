@@ -41,7 +41,7 @@ func _ready() -> void:
 	GameManager.planeta_actual = GameManager.Planeta.MARTE
 	GameManager.reiniciar(LLEGADA)
 	# Lo que llegó dañado en la escolta se nota: menos energía, soporte vital o comida.
-	for datos in [["solar", "energia"], ["habitat", "soporte_vital"], ["bio", "hambre"]]:
+	for datos in [["rover", "energia"], ["suministros", "soporte_vital"], ["vida", "hambre"]]:
 		if GameManager.escolta.has(datos[0]):
 			GameManager.cambiar(datos[1], -(100.0 - GameManager.escolta[datos[0]]) * 0.3)
 	GameManager.asegurar_equipo()

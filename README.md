@@ -18,7 +18,7 @@ El jugador es el **Comandante Junior** y viaja de la **Tierra** a la **Luna** y 
 | **2 · Luna: biodomo** | Come, cosecha, purifica agua, usa la acuaponía | Cosechar baja el oxígeno; purificar agua gasta electricidad. |
 | **2 · Luna: tormenta solar** | Pasa energía de comunicaciones y calefacción al escudo y cierra las persianas | Proteger a la tripulación cuesta: sin comunicaciones no hay señal y sin calefacción las plantas pasan frío. |
 | **2 · Luna: caminata EVA** | Busca hielo con el escáner, extrae una roca y toma una foto | El oxígeno del traje se acaba: hay que planear la salida. |
-| **3 · Llegada a Marte: escolta** | A.R.T.I. lo despierta en la estación en órbita de Marte; desde la sala de control guía las 3 cápsulas (radar, telemetría y cámara) entre rocas, polvo y las lunas Fobos y Deimos hasta el corredor de entrada | Moverse gasta combustible y el escudo gasta energía. Cada orden tarda en llegar (desde la Tierra serían de 4 a 24 minutos). Lo que llega dañado se nota en Marte. |
+| **3 · Llegada a Marte: escolta** | A.R.T.I. lo despierta en la estación en órbita de Marte; desde la sala de control (radar, telemetría y cámara) guía de a una 3 cápsulas distintas (el rover, los suministros del biodomo y la vida) entre rocas, polvo y las lunas Fobos y Deimos hasta el corredor de entrada, y les abre el paracaídas a tiempo | Moverse gasta combustible y el escudo gasta energía. Cada orden tarda en llegar (desde la Tierra serían de 4 a 24 minutos). Lo que llega dañado se nota en Marte. |
 | **3 · Marte** | Durante 4 soles reparte energía entre calefacción, oxígeno y escudo, con 2 tormentas de polvo | Hay que guardar batería en los días claros. La Tierra tarda en responder, así que en Marte se decide solo. |
 | **Cierre** | Insignia, álbum de fotos y "Ciencia real de la NASA" | Qué datos reales usa el juego y de dónde salen. |
 
@@ -42,6 +42,7 @@ Perder nunca castiga: si un recurso se acaba, A.R.T.I. ayuda con una reserva y e
 | Separar una etapa del cohete / encender el motor de la cápsula | **Espacio** o el botón amarillo del tablero |
 | Girar la cápsula hacia la Luna | **W A S D** o flechas |
 | Pilotar el descenso a la Luna | **Espacio** (o **W**) frena · **A** y **D** (o **← →**) mueven el módulo de lado |
+| Guiar las cápsulas a Marte (escolta) | **A** y **D** las empujan de costado · **W** acelera · **S** frena · **Espacio** lanza, prende el escudo o abre el paracaídas |
 
 En **Ajustes** se puede cambiar el volumen, la sensibilidad del mouse, la pantalla completa y la voz de A.R.T.I.
 
@@ -84,7 +85,8 @@ Solo listamos lo que el juego usa de verdad.
 * **Rovers Curiosity y Perseverance:**
   * el cielo caramelo y el atardecer azul de Marte;
   * el viento de Marte que se escucha en la Misión 3 es la **grabación real** del micrófono de Perseverance, y sopla más fuerte en las tormentas de polvo;
-  * **MOXIE**, que sacó oxígeno del aire marciano.
+  * **MOXIE**, que sacó oxígeno del aire marciano;
+  * el paracaídas de Perseverance se abrió a unos 11 km de altura y aterrizó con retrocohetes (la grúa del cielo): en la escolta se abre entre 11 y 7 km.
   * Fuente: <https://science.nasa.gov/mission/mars-2020-perseverance/>
 * **Rover Opportunity:** en 2018 una tormenta de polvo tapó el Sol durante semanas y lo dejó sin energía.
 * **Física:**
