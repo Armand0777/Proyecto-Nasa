@@ -7,8 +7,8 @@ extends Node3D
 
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
-## La zona de aterrizaje del alunizaje queda a esta distancia del biodomo (igual que en Mision2_Alunizaje).
-const DISTANCIA_MODULO := 20.0
+## La zona de aterrizaje del alunizaje queda a esta distancia del centro del biodomo (40 m de ancho) (igual que en Mision2_Alunizaje).
+const DISTANCIA_MODULO := 34.0
 const ARTI_ESCENA := preload("res://scenes/ARTI.tscn")
 const ModuloLunar := preload("res://scripts/ModuloLunar.gd")
 const NasaApi := preload("res://scripts/NasaApi.gd")
@@ -34,6 +34,16 @@ const MENU := "res://scenes/MenuPrincipal.tscn"
 ## Dirección de la Tierra en el cielo lunar (la misma del shader CieloLuna).
 const DIRECCION_TIERRA := Vector3(0.578, 0.438, -0.689)  # Igual que en CieloLuna.gdshader.
 const COLOR_HIELO := Color(0.749, 0.953, 1.0)
+## Lugares del biodomo (en sus coordenadas: la esclusa está hacia +Z y el piso a 0,9 m).
+const PISO_DOMO := 0.9
+const ADENTRO := Vector3(0, PISO_DOMO + 0.7, 13.0)  # Recién pasada la puerta interior de la esclusa.
+const AFUERA := Vector3(0, 0, 26.5)  # Al pie de la rampa de la puerta exterior.
+## Esclusa (cámara entre las dos puertas dobles): de z 16,6 (puerta interior) a 22 (puerta exterior).
+const PUERTA_INTERIOR_Z := 16.6
+const PUERTA_EXTERIOR_Z := 22.0
+const ANCHO_ESCLUSA := 4.5
+## Cuánto se corre cada hoja de la puerta al abrirse, hacia su lado.
+const CORRER_PUERTA := 1.35
 
 @export var segundos_antes_de_tormenta := 45.0
 @export var segundos_tormenta := 20.0
@@ -55,7 +65,6 @@ var _tormenta_pasada := false
 var _restante := 0.0
 var _meta_escudo := 80.0
 var _persianas_cerradas := false
-var _persianas: Node3D
 var _comunicaciones := 40.0
 var _calefaccion := 40.0
 var _panel: PanelContainer
@@ -75,6 +84,7 @@ var _atajo := ""
 ## Llegada caminando desde el módulo: mientras dura, la tormenta no empieza a contar.
 var _llegada_afuera := false
 var _flecha: Node3D
+var _palanca: StaticBody3D
 # Llegada: adentro del módulo, escotilla, escalera y A.R.T.I. acompañando hasta la esclusa.
 var _modulo_llegada: ModuloLunar
 var _escotilla_abierta_antes := false
@@ -84,6 +94,10 @@ var _arti_sigue := false
 var _esclusa := Vector3.ZERO
 var _recordatorio := 0.0
 var _avisado_cerca := false
+# Esclusa: hojas de cada puerta, cuánto está abierta (0 a 1) y dónde quedó el jugador.
+var _hojas := {"interior": [], "exterior": []}
+var _apertura := {"interior": 0.0, "exterior": 0.0}
+var _aviso_esclusa := false
 
 
 func _ready() -> void:
@@ -111,16 +125,16 @@ func _ready() -> void:
 		GameManager.objetos.erase("barra_proteina")
 	GameManager.inventario_cambiado.emit()
 
-	# El biodomo es el mismo del fondo del menú; el jugador aparece adentro.
-	var domo: Vector2 = $Exterior.posicion_domo
-	_base.position = Vector3(domo.x, 0.0, domo.y)
-	_jugador.position = _base.position + Vector3(0, 0.7, 5.5)
+	# El biodomo es el mismo del fondo del menú (FondoLuna); lo de jugar va en «Base», encima de él.
+	_base.transform = $Exterior/Biodomo.transform
+	_jugador.position = _base.to_global(ADENTRO)
 	$Exterior/Pivote/Camara.current = false
 	$Player/Camara.make_current()
 	_material = Fondo.material_plano()
 	_crear_paredes()
+	_flecha = FlechaGuia.new()
+	add_child(_flecha)
 	_crear_estaciones()
-	_crear_persianas()
 	_crear_panel_energia()
 	_crear_eva()
 
@@ -138,6 +152,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_actualizar_esclusa(delta)
 	if _eva:
 		_escanear(delta)
 		return
@@ -173,6 +188,8 @@ func _mostrar_llegada() -> void:
 	tween.tween_property(_llegada, "modulate:a", 0.0, 1.0)
 	await tween.finished
 	if _atajo == "eva":
+		_jugador.global_position = _en_suelo(_base.to_global(AFUERA)) + Vector3(0, 0.3, 0)
+		_jugador.rotation.y = _base.rotation.y  # De espaldas al domo, mirando hacia afuera.
 		_empezar_eva()
 		return
 	_bienvenida_biodomo()
@@ -193,9 +210,7 @@ func _llegar_caminando() -> void:
 	_modulo_llegada.global_basis = Basis.looking_at(hacia_domo, Vector3.UP)
 	_modulo_llegada.construir(true)
 	_modulo_llegada.puerta_cambiada.connect(_al_cambiar_escotilla)
-	_esclusa = _en_suelo(_base.position + Vector3(-15.0, 0, 0))
-	_flecha = FlechaGuia.new()
-	add_child(_flecha)
+	_esclusa = _en_suelo(_base.to_global(AFUERA))
 	# Comandante Junior parado en la cabina, mirando la escotilla; A.R.T.I. junto a su base de carga.
 	_jugador.global_position = _modulo_llegada.to_global(ModuloLunar.LUGAR_JUGADOR)
 	_jugador.rotation.y = atan2(-hacia_domo.x, -hacia_domo.z)
@@ -254,7 +269,7 @@ func _acompanar(delta: float) -> void:
 	_recordatorio += delta
 	if jugador.distance_to(_esclusa) < 7.0 and not _avisado_cerca:
 		_avisado_cerca = true
-		_arti.decir("¡Ya casi! Mira la puerta de la esclusa y pulsa E para entrar al biodomo.")
+		_arti.decir("¡Ya casi! Sube la rampa: la esclusa se abre sola. Cuando se cierre la puerta de afuera, se abre la de adentro.")
 	elif _recordatorio > 30.0 and not _avisado_cerca:
 		_recordatorio = 0.0
 		_arti.decir("La esclusa del biodomo está donde apunta la flecha turquesa. ¡Vamos, yo te sigo!")
@@ -262,16 +277,12 @@ func _acompanar(delta: float) -> void:
 
 ## Al usar la esclusa por primera vez: se entra al biodomo (A.R.T.I. también) y empieza todo lo de adentro.
 func _entrar_por_primera_vez() -> void:
-	Sonidos.tocar("puerta.ogg")
 	_llegada_afuera = false
-	_arti_sigue = false
+	_aviso_esclusa = true  # Recién entra: la puerta se cierra detrás sin avisar que falta la tormenta.
 	_flecha.ocultar()
-	var adentro := func() -> void:
-		_jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0)
-		_arti3d.global_position = _base.position + Vector3(-4.2, 0.6, 1.3)
-		_arti3d.set("moviendose", false)
-	Transicion.disolver(adentro)
-	await get_tree().create_timer(1.0, false).timeout
+	await get_tree().create_timer(2.0, false).timeout
+	_arti_sigue = false
+	_arti3d.set("moviendose", false)
 	_bienvenida_biodomo()
 
 
@@ -350,16 +361,6 @@ func _al_usar(estacion: String) -> void:
 			_arti.decir("Mira: son tardígrados, los «osos de agua». Miden menos de un milímetro y tienen ocho patitas.",
 				"¿Por qué los estudian en el espacio?",
 				"Porque resisten muchísimo: frío extremo, falta de agua y mucha radiación. Los científicos de la NASA los estudian para entender cómo un ser vivo puede aguantar el espacio, y así proteger mejor a los astronautas.")
-		"esclusa":
-			if not _tormenta_pasada:
-				_arti.decir("Antes de salir revisemos el biodomo: los sensores de la NASA están vigilando el Sol.")
-			else:
-				_empezar_eva()
-		"entrar":
-			if _llegada_afuera:
-				_entrar_por_primera_vez()
-			else:
-				_terminar_eva(false)
 		"roca":
 			if not _roca_ok:
 				Sonidos.tocar("picar.ogg")
@@ -368,16 +369,25 @@ func _al_usar(estacion: String) -> void:
 				_actualizar_objetivos()
 				_arti.decir("¡Fragmento de roca lunar extraído con el láser! Los científicos estudian estas rocas para saber cómo se formó la Luna.")
 		"persianas":
-			if not _tormenta:
+			if not _persianas_cerradas and not _tormenta:
 				_arti.decir("Las persianas blindadas protegen a las plantas. Las cerraremos solo si hay peligro: tapan la luz del Sol.")
 			elif not _persianas_cerradas:
-				_persianas_cerradas = true
-				_persianas.show()
-				create_tween().tween_property(_persianas, "scale:y", 1.0, 1.0).from(0.05)
+				_poner_persianas(true)
 				_arti.decir("¡Persianas cerradas! Las plantas y los animales están protegidos.")
+			elif _tormenta:
+				_arti.decir("¡Todavía no! Espera a que pase la tormenta para abrir las persianas.")
+			else:
+				_poner_persianas(false)
+				_arti.decir("¡Persianas abiertas! Vuelve a entrar la luz del Sol para las plantas.")
 
 
 # --- Escena 2.3: tormenta solar ---
+
+## Baja o sube las persianas (shader Cortinas del biodomo) y cambia el texto de la palanca.
+func _poner_persianas(cerrar: bool) -> void:
+	_persianas_cerradas = cerrar
+	create_tween().tween_property($Exterior.cortinas, "shader_parameter/cobertura", 1.0 if cerrar else 0.0, 2.0)
+	_palanca.texto = "Abrir las persianas blindadas" if cerrar else "Cerrar las persianas blindadas"
 
 func _buscar_tormenta() -> void:
 	var api := NasaApi.new()
@@ -434,6 +444,8 @@ func _terminar_tormenta() -> void:
 			GameManager.cambiar("soporte_vital", -10.0)
 		texto = "La tormenta nos alcanzó y algunas plantas se dañaron. No pasa nada: aprendimos que hay que subir el escudo y cerrar las persianas a tiempo."
 	# Todo vuelve a la normalidad: la energía regresa a comunicaciones y calefacción.
+	# La flecha muestra la salida a la caminata EVA (con las persianas cerradas, la esclusa casi no se ve).
+	_flecha.apuntar(_base.to_global(Vector3(0, PISO_DOMO + 3.4, PUERTA_INTERIOR_Z)))
 	_comunicaciones = 40.0
 	_calefaccion = 40.0
 	_arti.decir(texto + " Ya devolví la energía a comunicaciones y calefacción. Cuando quieras, sal por la esclusa para la caminata EVA.",
@@ -518,97 +530,198 @@ func _crear_panel_energia() -> void:
 	_panel.hide()
 
 
-## Estaciones del guion, cada una con su tapete de color en el piso y su letrero.
+## Estaciones del guion sobre los modelos del biodomo: cada una se usa mirando su modelo y tiene letrero.
 func _crear_estaciones() -> void:
-	# [id, texto al mirarla, letrero, posición en el domo, tamaño, color, color del tapete]
+	# [id, texto al mirarla, letrero, nodo del modelo en Biodomo.tscn]
 	var estaciones := [
-		["consola", "Usar la consola central", "Consola central", Vector3(0, 0, -2.5), Vector3(1.6, 1.4, 0.7), COLOR_ACERO, COLOR_TURQUESA],
-		["huerto", "Cosechar una lechuga (−10 oxígeno del domo)", "Huerto", Vector3(-4.5, 0, 0.5), Vector3(2.2, 0.9, 1.1), COLOR_TIERRA, COLOR_VERDE],
-		["purificador", "Purificar agua (−10 electricidad)", "Purificador de agua", Vector3(4.5, 0, 0.5), Vector3(1.0, 1.6, 1.0), COLOR_AZUL, COLOR_AZUL],
-		["nutricion", "Comer una barra de proteína", "Mesa de nutrición", Vector3(3.5, 0, 4.0), Vector3(1.8, 1.0, 1.0), COLOR_ACERO, COLOR_NARANJA],
-		["persianas", "Cerrar las persianas blindadas", "Persianas", Vector3(-5.0, 0, -3.5), Vector3(0.3, 1.5, 0.3), COLOR_ROJO, COLOR_ROJO],
-		["esclusa", "Salir por la esclusa (caminata EVA)", "Esclusa", Vector3(-7.4, 0, 0), Vector3(0.4, 2.2, 1.6), COLOR_ACERO, COLOR_AZUL],
-		["acuaponia", "Abrir la válvula de acuaponía (−5 agua)", "Acuaponía", Vector3(-3.5, 0, 4.5), Vector3(1.6, 1.0, 1.0), COLOR_AZUL, COLOR_AZUL],
-		["microscopio", "Mirar por el microscopio", "Microscopio de tardígrados", Vector3(5.5, 0, -3.5), Vector3(0.6, 1.3, 0.6), COLOR_ACERO, COLOR_AZUL],
+		["consola", "Usar la consola central", "Consola central", "consola-central"],
+		["huerto", "Cosechar una lechuga (−10 oxígeno del domo)", "Huerto", "huerto"],
+		["purificador", "Purificar agua (−10 electricidad)", "Purificador de agua", "purificador-agua"],
+		["nutricion", "Comer una barra de proteína", "Mesa de nutrición", "mesa-nutricion"],
+		["acuaponia", "Abrir la válvula de acuaponía (−5 agua)", "Acuaponía", "acuaponia"],
+		["microscopio", "Mirar por el microscopio", "Microscopio de tardígrados", "microscopio-tardigrados"],
 	]
 	for datos in estaciones:
-		var piso := Vector3(datos[3].x, 0.6, datos[3].z)
-		var tapete := MeshInstance3D.new()
-		tapete.mesh = Fondo.malla_plana(Fondo._cilindro(1.4, 1.4, 0.02, 16), datos[6])
-		tapete.material_override = _material
-		tapete.position = piso + Vector3(0, 0.01, 0)
-		_base.add_child(tapete)
-
-		var cuerpo := StaticBody3D.new()
+		var cuerpo := _colision_de($Exterior/Biodomo.get_node(datos[3]))
 		cuerpo.set_script(Interactuable)
 		cuerpo.texto = datos[1]
-		cuerpo.position = piso + Vector3(0, datos[4].y * 0.5, 0)
-		var forma := CollisionShape3D.new()
-		forma.shape = BoxShape3D.new()
-		forma.shape.size = datos[4]
-		cuerpo.add_child(forma)
-		var malla := MeshInstance3D.new()
-		malla.mesh = Fondo.malla_plana(Fondo._caja(datos[4]), datos[5])
-		malla.material_override = _material
-		cuerpo.add_child(malla)
 		cuerpo.usado.connect(_al_usar.bind(datos[0]))
-		_base.add_child(cuerpo)
-
 		var letrero := Label3D.new()
 		letrero.text = datos[2]
 		letrero.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		letrero.font_size = 40
 		letrero.outline_size = 10
-		letrero.pixel_size = 0.006
-		letrero.position = piso + Vector3(0, datos[4].y + 0.5, 0)
-		_base.add_child(letrero)
+		letrero.pixel_size = 0.008
+		letrero.position = Vector3(0, (cuerpo.get_child(0).shape as BoxShape3D).size.y * 0.5 + 0.6, 0)
+		cuerpo.add_child(letrero)
 
-	# Lechugas sobre el huerto.
-	for n in 4:
-		var lechuga := MeshInstance3D.new()
-		lechuga.mesh = Fondo.malla_plana(Fondo._esfera(6, 3), COLOR_VERDE)
-		lechuga.material_override = _material
-		lechuga.scale = Vector3.ONE * 0.4
-		lechuga.position = Vector3(-5.25 + n * 0.5, 1.6, 0.5)
-		_base.add_child(lechuga)
+	# Palanca roja de las persianas (el modelo no trae una), junto a la consola central.
+	var palanca := StaticBody3D.new()
+	_palanca = palanca
+	palanca.set_script(Interactuable)
+	palanca.texto = "Cerrar las persianas blindadas"
+	palanca.position = Vector3(-4.0, PISO_DOMO + 0.75, 3.5)
+	var forma := CollisionShape3D.new()
+	forma.shape = BoxShape3D.new()
+	forma.shape.size = Vector3(0.3, 1.5, 0.3)
+	palanca.add_child(forma)
+	var malla := MeshInstance3D.new()
+	malla.mesh = Fondo.malla_plana(Fondo._caja(forma.shape.size), COLOR_ROJO)
+	malla.material_override = _material
+	palanca.add_child(malla)
+	var letrero := Label3D.new()
+	letrero.text = "Persianas"
+	letrero.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	letrero.font_size = 40
+	letrero.outline_size = 10
+	letrero.pixel_size = 0.006
+	letrero.position = Vector3(0, 1.25, 0)
+	palanca.add_child(letrero)
+	palanca.usado.connect(_al_usar.bind("persianas"))
+	_base.add_child(palanca)
 
 
-## Pared invisible por dentro de la cúpula: no se puede salir sin traje.
+## Caja de colisión (hija de «Base») del tamaño de un modelo del biodomo, girada igual que él.
+func _colision_de(modelo: Node3D) -> StaticBody3D:
+	var caja := AABB()
+	var primera := true
+	for nodo in modelo.find_children("*", "MeshInstance3D", true, false):
+		var malla := nodo as MeshInstance3D
+		var local := modelo.global_transform.affine_inverse() * malla.global_transform * malla.get_aabb()
+		caja = local if primera else caja.merge(local)
+		primera = false
+	# La escala del modelo va en el tamaño de la caja: las colisiones no deben llevar escala.
+	var escala := modelo.scale
+	var cuerpo := StaticBody3D.new()
+	var forma := CollisionShape3D.new()
+	forma.shape = BoxShape3D.new()
+	forma.shape.size = caja.size * escala
+	cuerpo.add_child(forma)
+	cuerpo.transform = Transform3D(modelo.basis.orthonormalized(), modelo.position) * Transform3D(Basis.IDENTITY, caja.get_center() * escala)
+	_base.add_child(cuerpo)
+	return cuerpo
+
+
+## Piso del domo, pared invisible por dentro de la cúpula (no se sale sin traje) y muebles sólidos.
 func _crear_paredes() -> void:
 	var piso := StaticBody3D.new()
 	var forma_piso := CollisionShape3D.new()
 	forma_piso.shape = CylinderShape3D.new()
-	forma_piso.shape.radius = 9.6
-	forma_piso.shape.height = 0.6
-	forma_piso.position = Vector3(0, 0.3, 0)
+	forma_piso.shape.radius = 20.3
+	forma_piso.shape.height = PISO_DOMO
+	forma_piso.position = Vector3(0, PISO_DOMO * 0.5, 0)
 	piso.add_child(forma_piso)
 	_base.add_child(piso)
-	for k in 16:
-		var angulo := TAU * k / 16.0
+	for k in range(1, 32):  # Sin el tramo 0: ahí está la esclusa.
+		var angulo := TAU * k / 32.0
 		var pared := StaticBody3D.new()
 		var forma := CollisionShape3D.new()
 		forma.shape = BoxShape3D.new()
-		forma.shape.size = Vector3(3.8, 5.0, 0.3)
+		forma.shape.size = Vector3(4.0, 6.0, 0.3)
 		pared.add_child(forma)
-		pared.position = Vector3(sin(angulo) * 9.0, 3.0, cos(angulo) * 9.0)
+		pared.position = Vector3(sin(angulo) * 19.4, PISO_DOMO + 3.0, cos(angulo) * 19.4)
 		pared.rotation.y = angulo
 		_base.add_child(pared)
+	_crear_esclusa()
+	for mueble in ["laboratorio-banco-analisis", "laboratorio-mesa-central", "laboratorio-taburete-1",
+			"laboratorio-taburete-2", "laboratorio-armario-muestras", "laboratorio-lavado"]:
+		_colision_de($Exterior/Biodomo.get_node(mueble))
 
 
-## Persianas metálicas por dentro del vidrio; aparecen bajando cuando se cierran.
-func _crear_persianas() -> void:
-	_persianas = Node3D.new()
-	_persianas.hide()
-	_base.add_child(_persianas)
-	var metal := Fondo.malla_plana(Fondo._caja(Vector3(3.4, 4.0, 0.1)), COLOR_ACERO)
-	for k in 16:
-		var angulo := TAU * k / 16.0
-		var placa := MeshInstance3D.new()
-		placa.mesh = metal
-		placa.material_override = _material
-		placa.position = Vector3(sin(angulo) * 8.3, 2.6, cos(angulo) * 8.3)
-		placa.rotation.y = angulo
-		_persianas.add_child(placa)
+## Esclusa caminable: piso y paredes de la cámara, rampa hasta el suelo lunar y las dos puertas dobles
+## del modelo con colisión (se abren solas; nunca las dos a la vez, como una esclusa de verdad).
+func _crear_esclusa() -> void:
+	var largo := PUERTA_EXTERIOR_Z - PUERTA_INTERIOR_Z + 0.6
+	var centro_z := (PUERTA_EXTERIOR_Z + PUERTA_INTERIOR_Z) * 0.5
+	_caja_solida(Vector3(ANCHO_ESCLUSA, PISO_DOMO, largo), Vector3(0, PISO_DOMO * 0.5, centro_z))
+	for lado in [-1.0, 1.0]:
+		_caja_solida(Vector3(0.3, 3.4, largo), Vector3(lado * (ANCHO_ESCLUSA * 0.5 - 0.15), PISO_DOMO + 1.7, centro_z))
+	_caja_solida(Vector3(ANCHO_ESCLUSA, 0.3, largo), Vector3(0, PISO_DOMO + 3.25, centro_z))
+	# Rampa de metal desde la puerta exterior hasta el regolito.
+	var bajada := 3.4
+	var rampa := _caja_solida(Vector3(2.9, 0.2, Vector2(bajada, PISO_DOMO).length()),
+		Vector3(0, PISO_DOMO * 0.5 - 0.1, PUERTA_EXTERIOR_Z + 0.4 + bajada * 0.5))
+	rampa.rotation.x = atan2(PISO_DOMO, bajada)
+	var malla := MeshInstance3D.new()
+	malla.mesh = Fondo.malla_plana(Fondo._caja((rampa.get_child(0).shape as BoxShape3D).size), COLOR_ACERO)
+	malla.material_override = _material
+	rampa.add_child(malla)
+	# Hojas de las puertas: cada una con su caja de colisión, que se corre con ella.
+	for puerta in ["interior", "exterior"]:
+		for lado in ["izquierda", "derecha"]:
+			var hoja: Node3D = $Exterior/Biodomo.get_node("puerta-%s-%s" % [puerta, lado])
+			var cuerpo := StaticBody3D.new()  # Sigue a la hoja al correrse (AnimatableBody3D no sigue al padre).
+			var forma := CollisionShape3D.new()
+			forma.shape = BoxShape3D.new()
+			forma.shape.size = Vector3(1.42, 2.9, 0.25)
+			forma.position = Vector3(0, 1.5, 0.03)
+			cuerpo.add_child(forma)
+			hoja.add_child(cuerpo)
+			_hojas[puerta].append([hoja, hoja.position.x])
+	var letrero := Label3D.new()
+	letrero.text = "Esclusa"
+	letrero.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	letrero.font_size = 40
+	letrero.outline_size = 10
+	letrero.pixel_size = 0.008
+	letrero.position = Vector3(0, PISO_DOMO + 3.6, PUERTA_INTERIOR_Z - 0.3)
+	_base.add_child(letrero)
+
+
+func _caja_solida(tamano: Vector3, posicion: Vector3) -> StaticBody3D:
+	var cuerpo := StaticBody3D.new()
+	var forma := CollisionShape3D.new()
+	forma.shape = BoxShape3D.new()
+	forma.shape.size = tamano
+	cuerpo.add_child(forma)
+	cuerpo.position = posicion
+	_base.add_child(cuerpo)
+	return cuerpo
+
+
+## Cada cuadro: abre la puerta a la que se acerca el jugador (si la otra ya está cerrada) y se da
+## cuenta de cuándo entra al domo o sale a la Luna, sin cortes ni teletransporte.
+func _actualizar_esclusa(delta: float) -> void:
+	if _hojas["interior"].is_empty():
+		return
+	var p := _base.to_local(_jugador.global_position)
+	var en_la_puerta := absf(p.x) < ANCHO_ESCLUSA * 0.5 + 1.0
+	var cerca_exterior := en_la_puerta and p.z > PUERTA_EXTERIOR_Z - 1.6 and p.z < PUERTA_EXTERIOR_Z + 4.5
+	var cerca_interior := en_la_puerta and p.z > PUERTA_INTERIOR_Z - 3.5 and p.z < PUERTA_INTERIOR_Z + 1.6
+	# Desde adentro solo se sale después de la tormenta (antes hay que revisar el biodomo).
+	if cerca_interior and p.z < PUERTA_INTERIOR_Z and not _tormenta_pasada and not _llegada_afuera:
+		cerca_interior = false
+		if not _aviso_esclusa:
+			_aviso_esclusa = true
+			_arti.decir("Antes de salir revisemos el biodomo: los sensores de la NASA están vigilando el Sol.")
+	elif p.z < PUERTA_INTERIOR_Z - 4.0:
+		_aviso_esclusa = false  # Se alejó de la puerta: la próxima vez vuelve a avisar.
+	_mover_puerta("exterior", cerca_exterior and _apertura["interior"] == 0.0, delta)
+	_mover_puerta("interior", cerca_interior and _apertura["exterior"] == 0.0, delta)
+	# Cruces: afuera más allá de la puerta exterior, adentro más acá de la interior.
+	var radio := Vector2(p.x, p.z).length()
+	var afuera := p.z > PUERTA_EXTERIOR_Z + 0.5 or not en_la_puerta and radio > 21.0
+	var adentro := p.z < PUERTA_INTERIOR_Z - 0.8 and radio < 19.0
+	if _llegada_afuera and _primer_paso and adentro:
+		_entrar_por_primera_vez()
+	elif not _llegada_afuera and not _eva and afuera:
+		_empezar_eva()
+	elif _eva and adentro:
+		_terminar_eva(false)
+
+
+func _mover_puerta(puerta: String, abrir: bool, delta: float) -> void:
+	var antes: float = _apertura[puerta]
+	var ahora := move_toward(antes, 1.0 if abrir else 0.0, delta / 1.2)  # 1,2 s en abrirse.
+	if ahora == antes:
+		return
+	if antes == 0.0 or antes == 1.0:
+		Sonidos.tocar("puerta.ogg", -6.0)
+	_apertura[puerta] = ahora
+	var corrido := CORRER_PUERTA * smoothstep(0.0, 1.0, ahora)
+	for datos in _hojas[puerta]:
+		var hoja: Node3D = datos[0]
+		hoja.position.x = datos[1] + signf(datos[1]) * corrido
 
 
 # --- Escena 2.4: caminata EVA ---
@@ -616,14 +729,13 @@ func _crear_persianas() -> void:
 ## Suelo con colisión, esclusa de afuera, 2 muestras de hielo, la roca lunar y lo que se ve en pantalla.
 func _crear_eva() -> void:
 	$Exterior/Terreno.create_trimesh_collision()
-	var salida := _en_suelo(_base.position + Vector3(-16.0, 0, 0))
-	_objeto("entrar", "Entrar al biodomo", salida + Vector3(1.0, 0, 0), Fondo._caja(Vector3(0.4, 2.2, 1.6)), COLOR_ACERO)
 	for posicion in [Vector3(-24.0, 0, -36.0), Vector3(-12.0, 0, -80.0)]:
 		var hielo := _objeto("hielo", "Recoger hielo", _en_suelo(posicion), Fondo._esfera(5, 2), COLOR_HIELO)
 		hielo.scale = Vector3(0.6, 0.9, 0.6)
 		_hielos.append(hielo)
 	var roca := _objeto("roca", "Extraer roca lunar (láser)", _en_suelo(Vector3(-34.0, 0, -58.0)), Fondo._esfera(6, 3), Color(0.32, 0.33, 0.36))
 	roca.scale = Vector3(1.1, 0.8, 1.1)
+	_piedras_recogibles()
 	var letrero := Label3D.new()
 	letrero.text = "Roca lunar"
 	letrero.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -676,16 +788,49 @@ func _objeto(id: String, texto: String, posicion: Vector3, primitiva: PrimitiveM
 	return cuerpo
 
 
+## Las piedras chicas del paisaje se pueden recoger con E: cualquiera cuenta como muestra de roca.
+func _piedras_recogibles() -> void:
+	for nodo in $Exterior/Rocas.get_children():
+		var piedra := nodo as MeshInstance3D
+		if piedra == null or piedra.scale.x > 1.3:
+			continue  # Las grandes son rocas para mirar, no para llevar.
+		var cuerpo := StaticBody3D.new()
+		cuerpo.set_script(Interactuable)
+		cuerpo.texto = "Recoger piedra lunar"
+		var forma := CollisionShape3D.new()
+		forma.shape = BoxShape3D.new()
+		forma.shape.size = piedra.get_aabb().size
+		forma.position = piedra.get_aabb().get_center()
+		cuerpo.add_child(forma)
+		piedra.add_child(cuerpo)
+		cuerpo.usado.connect(_recoger_piedra.bind(piedra))
+
+
+func _recoger_piedra(piedra: MeshInstance3D) -> void:
+	if piedra.is_queued_for_deletion():
+		return
+	Sonidos.tocar("picar.ogg", 0.0, 0.1)
+	piedra.queue_free()
+	GameManager.agregar("roca_lunar")
+	if not _roca_ok:
+		_roca_ok = true
+		_arti.decir("¡Piedra lunar recogida! Los científicos estudian estas rocas para saber cómo se formó la Luna.")
+	else:
+		_arti.decir("Otra piedra lunar para la colección. Ya llevas %d (míralas con Tab)." % GameManager.cantidad("roca_lunar"))
+	_actualizar_objetivos()
+
+
 func _en_suelo(posicion: Vector3) -> Vector3:
 	return Vector3(posicion.x, $Exterior._altura_en_malla(posicion.x, posicion.z), posicion.z)
 
 
 func _empezar_eva() -> void:
+	if _eva:
+		return
+	_flecha.ocultar()
 	Sonidos.tocar("puerta.ogg")
 	_eva = true
 	ControlesTactiles.mostrar_boton("foto", true)  # En pantalla táctil, la foto es un botón.
-	_jugador.global_position = _en_suelo(_base.position + Vector3(-18.0, 0, 0)) + Vector3(0, 0.3, 0)
-	_jugador.rotation.y = PI / 2.0  # Mirando hacia afuera, lejos del domo.
 	_objetivos.show()
 	_actualizar_objetivos()
 	_arti.decir(
@@ -701,8 +846,8 @@ func _terminar_eva(rescate: bool) -> void:
 	_eva = false
 	ControlesTactiles.mostrar_boton("foto", false)
 	_objetivos.hide()
-	_jugador.global_position = _base.position + Vector3(-5.5, 0.7, 0)
 	if rescate:
+		_jugador.global_position = _base.to_global(ADENTRO)
 		GameManager.cambiar("oxigeno_traje", 30.0)
 		_arti.decir("¡Usé el oxígeno de reserva y te traje de vuelta! Lo que recogiste está a salvo. Recarga el traje y vuelve a salir cuando quieras.")
 	elif _hielo_recogido >= _hielos.size() and _roca_ok and _foto_ok:
@@ -724,6 +869,8 @@ func _ir_a_marte() -> void:
 
 
 func _recoger_hielo(hielo: StaticBody3D) -> void:
+	if not hielo in _hielos:
+		return  # Ya recogido (por ejemplo, E y clic en el mismo cuadro).
 	Sonidos.tocar("picar.ogg", 0.0, 0.1)
 	_hielos.erase(hielo)
 	hielo.queue_free()
@@ -762,7 +909,7 @@ func _actualizar_objetivos(distancia := -1.0) -> void:
 func _tomar_foto() -> void:
 	var camara: Camera3D = $Player/Camara
 	var frente := -camara.global_basis.z
-	var al_domo := (_base.position + Vector3(0, 4, 0) - camara.global_position).normalized()
+	var al_domo := (_base.position + Vector3(0, 7, 0) - camara.global_position).normalized()
 	var encuadre: bool =frente.angle_to(DIRECCION_TIERRA.normalized()) < deg_to_rad(20.0) or frente.angle_to(al_domo) < deg_to_rad(20.0)
 	Sonidos.tocar("foto.ogg")
 	_flash.modulate.a = 0.8

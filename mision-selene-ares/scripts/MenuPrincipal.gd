@@ -21,6 +21,8 @@ const ATAJOS := [
 	["Misión 2 · Alunizaje", "res://scenes/Mision2_Alunizaje.tscn", ""],
 	["Misión 2 · Biodomo y tormenta solar (NASA DONKI)", "res://scenes/Mision2_Luna.tscn", "tormenta"],
 	["Misión 2 · Caminata EVA en la Luna", "res://scenes/Mision2_Luna.tscn", "eva"],
+	["Estación Aurora · Sala de control", "res://scenes/EstacionAurora.tscn", ""],
+	["Marte · Manejar el rover Ares desde Aurora", "res://scenes/RoverMarte.tscn", ""],
 	["Misión 3 · Marte y sus tormentas de polvo", "res://scenes/Mision3_Marte.tscn", ""],
 	["Cierre · Insignia y ciencia real de la NASA", "res://scenes/ui/Cierre.tscn", ""],
 ]
@@ -162,7 +164,7 @@ func _crear_panel_jueces() -> void:
 	_panel_jueces.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_panel_jueces.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var caja := VBoxContainer.new()
-	caja.add_theme_constant_override("separation", 12)
+	caja.add_theme_constant_override("separation", 8)  # 13 partes: con más espacio no caben en 1080 px.
 	_panel_jueces.add_child(caja)
 	var titulo := Label.new()
 	titulo.text = "Modo Jueces: ir directo a..."
@@ -173,7 +175,7 @@ func _crear_panel_jueces() -> void:
 		var boton := Button.new()
 		boton.text = atajo[0]
 		boton.custom_minimum_size = Vector2(760, 0)
-		boton.add_theme_font_size_override("font_size", 28)
+		boton.add_theme_font_size_override("font_size", 24)
 		boton.pressed.connect(_ir_a.bind(atajo[1], atajo[2]))
 		caja.add_child(boton)
 	var volver := Button.new()

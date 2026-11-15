@@ -38,7 +38,7 @@ const FRENO_LADO := 0.8  # Sin teclas, la computadora frena el deslizamiento de 
 const ALTURA_INICIAL := 120.0
 const BAJADA_INICIAL := 5.0
 const DESVIO_INICIAL := 16.0  # Metros a un lado de la zona al empezar.
-const DISTANCIA_AL_DOMO := 20.0  # La zona de aterrizaje queda junto al biodomo.
+const DISTANCIA_AL_DOMO := 34.0  # La zona de aterrizaje queda junto a la esclusa del biodomo (igual que en Mision2_Luna).
 ## La Luna redonda debajo del terreno (para verla desde la órbita), en metros de la escena.
 const RADIO_LUNA := 30000.0
 ## Dónde espera el módulo en órbita: altura sobre la zona y cuántos metros antes de llegar a ella.

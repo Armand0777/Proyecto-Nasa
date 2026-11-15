@@ -142,8 +142,9 @@ func _buscar_objetivo() -> void:
 	var nuevo: Node = _rayo.get_collider() if _rayo.is_colliding() else null
 	if nuevo != null and not nuevo.has_method("interactuar"):
 		nuevo = null
-	if not is_instance_valid(_objetivo):
-		_objetivo = null
+	if typeof(_objetivo) == TYPE_OBJECT and not is_instance_valid(_objetivo):  # (un objeto borrado da == null)
+		_objetivo = null  # Se recogió o desapareció: hay que borrar el aviso «[E] ...».
+		objetivo_cambiado.emit("")
 	if nuevo != _objetivo:
 		_objetivo = nuevo
 		objetivo_cambiado.emit(_objetivo.texto if _objetivo else "")

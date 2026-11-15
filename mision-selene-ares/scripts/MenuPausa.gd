@@ -9,6 +9,7 @@ extends CanvasLayer
 ## Nota web: con el mouse capturado, el navegador usa el primer Esc para soltarlo; por eso P también
 ## pausa.
 
+const Dialogo := preload("res://scripts/DialogoARTI.gd")
 const MENU := "res://scenes/MenuPrincipal.tscn"
 const SIN_PAUSA := ["res://scenes/MenuPrincipal.tscn", "res://scenes/ui/Cierre.tscn"]
 const TURQUESA := Color(0.18, 0.902, 0.839)
@@ -84,6 +85,8 @@ func abrir() -> void:
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	DisplayServer.tts_pause()
+	if OS.get_name() == "Linux":
+		Dialogo.parar_voz()  # En Linux la pausa del TTS no funciona: la frase seguiría sonando.
 	_actualizar_resumen()
 	_mostrar_pagina("")
 	_confirmar.hide()
@@ -164,6 +167,10 @@ func _donde(escena: Node) -> Array:
 			if escena.get("_eva"):
 				return [1, MISIONES[1], "Caminata EVA", "eva"]
 			return [1, MISIONES[1], "Biodomo lunar", ""]
+		"res://scenes/EstacionAurora.tscn":
+			return [2, MISIONES[2], "Estación Aurora", ""]
+		"res://scenes/RoverMarte.tscn":
+			return [2, MISIONES[2], "Rover Ares (desde Aurora)", ""]
 		"res://scenes/Mision3_Marte.tscn":
 			return [2, MISIONES[2], "Base en Marte", ""]
 	return [0, "", "", ""]
@@ -330,7 +337,7 @@ func _pagina_ajustes(padre: Control) -> Control:
 	_fila_interruptor(rejilla, "Voz de A.R.T.I.", Ajustes.voz_arti, func(activar: bool) -> void:
 		Ajustes.voz_arti = activar
 		if not activar:
-			DisplayServer.tts_stop())
+			Dialogo.parar_voz())
 	return rejilla
 
 

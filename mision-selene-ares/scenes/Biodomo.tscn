@@ -1,0 +1,100 @@
+[gd_scene load_steps=22 format=3]
+; Biodomo de 40 m. Los muebles van achicados (scale) para que las mesas queden a ~1 m del piso:
+; los modelos vienen 1,3 a 1,8 veces más grandes que una persona de 1,8 m.
+[ext_resource type="PackedScene" path="res://modelos/biodomo/piso-losetas.glb" id="2"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/cupula-hexagonal.glb" id="3"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/cortinas-cerradas.glb" id="4"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/consola-central.glb" id="5"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/microscopio-tardigrados.glb" id="6"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/purificador-agua.glb" id="7"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/mesa-nutricion.glb" id="8"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/acuaponia.glb" id="9"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/huerto.glb" id="10"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/esclusa-camara.glb" id="11"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/puerta-interior-izquierda.glb" id="12"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/puerta-interior-derecha.glb" id="13"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/puerta-exterior-izquierda.glb" id="14"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/puerta-exterior-derecha.glb" id="15"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-zona.glb" id="16"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-banco-analisis.glb" id="17"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-mesa-central.glb" id="18"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-taburete-1.glb" id="19"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-taburete-2.glb" id="20"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-armario-muestras.glb" id="21"]
+[ext_resource type="PackedScene" path="res://modelos/biodomo/laboratorio-lavado.glb" id="22"]
+[node name="Biodomo" type="Node3D"]
+[node name="piso-losetas" parent="." instance=ExtResource("2")]
+position = Vector3(0, 0, 0)
+rotation = Vector3(0, 0, 0)
+[node name="cupula-hexagonal" parent="." instance=ExtResource("3")]
+position = Vector3(0, 0, 0)
+rotation = Vector3(0, 0, 0)
+[node name="cortinas-cerradas" parent="." instance=ExtResource("4")]
+position = Vector3(0, 0, 0)
+rotation = Vector3(0, 0, 0)
+[node name="consola-central" parent="." instance=ExtResource("5")]
+position = Vector3(0, 0.9, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.55, 0.55, 0.55)
+[node name="microscopio-tardigrados" parent="." instance=ExtResource("6")]
+position = Vector3(6.2, 0.9, -5.5)
+rotation = Vector3(0, 0.5, 0)
+scale = Vector3(0.6, 0.6, 0.6)
+[node name="purificador-agua" parent="." instance=ExtResource("7")]
+position = Vector3(12, 0.9, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.65, 0.65, 0.65)
+[node name="mesa-nutricion" parent="." instance=ExtResource("8")]
+position = Vector3(-8, 0.9, 5)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.58, 0.58, 0.58)
+[node name="acuaponia" parent="." instance=ExtResource("9")]
+position = Vector3(9, 0.9, 7)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.65, 0.65, 0.65)
+[node name="huerto" parent="." instance=ExtResource("10")]
+position = Vector3(-8, 0.9, -8)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.75, 0.75, 0.75)
+[node name="esclusa-camara" parent="." instance=ExtResource("11")]
+position = Vector3(0, 0.9, 19.3)
+rotation = Vector3(0, 0, 0)
+[node name="puerta-interior-izquierda" parent="." instance=ExtResource("12")]
+position = Vector3(-0.7200000000000001, 0.9, 16.6)
+rotation = Vector3(0, 0, 0)
+[node name="puerta-interior-derecha" parent="." instance=ExtResource("13")]
+position = Vector3(0.7200000000000001, 0.9, 16.6)
+rotation = Vector3(0, 0, 0)
+[node name="puerta-exterior-izquierda" parent="." instance=ExtResource("14")]
+position = Vector3(-0.7200000000000001, 0.9, 22)
+rotation = Vector3(0, 0, 0)
+[node name="puerta-exterior-derecha" parent="." instance=ExtResource("15")]
+position = Vector3(0.7200000000000001, 0.9, 22)
+rotation = Vector3(0, 0, 0)
+[node name="laboratorio-zona" parent="." instance=ExtResource("16")]
+position = Vector3(7.5, 0.915, -10)
+rotation = Vector3(0, 0, 0)
+[node name="laboratorio-banco-analisis" parent="." instance=ExtResource("17")]
+position = Vector3(7.5, 0.9, -12.9)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.8, 0.8, 0.8)
+[node name="laboratorio-mesa-central" parent="." instance=ExtResource("18")]
+position = Vector3(7.5, 0.9, -9)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.8, 0.8, 0.8)
+[node name="laboratorio-taburete-1" parent="." instance=ExtResource("19")]
+position = Vector3(5.7, 0.9, -7.4)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.8, 0.8, 0.8)
+[node name="laboratorio-taburete-2" parent="." instance=ExtResource("20")]
+position = Vector3(9.3, 0.9, -7.4)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.8, 0.8, 0.8)
+[node name="laboratorio-armario-muestras" parent="." instance=ExtResource("21")]
+position = Vector3(11.1, 0.9, -9.8)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.8, 0.8, 0.8)
+[node name="laboratorio-lavado" parent="." instance=ExtResource("22")]
+position = Vector3(3.8, 0.9, -11)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.8, 0.8, 0.8)

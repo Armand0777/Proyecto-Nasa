@@ -17,6 +17,8 @@ signal pregunta_hecha
 ## Voz elegida para A.R.T.I. ("" = no hay voces en español en este equipo).
 static var _voz := ""
 static var _voz_buscada := false
+## Última frase leída con la voz del sistema: si se pide otra vez mientras suena, no se repite.
+static var _ultima_frase := ""
 
 @onready var _texto: RichTextLabel = %Texto
 @onready var _boton: Button = %Pregunta
@@ -66,7 +68,17 @@ func arriba_izquierda() -> void:
 func callar() -> void:
 	hide()
 	_grabacion.stop()
+	parar_voz()
+
+
+## Corta la voz del sistema. En Linux (speech-dispatcher) tts_stop() no corta la frase que ya suena:
+## la nueva queda en cola y llega segundos tarde, encimada con lo que sigue. spd-say -C sí la corta
+## (tarda ~7 ms). shortcut: también corta un lector de pantalla que esté hablando; si molesta, quitarlo.
+static func parar_voz() -> void:
+	_ultima_frase = ""
 	DisplayServer.tts_stop()
+	if OS.get_name() == "Linux":
+		OS.execute("spd-say", ["-C"])
 
 
 ## true mientras la frase todavía se está escribiendo letra por letra.
@@ -83,8 +95,10 @@ func completar() -> void:
 
 ## Lee la frase en voz alta: con su grabación si existe, si no con la voz del sistema o del navegador.
 func _hablar(texto: String, audio: String) -> void:
+	if texto == _ultima_frase and DisplayServer.tts_is_speaking():
+		return  # La misma frase ya está sonando.
 	_grabacion.stop()
-	DisplayServer.tts_stop()
+	parar_voz()
 	if not Ajustes.voz_arti:
 		return
 	if audio != "" and ResourceLoader.exists(CARPETA_VOZ % audio):
@@ -105,6 +119,7 @@ func _hablar(texto: String, audio: String) -> void:
 	if _voz == "":
 		return
 	var volumen := int(Ajustes.volumen["Master"] * 100.0)
+	_ultima_frase = texto
 	DisplayServer.tts_speak(texto, _voz, volumen, 1.1, 1.0, 0, true)
 
 

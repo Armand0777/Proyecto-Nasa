@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/RoverMarte.gd" id="1_rover"]
+[ext_resource type="PackedScene" path="res://scenes/fondos/FondoMarte.tscn" id="2_exterior"]
+[ext_resource type="PackedScene" path="res://scenes/DialogoARTI.tscn" id="3_dialogo"]
+
+[node name="RoverMarte" type="Node3D"]
+script = ExtResource("1_rover")
+
+[node name="Exterior" parent="." instance=ExtResource("2_exterior")]
+cantidad_rocas = 70
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="DialogoARTI" parent="UI" instance=ExtResource("3_dialogo")]
+unique_name_in_owner = true

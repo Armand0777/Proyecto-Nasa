@@ -16,17 +16,17 @@ montanas = true
 [node name="Base" type="Node3D" parent="."]
 
 [node name="LuzInterior" type="OmniLight3D" parent="Base"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9, 0)
 light_color = Color(1, 0.96, 0.9, 1)
-light_energy = 1.4
-omni_range = 14.0
+light_energy = 1.6
+omni_range = 30.0
 
 [node name="LuzAlarma" type="OmniLight3D" parent="Base"]
 visible = false
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, 0)
 light_color = Color(1, 0.231373, 0.360784, 1)
 light_energy = 0.0
-omni_range = 16.0
+omni_range = 30.0
 
 [node name="Player" parent="." instance=ExtResource("3_player")]
 

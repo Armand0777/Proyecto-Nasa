@@ -227,6 +227,12 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 
 ### Escena 2.2: Biodomo (`scenes/Mision2_Luna.tscn`)
 - [x] Cúpula con vidrio, luz rosada de cultivo y la Tierra en el cielo.
+- [x] **Biodomo nuevo de 40 m** (modelos en `modelos/biodomo/`, armado en `scenes/Biodomo.tscn`, venían de `godot-biodomo/`): cúpula hexagonal, piso de losetas, esclusa con puertas, estaciones con su modelo propio y un laboratorio. La esclusa mira al módulo (a 34 m del centro). Las persianas usan `shaders/Cortinas.gdshader` (bajan desde el techo). Muebles con caja de colisión automática (`_colision_de()` en `Mision2_Luna.gd`).
+- [x] **Esclusa caminable, sin cortes** (`_crear_esclusa()` y `_actualizar_esclusa()` en `Mision2_Luna.gd`): rampa desde el regolito, puertas dobles que se abren solas al acercarse y nunca las dos a la vez. Al cruzar la puerta interior por primera vez empiezan las misiones del biodomo (bienvenida y reloj de la tormenta); salir caminando empieza la EVA y volver la termina. Antes de la tormenta la puerta interior no se abre desde adentro.
+- [x] **Escala revisada** con una persona de 1,8 m: los muebles venían 1,3–1,8 veces más grandes; van achicados con `scale` en `scenes/Biodomo.tscn` (mesas a ~1 m). El domo (40 m) y la esclusa quedan igual.
+- [x] **Persianas que se abren:** la palanca roja las cierra en la tormenta y las vuelve a abrir después. Al terminar la tormenta, la flecha turquesa apunta a la esclusa (sales caminando y empieza la EVA).
+- [x] **EVA:** el aviso «[E] Recoger …» ya no queda pegado después de recoger algo (`Player.gd`); el mismo hielo no se puede recoger dos veces; las piedras chicas del paisaje se recogen con E (cualquiera cumple «Roca lunar» y se suman al inventario).
+- [x] **Voz de A.R.T.I. en Linux:** speech-dispatcher no cortaba la frase anterior (la nueva llegaba segundos tarde y se encimaba) y la pausa no la detenía. `DialogoARTI.parar_voz()` la corta con `spd-say -C`, y una frase igual que ya está sonando no se repite.
 - [x] Estaciones con tapete de color y letrero: Huerto, Purificador de agua, Nutrición, Consola central, Persianas, Esclusa, Acuaponía, Microscopio.
 - [x] Comer barras de proteína (las que se trajeron en la carga) o cosechar lechuga (baja el oxígeno del domo).
 - [x] **Puzle 4, Inciso B:** purificar agua gasta 10 de electricidad.
@@ -265,6 +271,17 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 ---
 
 ## 4. Misión 3: espacio profundo y Marte
+
+### Nuevo: despegue de la Luna y estación Aurora (cambio de historia, 15 nov)
+- Después de la caminata, Comandante Junior vuelve al módulo, despega de la Luna (con datos reales: la base queda como plataforma, un solo motor de ascenso, ~1,7 km/s para quedar en órbita) y se acopla en un hangar de **Aurora**, una estación propia del juego en órbita lunar. Desde ahí sale el viaje a Marte.
+- [x] Modelos traídos de `gotod`: estación Aurora (`modelos/estacion/`) y rover Ares de Marte (`modelos/rover/`).
+- [x] Estación liviana: `herramientas/convertir_estacion.gd` arma `modelos/estacion/estacion-juego.scn` (de 21 MB, 195 piezas y 463 mil triángulos a 2,4 MB, 20 piezas y 167 mil triángulos), con el material plano del juego. Las 16 hojas de las puertas de los hangares van aparte con `y_abierta` / `y_cerrada` en sus metadatos. El `.glb` original no se exporta.
+- [x] **Aurora caminable** (`scenes/EstacionAurora.tscn`, `scripts/EstacionAurora.gd`): colisiones armadas al cargar (~0,35 s), cielo del espacio, letreros de los 12 módulos, flecha hasta la Sala de Control (módulo 05) y A.R.T.I. (explica la gravedad artificial del anillo). Por ahora se empieza en el anillo, en el módulo 03.
+- [x] **Teleoperación del rover Ares** (`scenes/RoverMarte.tscn`, `scripts/RoverMarte.gd`, adaptado de la demo de `gotod`): en el puesto de la Sala de Control, la cámara se pone detrás del asiento, se acerca al monitor («ENLAZANDO CON MARTE…») y se pasa sin corte al cráter Jezero. Ruedas que giran y doblan (adelante y atrás al revés), brazo con 4 articulaciones, pinza y taladro, mástil que gira y se inclina, 3 cámaras (1 exterior, 2 mástil, 3 herramienta), gravedad real de Marte y botón para volver a Aurora. A.R.T.I. explica con datos reales el retraso de la señal (3 a 22 min) y por qué los rovers reales no se manejan en tiempo real.
+- [ ] Rover: una tarea con objetivo (Puzle 8, Inciso B del guion: limpiar paneles y tomar fotos), controles táctiles propios.
+- [ ] Escena del despegue lunar.
+- [ ] Encuentro y acople en el hangar de Aurora.
+- [ ] Recorrido por Aurora (colisiones: falta decidir si se arman al cargar o se guardan simplificadas).
 
 ### Escena 3.1: Despegue lunar y criogenia (`P2`)
 - 🟡 Plan B hecho: texto `Viaje a Marte · 6 meses` y fundido.
