@@ -18,6 +18,7 @@ El jugador es el **Comandante Junior** y viaja de la **Tierra** a la **Luna** y 
 | **2 · Luna: biodomo** | Come, cosecha, purifica agua, usa la acuaponía | Cosechar baja el oxígeno; purificar agua gasta electricidad. |
 | **2 · Luna: tormenta solar** | Pasa energía de comunicaciones y calefacción al escudo y cierra las persianas | Proteger a la tripulación cuesta: sin comunicaciones no hay señal y sin calefacción las plantas pasan frío. |
 | **2 · Luna: caminata EVA** | Busca hielo con el escáner, extrae una roca y toma una foto | El oxígeno del traje se acaba: hay que planear la salida. |
+| **3 · Llegada a Marte: escolta** | A.R.T.I. lo despierta en la estación en órbita de Marte; desde la sala de control guía las 3 cápsulas (radar, telemetría y cámara) entre rocas, polvo y las lunas Fobos y Deimos hasta el corredor de entrada | Moverse gasta combustible y el escudo gasta energía. Cada orden tarda en llegar (desde la Tierra serían de 4 a 24 minutos). Lo que llega dañado se nota en Marte. |
 | **3 · Marte** | Durante 4 soles reparte energía entre calefacción, oxígeno y escudo, con 2 tormentas de polvo | Hay que guardar batería en los días claros. La Tierra tarda en responder, así que en Marte se decide solo. |
 | **Cierre** | Insignia, álbum de fotos y "Ciencia real de la NASA" | Qué datos reales usa el juego y de dónde salen. |
 

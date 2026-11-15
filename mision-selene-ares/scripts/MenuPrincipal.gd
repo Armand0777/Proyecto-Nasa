@@ -23,6 +23,7 @@ const ATAJOS := [
 	["Misión 2 · Caminata EVA en la Luna", "res://scenes/Mision2_Luna.tscn", "eva"],
 	["Estación Aurora · Sala de control", "res://scenes/EstacionAurora.tscn", ""],
 	["Marte · Manejar el rover Ares desde Aurora", "res://scenes/RoverMarte.tscn", ""],
+	["Misión 3 · Llegada a Marte: escolta de las cápsulas", "res://scenes/Mision3_Escolta.tscn", ""],
 	["Misión 3 · Marte y sus tormentas de polvo", "res://scenes/Mision3_Marte.tscn", ""],
 	["Cierre · Insignia y ciencia real de la NASA", "res://scenes/ui/Cierre.tscn", ""],
 ]
