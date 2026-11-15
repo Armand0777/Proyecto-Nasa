@@ -401,7 +401,7 @@ func _despegar() -> void:
 		_cuenta.scale = Vector2.ONE * 1.4
 		create_tween().tween_property(_cuenta, "scale", Vector2.ONE, 0.25)
 		Sonidos.tocar("interruptor.ogg", -8.0)
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(1.0, false).timeout
 	_cuenta.hide()
 
 	# Ignición: el cohete se suelta de la plataforma y sube por la escena.
@@ -418,7 +418,7 @@ func _despegar() -> void:
 	_camara_ext.make_current()
 	var subir := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	subir.tween_property(self, "_km", 12.0, 18.0)
-	await get_tree().create_timer(4.5).timeout
+	await get_tree().create_timer(4.5, false).timeout
 
 	# Adentro: tiembla, la torre se queda atrás y el suelo se aleja.
 	_toma_adentro()
@@ -753,7 +753,7 @@ func _bocanada(posicion: Vector3) -> void:
 	add_child(humo)
 	humo.global_position = posicion
 	humo.emitting = true
-	get_tree().create_timer(3.0).timeout.connect(humo.queue_free)
+	get_tree().create_timer(3.0, false).timeout.connect(humo.queue_free)
 
 
 func _desplegar_paneles() -> void:
@@ -770,7 +770,7 @@ func _esperar_km(km: float) -> void:
 
 
 func _pausa(segundos: float) -> void:
-	await get_tree().create_timer(segundos).timeout
+	await get_tree().create_timer(segundos, false).timeout
 
 
 ## Altura del cohete, pantallas, temblor, cielo, llamas, sonido, la Tierra, las estrellas y las tomas.

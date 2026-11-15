@@ -20,6 +20,8 @@ func tocar(archivo: String, volumen_db := 0.0, variar := 0.0) -> AudioStreamPlay
 	sonido.volume_db = volumen_db
 	sonido.pitch_scale = 1.0 + randf_range(-variar, variar)
 	sonido.finished.connect(sonido.queue_free)
+	if get_tree().paused:
+		sonido.process_mode = Node.PROCESS_MODE_ALWAYS  # Clics del menú de pausa: suenan ya, no al continuar.
 	add_child(sonido)
 	sonido.play()
 	return sonido

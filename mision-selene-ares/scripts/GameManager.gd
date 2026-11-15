@@ -24,6 +24,7 @@ const CONTROLES := {
 	"adelante": [KEY_W, KEY_UP], "atras": [KEY_S, KEY_DOWN],
 	"izquierda": [KEY_A, KEY_LEFT], "derecha": [KEY_D, KEY_RIGHT],
 	"saltar": [KEY_SPACE], "interactuar": [KEY_E], "preguntar": [KEY_Q],
+	"pausa": [KEY_ESCAPE, KEY_P],  # Menú de pausa (MenuPausa.gd).
 }
 
 ## Puzle 1 (hangar): lo que se puede llevar. Los kilos son de juego; lo que importa es que no cabe

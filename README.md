@@ -30,7 +30,8 @@ Perder nunca castiga: si un recurso se acaba, A.R.T.I. ayuda con una reserva y e
 | Acción | Teclas |
 | :--- | :--- |
 | Caminar | **W A S D** o flechas |
-| Mirar | Mouse (haz **clic** en el juego para capturarlo; **Esc** lo suelta) |
+| Mirar | Mouse (haz **clic** en el juego para capturarlo) |
+| Pausa (continuar, ajustes, controles, reiniciar la parte, menú principal, salir) | **Esc** o **P**. En el navegador, el primer Esc suelta el mouse; P pausa siempre. |
 | Saltar | **Espacio** (en la Luna y en Marte se salta más alto) |
 | Usar un objeto | **E** o clic, mirando el objeto |
 | Preguntar a A.R.T.I. | **Q** o el botón **?** de su burbuja |

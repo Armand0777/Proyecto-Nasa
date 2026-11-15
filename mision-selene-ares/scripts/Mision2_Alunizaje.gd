@@ -339,7 +339,7 @@ func _tocar_suelo() -> void:
 		_arti.decir("¡Uy, tocamos el suelo muy rápido y los amortiguadores no alcanzaron! La Bio-Box está bien. Probemos otra vez: mantén Espacio antes para bajar más despacio.", "", "", {}, "m2_01f_muy_rapido")
 	else:
 		_arti.decir("Tocamos el suelo fuera de la zona plana, entre piedras y cráteres. Probemos otra vez: usa A y D para quedar encima del círculo verde.", "", "", {}, "m2_01g_fuera_de_zona")
-	await get_tree().create_timer(6.0).timeout
+	await get_tree().create_timer(6.0, false).timeout
 	var negro := create_tween()
 	negro.tween_property(_fundido, "modulate:a", 1.0, 0.6)
 	await negro.finished
@@ -354,7 +354,7 @@ func _alunizaje_logrado() -> void:
 	_panel_descenso.hide()
 	_arti.decir("¡Alunizaje perfecto! Levantamos un poco de [url=regolito]regolito[/url]. Vamos al biodomo.", "", "",
 		{"regolito": "Es el polvo y las piedritas que cubren la Luna. Sin aire, el polvo no flota en nubes: cae rápido de vuelta al suelo."})
-	await get_tree().create_timer(4.5).timeout
+	await get_tree().create_timer(4.5, false).timeout
 	var fundido := create_tween()
 	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.0)
 	await fundido.finished
@@ -372,7 +372,7 @@ func _temblar(fuerza: float) -> void:
 	for n in 8:
 		_camara_descenso.h_offset = randf_range(-fuerza, fuerza)
 		_camara_descenso.v_offset = randf_range(-fuerza, fuerza)
-		await get_tree().create_timer(0.05).timeout
+		await get_tree().create_timer(0.05, false).timeout
 	_camara_descenso.h_offset = 0.0
 	_camara_descenso.v_offset = 0.0
 

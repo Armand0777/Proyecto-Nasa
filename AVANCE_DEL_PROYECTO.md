@@ -67,6 +67,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | Parte del juego | Prioridad | Estado |
 | :--- | :--- | :--- |
 | Burbuja de A.R.T.I., botón `[?]` y HUD | `P0` | ✅ Hecho |
+| Menú de pausa (Esc o P) | `P1` | ✅ Hecho (`scripts/MenuPausa.gd`, autoload): resumen de la misión con lo último que dijo A.R.T.I., ajustes, controles, reiniciar la parte, menú principal y salir. Las esperas del juego usan `create_timer(segundos, false)` para que se detengan en la pausa. |
 | Voz de A.R.T.I. | `P1` | ✅ Hecho (voz del sistema; usa las grabaciones si existen) |
 | Flecha guía | `P1` | 🟡 Hecha (`scripts/FlechaGuia.gd`), pero solo se usa en el prólogo |
 | Modelo animado de A.R.T.I. | `P1` | ✅ Rediseñada como esfera flotante animada (flota, parpadea, gira el anillo) |

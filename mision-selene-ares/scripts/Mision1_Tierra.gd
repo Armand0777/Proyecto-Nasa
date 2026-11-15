@@ -252,7 +252,7 @@ func _subir_ascensor() -> void:
 	_arti_ir(_en_plataforma(ASCENSOR + Vector3(-1.9, 0, 0)))
 	await tween.finished
 	Sonidos.tocar("interruptor.ogg")
-	await get_tree().create_timer(0.4).timeout
+	await get_tree().create_timer(0.4, false).timeout
 	_dialogo.decir("¡Arriba vamos! Desde aquí se ve todo el centro espacial: el hangar, la pradera y el camino que hicimos. La cápsula está en la punta del cohete; ahí nos sentaremos para despegar.", "", "", {}, "m1_08_ascensor")
 
 	# Suben juntos el ascensor, Comandante Junior y A.R.T.I.

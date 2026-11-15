@@ -134,7 +134,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # --- Escena 2.1 (plan B) y 2.2: llegada y supervivencia ---
 
 func _mostrar_llegada() -> void:
-	await get_tree().create_timer(2.5).timeout
+	await get_tree().create_timer(2.5, false).timeout
 	var tween := create_tween().set_parallel()
 	tween.tween_property(_fundido, "modulate:a", 0.0, 1.0)
 	tween.tween_property(_llegada, "modulate:a", 0.0, 1.0)
@@ -574,13 +574,13 @@ func _terminar_eva(rescate: bool) -> void:
 
 
 func _ir_a_marte() -> void:
-	await get_tree().create_timer(6.0).timeout
+	await get_tree().create_timer(6.0, false).timeout
 	var fundido := create_tween().set_parallel()
 	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.0)
 	fundido.tween_property(_llegada, "modulate:a", 1.0, 1.0)
 	_llegada.text = "Rumbo a Marte...\nLa Misión 3 todavía está en construcción."
 	await fundido.finished
-	await get_tree().create_timer(4.0).timeout
+	await get_tree().create_timer(4.0, false).timeout
 	get_tree().change_scene_to_file(SIGUIENTE_ESCENA if ResourceLoader.exists(SIGUIENTE_ESCENA) else MENU)
 
 

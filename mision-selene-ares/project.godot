@@ -24,6 +24,7 @@ general/text_to_speech=true
 Ajustes="*res://scripts/Ajustes.gd"
 GameManager="*res://scripts/GameManager.gd"
 Sonidos="*res://scripts/Sonidos.gd"
+MenuPausa="*res://scripts/MenuPausa.gd"
 
 [display]
 

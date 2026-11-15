@@ -55,9 +55,9 @@ func _ready() -> void:
 ## Escenas 3.1 y 3.2 (plan B): viaje y aterrizaje con fundidos.
 func _llegar() -> void:
 	_llegada.text = "Viaje a Marte · 6 meses"
-	await get_tree().create_timer(2.5).timeout
+	await get_tree().create_timer(2.5, false).timeout
 	_llegada.text = "Aterrizaje en el Cráter Jezero"
-	await get_tree().create_timer(2.0).timeout
+	await get_tree().create_timer(2.0, false).timeout
 	var tween := create_tween().set_parallel()
 	tween.tween_property(_fundido, "modulate:a", 0.0, 1.0)
 	tween.tween_property(_llegada, "modulate:a", 0.0, 1.0)
@@ -146,7 +146,7 @@ func _terminar_sol() -> void:
 		_terminar_mision()
 		return
 	_arti.decir(resumen)
-	await get_tree().create_timer(3.5).timeout
+	await get_tree().create_timer(3.5, false).timeout
 	_preparar_sol()
 
 
@@ -167,7 +167,7 @@ func _pedir_ayuda_a_la_tierra() -> void:
 
 func _terminar_mision() -> void:
 	_tablero.hide()
-	await get_tree().create_timer(5.0).timeout
+	await get_tree().create_timer(5.0, false).timeout
 	$UI.add_child(Cierre.new())
 
 
