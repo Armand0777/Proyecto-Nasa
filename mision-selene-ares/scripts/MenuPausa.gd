@@ -171,6 +171,8 @@ func _donde(escena: Node) -> Array:
 			return [2, MISIONES[2], "Estación Aurora", ""]
 		"res://scenes/RoverMarte.tscn":
 			return [2, MISIONES[2], "Rover Ares (desde Aurora)", ""]
+		"res://scenes/Mision3_Escolta.tscn":
+			return [2, MISIONES[2], "Escolta de las cápsulas a Marte", ""]
 		"res://scenes/Mision3_Marte.tscn":
 			return [2, MISIONES[2], "Base en Marte", ""]
 	return [0, "", "", ""]

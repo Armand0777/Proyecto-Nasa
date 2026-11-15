@@ -83,7 +83,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | Escena 2.3: Tormenta solar (DONKI) | `P0` | ✅ Hecho (falta el respaldo con datos reales) |
 | Escena 2.4: Caminata EVA | `P1` | ✅ Hecho |
 | Escena 3.1: Despegue lunar y criogenia | `P2` | 🟡 Plan B: texto `Viaje a Marte · 6 meses` |
-| Escena 3.2: Asteroides | `P2` | 🟡 Plan B: se omite |
+| Escena 3.2: Asteroides | `P2` | ✅ Hecho como **escolta desde la sala de control** (`scenes/Mision3_Escolta.tscn`) |
 | Escena 3.3: Marte | `P1` | ✅ Hecho (como tablero de control) |
 | Cierre: insignia y "Ciencia real de la NASA" | `P0` | ✅ Hecho (con álbum de fotos) |
 
@@ -288,9 +288,15 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [ ] Escena completa: cama criogénica, las 3 cápsulas de colores y la Luna alejándose.
 - [ ] Latido de corazón en el fundido.
 
-### Escena 3.2: Asteroides (`P2`)
-- 🟡 Plan B hecho: se omite y las cápsulas llegan intactas.
-- [ ] Pilotaje en 3 carriles con asteroides reales de NASA NeoWs, combustible contra escudo y cápsulas con retraso al girar.
+### Escena 3.2: Llegada a Marte y escolta de las cápsulas (`scenes/Mision3_Escolta.tscn`, `scripts/Mision3_Escolta.gd`)
+- [x] **Cinemática:** A.R.T.I. despierta a Comandante Junior en la cápsula criogénica de la estación en órbita de Marte (vista borrosa, vapor, tapa que se abre), le muestra Marte por la ventana y lo sienta en la sala de control. Se puede saltar.
+- [x] **Minijuego en 3 monitores** (imágenes de SubViewport sobre pantallas 3D): telemetría (integridad, combustible y energía del escudo de las 3 cápsulas), radar desde arriba con haz de barrido, la línea por donde pasará cada roca y **la ruta que va a seguir la cápsula** con las órdenes que ya salieron, y la cámara en vivo de la cápsula.
+- [x] **Las cápsulas salen de a una y son distintas:** 1 · Rover (pequeña y ágil, lleva al rover Ares), 2 · Suministros (enorme y lenta, con tanques y paneles grandes: repuestos del biodomo para la llegada de los humanos), 3 · Vida (mediana y delicada, con invernadero: semillas, peces, abejorros y tardígrados; los golpes le duelen ×1,3). Cada una tiene su tamaño de choque, empuje, combustible, escudo y camino.
+- [x] **Controles con inercia:** A/D empujan de costado, W acelera y S frena (para dejar pasar una roca), Espacio lanza / prende el escudo / abre el paracaídas según el momento. **Cada orden tarda medio segundo** (A.R.T.I. explica que desde la Tierra serían de 4 a 24 minutos). Moverse gasta combustible y el escudo gasta energía. Barra de botones para pantallas táctiles (se mantienen apretados).
+- [x] Rocas, pares y cruces de rocas, lluvia de micrometeoritos (para el escudo), Fobos y Deimos; al final, el **corredor de entrada** (muy empinada se calienta, muy plana rebota).
+- [x] **Descenso:** la cámara muestra la bajada al Cráter Jezero (cielo caramelo, suelo, lomas y el borde del cráter); el radar se vuelve altímetro. Calor de entrada → paracaídas en la franja de 11 a 7 km (muy pronto se rasga, muy tarde se abre solo con golpe) → retrocohetes → toque de suelo con polvo. Recién ahí sale la siguiente; las que ya bajaron se ven en el suelo.
+- [x] Sin castigo: resultado con consecuencias (`GameManager.escolta`: Mision3_Marte descuenta energía, soporte vital o comida según el daño), «Intentar de nuevo» y «Que guíe A.R.T.I.» (la guía predice dónde va a estar cuando llegue su orden, esquiva con margen, usa el escudo, abre el paracaídas a tiempo y lanza la siguiente).
+- [ ] Grabar las frases `m3_04` a `m3_25` del guion de doblaje.
 
 ### Escena 3.3: Marte (`scenes/Mision3_Marte.tscn`)
 - [x] Cráter Jezero con suelo óxido, cielo caramelo, la Tierra y la Luna en el cielo.

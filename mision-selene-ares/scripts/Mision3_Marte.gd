@@ -40,6 +40,10 @@ var _viento: AudioStreamPlayer  # Viento real de Marte grabado por el rover Pers
 func _ready() -> void:
 	GameManager.planeta_actual = GameManager.Planeta.MARTE
 	GameManager.reiniciar(LLEGADA)
+	# Lo que llegó dañado en la escolta se nota: menos energía, soporte vital o comida.
+	for datos in [["rover", "energia"], ["suministros", "soporte_vital"], ["vida", "hambre"]]:
+		if GameManager.escolta.has(datos[0]):
+			GameManager.cambiar(datos[1], -(100.0 - GameManager.escolta[datos[0]]) * 0.3)
 	GameManager.asegurar_equipo()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	# Copia del ambiente para no cambiar el del menú cuando llega la tormenta.
@@ -55,8 +59,9 @@ func _ready() -> void:
 
 ## Escenas 3.1 y 3.2 (plan B): viaje y aterrizaje con fundidos.
 func _llegar() -> void:
-	_llegada.text = "Viaje a Marte · 6 meses"
-	await get_tree().create_timer(2.5, false).timeout
+	if GameManager.escolta.is_empty():  # Si se jugó la escolta, el viaje ya se vio.
+		_llegada.text = "Viaje a Marte · 6 meses"
+		await get_tree().create_timer(2.5, false).timeout
 	_llegada.text = "Aterrizaje en el Cráter Jezero"
 	await get_tree().create_timer(2.0, false).timeout
 	var tween := create_tween().set_parallel()

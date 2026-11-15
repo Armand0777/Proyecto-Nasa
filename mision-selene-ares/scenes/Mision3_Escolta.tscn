@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+; Misión 3, Escena 3.2: despertar en la estación en órbita de Marte y escolta de las 3 cápsulas desde
+; la sala de control (radar, telemetría y cámara). Todo se arma en scripts/Mision3_Escolta.gd.
+
+[ext_resource type="Script" path="res://scripts/Mision3_Escolta.gd" id="1_escolta"]
+[ext_resource type="PackedScene" path="res://scenes/DialogoARTI.tscn" id="2_dialogo"]
+
+[node name="Mision3_Escolta" type="Node3D"]
+script = ExtResource("1_escolta")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="DialogoARTI" parent="UI" instance=ExtResource("2_dialogo")]
+unique_name_in_owner = true

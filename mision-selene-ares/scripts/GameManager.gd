@@ -78,6 +78,9 @@ var carga_elegida: Array[String] = []
 var fotos: Array[Image] = []
 ## Qué dato de NASA DONKI se usó en la tormenta de la Luna (para el panel de ciencia del cierre).
 var estado_donki := "no se jugó la tormenta"
+## Cómo llegó cada cápsula a Marte en la escolta (Mision3_Escolta): integridad de 10 a 100 por
+## «solar», «habitat» y «bio». Vacío si no se jugó. Mision3_Marte lo descuenta al llegar.
+var escolta := {}
 ## Modo Jueces: a qué parte saltar dentro de una escena ("tormenta" o "eva"); la escena lo borra al usarlo.
 var atajo := ""
 ## Inventario: lo que lleva puesto (ids de RANURAS) y lo que recogió (id de OBJETOS → cantidad).

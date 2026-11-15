@@ -29,7 +29,7 @@ const COLOR_ACERO := Color(0.42, 0.478, 0.565)
 const COLOR_TIERRA := Color(0.545, 0.369, 0.235)
 
 ## Misión 3 del guion. Mientras no exista, al terminar la caminata se vuelve al menú.
-const SIGUIENTE_ESCENA := "res://scenes/Mision3_Marte.tscn"
+const SIGUIENTE_ESCENA := "res://scenes/Mision3_Escolta.tscn"
 const MENU := "res://scenes/MenuPrincipal.tscn"
 ## Dirección de la Tierra en el cielo lunar (la misma del shader CieloLuna).
 const DIRECCION_TIERRA := Vector3(0.578, 0.438, -0.689)  # Igual que en CieloLuna.gdshader.
@@ -862,7 +862,7 @@ func _ir_a_marte() -> void:
 	var fundido := create_tween().set_parallel()
 	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.0)
 	fundido.tween_property(_llegada, "modulate:a", 1.0, 1.0)
-	_llegada.text = "Rumbo a Marte...\nLa Misión 3 todavía está en construcción."
+	_llegada.text = "Rumbo a Marte\n6 meses de viaje en sueño criogénico"
 	await fundido.finished
 	await get_tree().create_timer(4.0, false).timeout
 	get_tree().change_scene_to_file(SIGUIENTE_ESCENA if ResourceLoader.exists(SIGUIENTE_ESCENA) else MENU)
