@@ -7,6 +7,7 @@ extends PanelContainer
 
 const LETRAS_POR_SEGUNDO := 40.0
 const CARPETA_VOZ := "res://audio/voz_arti/%s.ogg"
+const CARPETA_VOZ_INGLES := "res://audio/voz_arti/en/%s.ogg"
 const COLOR_GUIA := "#2ee6d6"
 ## Nombres de voces femeninas comunes en español y en inglés (Windows, Mac, Android y navegadores).
 const VOCES_FEMENINAS := ["helena", "sabina", "laura", "elvira", "dalia", "paulina", "monica", "mónica", "lucia", "lucía", "female", "mujer",
@@ -48,6 +49,10 @@ func _ready() -> void:
 ## «audio» y «audio_respuesta» son los nombres de las grabaciones del guion de doblaje (sin .ogg).
 func decir(texto: String, pregunta := "", respuesta := "", glosario := {}, audio := "", audio_respuesta := "") -> void:
 	# Modo inglés: las frases se escriben en español en el código y aquí se traducen (Ajustes.idioma).
+	# Aviso para el equipo: una frase en español que todavía no tiene su inglés (las que llegan ya
+	# traducidas, con números adentro, no tienen tildes ni ¿¡ y no avisan).
+	if Ajustes.idioma == "en" and tr(texto) == texto and RegEx.create_from_string("[¿¡ñéíóú]").search(texto) != null:
+		push_warning("A.R.T.I.: frase sin traducción al inglés (agrégala en scripts/textos/): %s" % texto.left(80))
 	texto = tr(texto)
 	pregunta = tr(pregunta) if pregunta != "" else ""
 	_glosario = glosario
@@ -108,8 +113,10 @@ func _hablar(texto: String, audio: String) -> void:
 	parar_voz()
 	if not Ajustes.voz_arti:
 		return
-	if audio != "" and ResourceLoader.exists(CARPETA_VOZ % audio):
-		_grabacion.stream = load(CARPETA_VOZ % audio)
+	# Las grabaciones del guion están en español: en inglés se buscan en su propia carpeta.
+	var carpeta := CARPETA_VOZ_INGLES if Ajustes.idioma == "en" else CARPETA_VOZ
+	if audio != "" and ResourceLoader.exists(carpeta % audio):
+		_grabacion.stream = load(carpeta % audio)
 		_grabacion.play()
 		return
 	if _idioma_voz != Ajustes.idioma:
@@ -117,21 +124,36 @@ func _hablar(texto: String, audio: String) -> void:
 		_voz = ""
 		_voz_buscada = false
 	if not _voz_buscada:
-		var voces := DisplayServer.tts_get_voices_for_language(Ajustes.idioma)
+		_voz = _elegir_voz(Ajustes.idioma)
 		# En el navegador la lista llega vacía hasta que cargan las voces: se vuelve a buscar la próxima vez.
-		_voz_buscada = not voces.is_empty()
-		if not voces.is_empty():
-			_voz = voces[0]
-			for datos in DisplayServer.tts_get_voices():
-				var nombre := str(datos.get("name", "")).to_lower()
-				if voces.has(datos.get("id", "")) and VOCES_FEMENINAS.any(func(n: String) -> bool: return nombre.contains(n)):
-					_voz = datos["id"]
-					break
+		_voz_buscada = _voz != ""
 	if _voz == "":
 		return
 	var volumen := int(Ajustes.volumen["Master"] * 100.0)
 	_ultima_frase = texto
 	DisplayServer.tts_speak(texto, _voz, volumen, 1.1, 1.0, 0, true)
+
+
+## La voz del sistema para «idioma» ("es" o "en"), femenina si hay. Si el equipo no tiene ninguna en
+## ese idioma, usa otra (mejor con acento que muda) y lo avisa. "" si todavía no hay voces (navegador).
+## Escribe en la salida qué voz eligió: sirve para revisar en cada equipo por qué suena o no suena.
+static func _elegir_voz(idioma: String) -> String:
+	var todas := DisplayServer.tts_get_voices()
+	if todas.is_empty():
+		return ""
+	var del_idioma := todas.filter(func(datos: Dictionary) -> bool:
+		return str(datos.get("language", "")).to_lower().replace("-", "_").begins_with(idioma))
+	if del_idioma.is_empty():
+		push_warning("A.R.T.I.: este equipo no tiene ninguna voz en «%s»; usa %s. En Windows se agrega en Configuración > Hora e idioma > Voz." % [idioma, todas[0].get("name", "")])
+		del_idioma = todas
+	var elegida: Dictionary = del_idioma[0]
+	for datos: Dictionary in del_idioma:
+		var nombre := str(datos.get("name", "")).to_lower()
+		if VOCES_FEMENINAS.any(func(n: String) -> bool: return nombre.contains(n)):
+			elegida = datos
+			break
+	print("A.R.T.I. habla en «%s» con la voz: %s (%s)" % [idioma, elegida.get("name", ""), elegida.get("language", "")])
+	return str(elegida.get("id", ""))
 
 
 func _unhandled_input(event: InputEvent) -> void:

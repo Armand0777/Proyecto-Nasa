@@ -103,6 +103,7 @@ func _ready() -> void:
 	_voz_arti.toggled.connect(func(activar: bool) -> void:
 		Ajustes.voz_arti = activar
 		_voz_arti.text = "Activada" if activar else "Desactivada")
+	_crear_fila_idioma()
 
 	_aviso.hide()
 	_velo.hide()
@@ -439,6 +440,27 @@ func _abrir_ajustes() -> void:
 	tween.tween_property(_panel, "scale", Vector2.ONE * 1.05, 0.12)
 	tween.tween_property(_panel, "scale", Vector2.ONE, 0.08)
 	%VolumenGeneral.grab_focus()
+
+
+## Fila «Idioma» al final de Ajustes, igual que «Voz de A.R.T.I.». El botón muestra el idioma actual
+## en su propio idioma (sin traducir); el resto del menú se traduce solo al cambiarlo.
+func _crear_fila_idioma() -> void:
+	var opciones := _voz_arti.get_parent()
+	var etiqueta := Label.new()
+	etiqueta.text = "Idioma"
+	opciones.add_child(etiqueta)
+	var boton := Button.new()
+	boton.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	boton.custom_minimum_size = _voz_arti.custom_minimum_size
+	boton.size_flags_horizontal = _voz_arti.size_flags_horizontal
+	boton.size_flags_vertical = _voz_arti.size_flags_vertical
+	boton.add_theme_font_size_override("font_size", 26)
+	var mostrar := func() -> void: boton.text = "English" if Ajustes.idioma == "en" else "Español"
+	mostrar.call()
+	boton.pressed.connect(func() -> void: Ajustes.aplicar_idioma("es" if Ajustes.idioma == "en" else "en"))
+	Ajustes.idioma_cambiado.connect(mostrar)  # También si se cambia con el botón de abajo.
+	opciones.add_child(boton)
+	opciones.add_child(Control.new())
 
 
 func _cerrar_ajustes() -> void:
