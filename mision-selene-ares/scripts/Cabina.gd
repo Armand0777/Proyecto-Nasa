@@ -52,7 +52,7 @@ const RADIO_TIERRA := 3000.0
 const DESVIO_OK := 3.0
 
 const COLOR_PARED := Color(0.86, 0.89, 0.93)
-const COLOR_PISO := Color(0.2, 0.22, 0.27)
+const COLOR_PISO := Color(0.25, 0.28, 0.33)
 const COLOR_ACERO := Color(0.42, 0.478, 0.565)
 const COLOR_NOCHE := Color(0.043, 0.063, 0.149)
 const COLOR_TURQUESA := Color(0.18, 0.902, 0.839)
@@ -105,6 +105,16 @@ var _mirada := Vector2(0.18, 0.0)
 ## Textos del panel de arriba después de la órbita terrestre (las capas del aire ya no aplican).
 var _capa_forzada := ""
 var _panel_forzado := ""
+## Tablero: control → [nombre que se ve al apuntar, acción]; teclas que brillan; botones del panel
+## auxiliar; la tapa de la ignición; el control apuntado con el punto del centro; luces de la cabina.
+var _controles := {}
+var _teclas_mat: Array[StandardMaterial3D] = []
+var _botones_aux: Array[Node3D] = []
+var _tapa_ignicion: Node3D
+var _apuntado: Node = null
+var _luces_bajas := false
+var _energia_luces := {}
+var _radio_i := 0
 ## Viaje Tierra → Luna: horas de misión (0 a 72) que avanzan en tiempo acelerado.
 var _viajando := false
 var _horas_viaje := 0.0
@@ -215,26 +225,19 @@ func _process(delta: float) -> void:
 	_tiempo += delta
 	# Pantalla táctil: mirar arrastrando el dedo, joystick al pilotar y el botón de acción
 	# (separar / encender) mientras está el aviso de Espacio.
+	var mirando := _puede_mirar()
 	if ControlesTactiles.activo:
-		var mirando := _sentado and _toma == "" and not _pilotando
 		ControlesTactiles.usar_mirada(mirando)
 		ControlesTactiles.usar_joystick(_pilotando and not _rumbo_listo)
+		ControlesTactiles.mostrar_boton("usar", mirando)
 		ControlesTactiles.mostrar_boton("accion", _aviso_accion.visible, "ENCENDER" if _esperando_encendido else "SEPARAR")
 		if mirando:
-			var giro := ControlesTactiles.tomar_mirada()
-			_mirada.x = clampf(_mirada.x - giro.y, 0.18 - 0.7, 0.18 + 0.95)
-			_mirada.y = clampf(_mirada.y - giro.x, -1.75, 1.75)
-			_camara.rotation = Vector3(_mirada.x, _mirada.y, 0.0)
-	elif _sentado and _toma == "" and not _pilotando:
-		# Mirar moviendo el mouse (sin capturarlo, así se puede hacer clic en el tablero). Cerca del
-		# centro gira suave; hacia los bordes llega a las ventanas de los lados (±100°), a la consola
-		# del techo (65° arriba) y a los mandos del asiento (30° abajo).
-		var vista := get_viewport().get_visible_rect().size
-		var m := ((get_viewport().get_mouse_position() / vista - Vector2(0.5, 0.5)) * 2.0).clamp(-Vector2.ONE, Vector2.ONE)
-		var arriba := -_curva(m.y) * (0.95 if m.y < 0.0 else 0.7)
-		var deseada := Vector2(0.18 + arriba, -_curva(m.x) * 1.75)
-		_mirada = _mirada.lerp(deseada, minf(1.0, delta * 5.0))
-		_camara.rotation = Vector3(_mirada.x, _mirada.y, 0.0)
+			_girar_mirada(ControlesTactiles.tomar_mirada())
+	# Punto en el centro (como al caminar) y aviso del botón al que se apunta.
+	if _sentado:
+		_hud.get_node("Mira").visible = mirando
+		_actualizar_apuntado(mirando)
+		_animar_teclas()
 	# Luces del tablero que parpadean, cada color a su ritmo.
 	for i in _leds.size():
 		var encendida := fmod(_tiempo * (0.6 + i * 0.37) + i * 0.29, 1.0) < 0.6
@@ -258,7 +261,23 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Con mouse: se mira con el mouse capturado (punto en el centro) y se usa con clic o E.
+	if _sentado and not ControlesTactiles.activo:
+		if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			if _puede_mirar():
+				var giro: float = 0.0025 * Ajustes.sensibilidad_mouse
+				_girar_mirada(event.relative * giro)
+			return
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED  # En la web, el mouse se captura con un clic.
+			else:
+				_usar_apuntado()
+			return
 	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+	if _sentado and event.is_action_pressed("interactuar"):
+		_usar_apuntado()
 		return
 	if _en_puzle:
 		var indice := [KEY_1, KEY_2, KEY_3].find(event.physical_keycode)
@@ -337,7 +356,8 @@ func _preparar_cabina() -> void:
 	_jugador.set_process_unhandled_input(false)
 	_hud.get_node("Mira").hide()
 	_hud.get_node("Aviso").hide()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# Con mouse se mira como al caminar: mouse capturado y punto en el centro (sin flecha del mouse).
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if ControlesTactiles.activo else Input.MOUSE_MODE_CAPTURED
 	_dialogo.arriba_izquierda()  # En la cabina, abajo está el tablero: los mensajes van arriba a la izquierda.
 	_vista_exterior(false)
 
@@ -361,7 +381,8 @@ func _sentarse(con_puzle: bool) -> void:
 	_sentado = true
 	_mirada = Vector2(0.18, 0.0)
 	set_process(true)
-	get_viewport().physics_object_picking = true  # Para hacer clic en el tablero 3D.
+	# Con el dedo se toca el tablero 3D directo; con mouse se apunta con el punto del centro.
+	get_viewport().physics_object_picking = ControlesTactiles.activo
 	if not con_puzle:
 		return
 	_dialogo.decir(
@@ -372,6 +393,184 @@ func _sentarse(con_puzle: bool) -> void:
 	_restante = SEGUNDOS_LIMITE
 	_tiempo_label.show()
 	_en_puzle = true
+
+
+# --- Mirar y usar el tablero con el punto del centro ---
+
+func _puede_mirar() -> bool:
+	return _sentado and _toma == "" and not _pilotando
+
+
+## Gira la vista (en radianes): hasta las ventanas de los lados, la consola del techo y el panel auxiliar.
+func _girar_mirada(giro: Vector2) -> void:
+	_mirada.x = clampf(_mirada.x - giro.y, 0.18 - 0.75, 0.18 + 0.95)
+	_mirada.y = clampf(_mirada.y - giro.x, -1.75, 1.75)
+	_camara.rotation = Vector3(_mirada.x, _mirada.y, 0.0)
+
+
+## Qué control está en el centro de la vista (a menos de 2,4 m) y su aviso «[E] nombre».
+func _actualizar_apuntado(activo: bool) -> void:
+	var nuevo: Node = null
+	if activo:
+		var origen := _camara.global_position
+		var consulta := PhysicsRayQueryParameters3D.create(origen, origen - _camara.global_basis.z * 2.4)
+		var choque := get_world_3d().direct_space_state.intersect_ray(consulta)
+		if not choque.is_empty() and _controles.has(choque["collider"]):
+			nuevo = choque["collider"]
+	_apuntado = nuevo
+	var aviso: Label = _hud.get_node("Aviso")
+	if nuevo:
+		aviso.text = ("[USAR] %s" if ControlesTactiles.activo else "[E] %s") % _controles[nuevo][0]
+	aviso.visible = nuevo != null
+
+
+func _usar_apuntado() -> void:
+	if _apuntado:
+		_usar_control(_apuntado)
+
+
+func _usar_control(control: Node) -> void:
+	if _controles.has(control):
+		var accion: Callable = _controles[control][1]
+		accion.call()
+
+
+## La tecla que toca pulsar parpadea; las ya pulsadas quedan encendidas.
+func _animar_teclas() -> void:
+	for i in _teclas_mat.size():
+		var color: Color = INTERRUPTORES[i][1]
+		if i < _siguiente:
+			_teclas_mat[i].albedo_color = color
+		elif _en_puzle and i == _siguiente:
+			_teclas_mat[i].albedo_color = color.darkened(0.45).lerp(color, 0.5 + 0.5 * sin(_tiempo * 6.0))
+		else:
+			_teclas_mat[i].albedo_color = color.darkened(0.45)
+
+
+func _hundir(boton: Node3D) -> void:
+	Sonidos.tocar("usar.ogg", -8.0, 0.1)
+	var y := boton.position.y
+	var tween := create_tween()
+	tween.tween_property(boton, "position:y", y - 0.02, 0.07)
+	tween.tween_property(boton, "position:y", y, 0.12)
+
+
+func _tapa_ignicion_abierta(abierta: bool) -> void:
+	if _tapa_ignicion:
+		create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_property(_tapa_ignicion, "rotation:x", -1.7 if abierta else 0.0, 0.5)
+
+
+## El botón de separación: suelta la etapa que está lista, o enciende el motor de la cápsula.
+func _pulsar_separacion() -> void:
+	_hundir(_separacion_cuerpo)
+	if _esperando_separacion:
+		_confirmar_separacion()
+	elif _esperando_encendido:
+		_confirmar_encendido()
+	else:
+		_dialogo.decir("El botón de separación solo funciona cuando hay una etapa lista para soltar. ¡Yo te aviso!")
+
+
+# --- Panel auxiliar ---
+
+func _alternar_luces() -> void:
+	_hundir(_botones_aux[0])
+	_luces_bajas = not _luces_bajas
+	for luz in _interior.find_children("*", "OmniLight3D", true, false):
+		if not _energia_luces.has(luz):
+			_energia_luces[luz] = (luz as OmniLight3D).light_energy
+		create_tween().tween_property(luz, "light_energy", _energia_luces[luz] * (0.25 if _luces_bajas else 1.0), 0.4)
+	_dialogo.decir("Luces de la cabina %s. Con poca luz adentro se ven mejor las estrellas." % ("bajas" if _luces_bajas else "encendidas"))
+
+
+func _llamar_radio() -> void:
+	_hundir(_botones_aux[1])
+	var mensajes := [
+		"RADIO · Control de Misión: Artemis-IX, los escuchamos fuerte y claro.",
+		"RADIO · Control de Misión: todos los sistemas se ven bien desde aquí. ¡Buen trabajo, tripulación!",
+		"RADIO · Control de Misión: recuerden, la señal tarda un poquito más cuanto más lejos están.",
+		"RADIO · Control de Misión: los científicos están felices con los datos que mandan.",
+	]
+	if _viajando or _panel_forzado.begins_with("ÓRBITA LUNAR"):
+		mensajes = ["RADIO · Control de Misión: los vemos en el radar, rumbo a la Luna. ¡Que descansen!"]
+	_dialogo.decir(mensajes[_radio_i % mensajes.size()])
+	_radio_i += 1
+
+
+func _ver_estado() -> void:
+	_hundir(_botones_aux[2])
+	var combustible := roundi(lerpf(100.0, 35.0, clampf(_km / 100.0, 0.0, 1.0)))
+	_dialogo.decir("Estado: presión de cabina normal, oxígeno 21 %%, temperatura 22 °C. %s" % ("Altitud %s km." % _con_puntos(floori(_km)) if _despegando else "Combustible %d %%: listos para despegar." % combustible))
+
+
+func _ver_biobox() -> void:
+	_hundir(_botones_aux[3])
+	if _siguiente >= 2 or _despegando:
+		_dialogo.decir("Bio-Box: los peces cebra nadan tranquilos, los abejorros están a 22 °C y las microalgas hacen oxígeno.")
+	else:
+		_dialogo.decir("Bio-Box: ¡la calefacción todavía está apagada! Enciéndela con el interruptor 2 antes de despegar.")
+
+
+## Piso de la cápsula: placa central antideslizante con su rejilla, escotilla de servicio con
+## tornillos, borde de seguridad amarillo y negro junto a las paredes y una tira de luz azul suave.
+func _construir_piso() -> void:
+	var placa := Color(0.36, 0.4, 0.46)
+	var junta := Color(0.2, 0.22, 0.26)
+	var radio := 1.25
+	var interior_octogono := radio * cos(PI / 8.0)
+	# Placa central (octágono) un poco más alta que el piso.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_color(placa)
+	for i in 8:
+		var a0 := -PI / 2.0 + (i - 0.5) * PI / 4.0
+		var a1 := a0 + PI / 4.0
+		for punto in [Vector3(0, 0.006, 0), Vector3(cos(a1), 0, sin(a1)) * radio + Vector3(0, 0.006, 0), Vector3(cos(a0), 0, sin(a0)) * radio + Vector3(0, 0.006, 0)]:
+			st.add_vertex(punto)
+	st.generate_normals()
+	var malla := MeshInstance3D.new()
+	malla.mesh = st.commit()
+	malla.material_override = _material
+	_interior.add_child(malla)
+	# Rejilla antideslizante: líneas que llegan justo al borde del octágono.
+	for n in range(-7, 8):
+		var d := n * 0.16
+		var largo := 2.0 * sqrt(maxf(interior_octogono * interior_octogono - d * d, 0.0))
+		if largo < 0.1:
+			continue
+		_bloque(Vector3(largo, 0.006, 0.012), Vector3(0, 0.01, d), junta, false, _interior)
+		_bloque(Vector3(0.012, 0.006, largo), Vector3(d, 0.01, 0), junta, false, _interior)
+	# Escotilla de servicio con tornillos.
+	var tapa := MeshInstance3D.new()
+	tapa.mesh = Fondo.malla_plana(Fondo._cilindro(0.3, 0.3, 0.015, 16), placa.lightened(0.15))
+	tapa.material_override = _material
+	tapa.position = Vector3(0, 0.016, -0.35)
+	_interior.add_child(tapa)
+	for i in 8:
+		var angulo := TAU * i / 8.0
+		var tornillo := MeshInstance3D.new()
+		tornillo.mesh = Fondo.malla_plana(Fondo._cilindro(0.015, 0.015, 0.01, 6), junta)
+		tornillo.material_override = _material
+		tornillo.position = Vector3(cos(angulo) * 0.25, 0.026, -0.35 + sin(angulo) * 0.25)
+		_interior.add_child(tornillo)
+	# Borde de seguridad y tira de luz alrededor, junto a las paredes.
+	var luz_piso := _material_luz(Color(0.35, 0.65, 1.0))
+	for i in 8:
+		var centro := -PI / 2.0 + i * PI / 4.0
+		var lado := 2.0 * (RADIO_ABAJO - 0.12) * sin(PI / 8.0)
+		var punto := Vector3(cos(centro), 0, sin(centro)) * (RADIO_ABAJO - 0.12) * cos(PI / 8.0)
+		var giro := -centro + PI / 2.0
+		for franja in 4:
+			var t := (franja + 0.5) / 4.0 - 0.5
+			var desplazado := punto + Vector3(-sin(centro), 0, cos(centro)) * t * lado
+			var bloque := _bloque(Vector3(lado / 4.0 - 0.01, 0.008, 0.08), desplazado + Vector3(0, 0.01, 0), COLOR_AMARILLO if franja % 2 == 0 else COLOR_NOCHE, false, _interior)
+			bloque.rotation.y = giro
+		var tira := MeshInstance3D.new()
+		tira.mesh = Fondo._caja(Vector3(lado * 0.9, 0.006, 0.015))
+		tira.material_override = luz_piso
+		tira.position = punto * 0.93 + Vector3(0, 0.012, 0)
+		tira.rotation.y = giro
+		_interior.add_child(tira)
 
 
 # --- Puzle 2: los tres interruptores ---
@@ -390,11 +589,10 @@ func _activar(indice: int) -> void:
 		return
 	Sonidos.tocar("interruptor.ogg")
 	_luces[indice].albedo_color = COLOR_LISTO
-	var boton := _botones[indice]
-	var tween := create_tween()
-	tween.tween_property(boton, "position:y", boton.position.y - 0.03, 0.08)
-	tween.tween_property(boton, "position:y", boton.position.y, 0.12)
+	_hundir(_botones[indice])
 	_siguiente += 1
+	if _siguiente == 2:
+		_tapa_ignicion_abierta(true)  # La tapa de seguridad de la ignición se levanta cuando le toca.
 	match indice:
 		0:
 			_dialogo.decir("Presión de cabina correcta. Ahora enciende la calefacción de la Bio-Box.")
@@ -412,6 +610,7 @@ func _reiniciar_puzle() -> void:
 	_restante = SEGUNDOS_LIMITE
 	for luz in _luces:
 		luz.albedo_color = COLOR_APAGADO
+	_tapa_ignicion_abierta(false)
 	Sonidos.tocar("error.ogg")
 	_dialogo.decir("¡Se acabó el tiempo! No pasa nada: los astronautas practican muchas veces. Otra vez: presión, calefacción e ignición.")
 
@@ -1327,11 +1526,13 @@ func _construir_interior() -> void:
 	luz.position = Vector3(0, 2.1, 0)
 	_interior.add_child(luz)
 
+	_construir_piso()
 	_construir_tablero()
 	_construir_asientos()
 	_construir_detalles()
-	# Rendimiento: todo lo fijo en pocas mallas; quedan aparte la escotilla y los botones que se hunden.
-	Decoracion.fusionar(_interior, [_puerta_escotilla, _separacion_cuerpo] + _botones)
+	# Rendimiento: todo lo fijo en pocas mallas; quedan aparte la escotilla, los botones que se hunden
+	# y la tapa de la ignición (que se levanta).
+	Decoracion.fusionar(_interior, [_puerta_escotilla, _separacion_cuerpo, _tapa_ignicion] + _botones + _botones_aux)
 
 
 ## Tablero: tres consolas inclinadas con pantallas, los tres interruptores del Puzle 2 y el botón
@@ -1383,47 +1584,142 @@ func _construir_tablero() -> void:
 	_pantallas[1].text = "ALTITUD\n0 km\n0 km/h"
 	_pantallas[2].text = _texto_motores
 
+	# Interruptores del Puzle 2: módulos con tecla retroiluminada, barra de estado (gris → verde) y
+	# nombre limpio. La tecla que toca pulsar parpadea; la ignición tiene tapa de seguridad.
 	for i in INTERRUPTORES.size():
 		var posicion := Vector3(-0.36 + 0.36 * i, 1.12, -1.26)
+		var color: Color = INTERRUPTORES[i][1]
+		_bloque(Vector3(0.25, 0.02, 0.21), posicion + Vector3(0, -0.045, 0), COLOR_NOCHE.lightened(0.06), false, _interior)
+		_bloque(Vector3(0.25, 0.022, 0.012), posicion + Vector3(0, -0.045, 0.1), color.darkened(0.25), false, _interior)
 		var cuerpo := StaticBody3D.new()
 		cuerpo.position = posicion
 		var forma := CollisionShape3D.new()
 		forma.shape = BoxShape3D.new()
-		forma.shape.size = Vector3(0.18, 0.1, 0.18)
+		forma.shape.size = Vector3(0.2, 0.1, 0.2)
 		cuerpo.add_child(forma)
-		_bloque(Vector3(0.16, 0.08, 0.16), Vector3.ZERO, INTERRUPTORES[i][1], false, cuerpo)
+		_bloque(Vector3(0.14, 0.035, 0.14), Vector3(0, -0.02, 0), COLOR_NOCHE, false, cuerpo)
+		var tecla := _material_luz(color.darkened(0.45))
+		var tapa_tecla := MeshInstance3D.new()
+		tapa_tecla.mesh = Fondo._caja(Vector3(0.12, 0.012, 0.12))
+		tapa_tecla.material_override = tecla
+		tapa_tecla.position = Vector3(0, 0.003, 0)
+		cuerpo.add_child(tapa_tecla)
+		_teclas_mat.append(tecla)
 		cuerpo.input_event.connect(_al_tocar.bind(i))
 		_interior.add_child(cuerpo)
 		_botones.append(cuerpo)
+		_controles[cuerpo] = ["%d · %s" % [i + 1, String(INTERRUPTORES[i][0]).replace("\n", " ")], _activar.bind(i)]
+		# Barra de estado delante de la tecla.
 		var luz := StandardMaterial3D.new()
 		luz.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		luz.albedo_color = COLOR_APAGADO
-		_foco(luz, posicion + Vector3(0, 0.0, 0.14), 0.035)
+		var barra := MeshInstance3D.new()
+		barra.mesh = Fondo._caja(Vector3(0.14, 0.012, 0.018))
+		barra.material_override = luz
+		barra.position = posicion + Vector3(0, -0.03, 0.085)
+		_interior.add_child(barra)
 		_luces.append(luz)
-		_etiqueta_3d("%d · %s" % [i + 1, INTERRUPTORES[i][0]], posicion + Vector3(0, 0.08, 0))
+		_rotulo_tecla("%d  %s" % [i + 1, String(INTERRUPTORES[i][0]).replace("\n", " ").to_upper()], posicion + Vector3(0, 0.055, -0.02))
+	# Tapa de seguridad transparente sobre la ignición (se levanta cuando le toca).
+	_tapa_ignicion = Node3D.new()
+	_tapa_ignicion.position = Vector3(0.36, 1.13, -1.35)
+	_interior.add_child(_tapa_ignicion)
+	var acrilico := StandardMaterial3D.new()
+	acrilico.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	acrilico.albedo_color = Color(1.0, 0.35, 0.35, 0.35)
+	acrilico.roughness = 0.1
+	acrilico.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for datos in [[Vector3(0.17, 0.01, 0.17), Vector3(0, 0.03, 0.09)], [Vector3(0.01, 0.04, 0.17), Vector3(-0.085, 0.01, 0.09)], [Vector3(0.01, 0.04, 0.17), Vector3(0.085, 0.01, 0.09)], [Vector3(0.17, 0.04, 0.01), Vector3(0, 0.01, 0.175)]]:
+		var pared := MeshInstance3D.new()
+		pared.mesh = Fondo._caja(datos[0])
+		pared.material_override = acrilico
+		pared.position = datos[1]
+		pared.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_tapa_ignicion.add_child(pared)
 
-	# Botón amarillo de separación, con franjas negras, delante de los interruptores.
+	# Botón de separación tipo hongo: base con franjas de peligro, collar y tapa grande con aro de luz.
 	var separacion := StaticBody3D.new()
 	separacion.position = Vector3(0.0, 0.98, -1.0)
 	var forma_separacion := CollisionShape3D.new()
 	forma_separacion.shape = BoxShape3D.new()
-	forma_separacion.shape.size = Vector3(0.34, 0.12, 0.22)
+	forma_separacion.shape.size = Vector3(0.3, 0.14, 0.22)
 	separacion.add_child(forma_separacion)
-	_bloque(Vector3(0.32, 0.05, 0.2), Vector3.ZERO, COLOR_NOCHE, false, separacion)
-	for x in [-0.11, 0.11]:
-		_bloque(Vector3(0.05, 0.055, 0.2), Vector3(x, 0.002, 0), COLOR_AMARILLO, false, separacion)
+	_bloque(Vector3(0.3, 0.03, 0.2), Vector3.ZERO, COLOR_NOCHE, false, separacion)
+	for x in [-0.11, -0.055, 0.055, 0.11]:
+		_bloque(Vector3(0.025, 0.032, 0.2), Vector3(x, 0.001, 0), COLOR_AMARILLO, false, separacion)
+	var collar := MeshInstance3D.new()
+	collar.mesh = Fondo.malla_plana(Fondo._cilindro(0.07, 0.075, 0.03, 16), COLOR_ACERO.darkened(0.3))
+	collar.material_override = _material
+	collar.position = Vector3(0, 0.03, 0)
+	separacion.add_child(collar)
 	_luz_separacion = StandardMaterial3D.new()
 	_luz_separacion.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_luz_separacion.albedo_color = COLOR_APAGADO
-	var tapa := MeshInstance3D.new()
-	tapa.mesh = Fondo._cilindro(0.05, 0.05, 0.05, 10)
-	tapa.material_override = _luz_separacion
-	tapa.position = Vector3(0, 0.04, 0)
-	separacion.add_child(tapa)
+	for datos in [[Fondo._cilindro(0.075, 0.075, 0.006, 20), 0.047], [Fondo._cilindro(0.05, 0.055, 0.035, 16), 0.065]]:
+		var pieza := MeshInstance3D.new()
+		pieza.mesh = datos[0]
+		pieza.material_override = _luz_separacion
+		pieza.position = Vector3(0, datos[1], 0)
+		separacion.add_child(pieza)
 	separacion.input_event.connect(_al_tocar_separacion)
 	_interior.add_child(separacion)
 	_separacion_cuerpo = separacion
-	_etiqueta_3d("SEPARACIÓN", separacion.position + Vector3(0, 0.08, 0))
+	_controles[separacion] = ["SEPARACIÓN / MOTOR", _pulsar_separacion]
+	_rotulo_tecla("SEPARACIÓN", separacion.position + Vector3(0, 0.1, -0.04))
+	_construir_panel_auxiliar()
+
+
+## Panel auxiliar junto al asiento (a la izquierda): luces de la cabina, radio con Control de
+## Misión, estado de los sistemas y estado de la Bio-Box. Se apuntan con el punto y se usan con E.
+func _construir_panel_auxiliar() -> void:
+	var panel := Node3D.new()
+	panel.position = Vector3(-0.52, 0.86, 0.12)
+	panel.rotation = Vector3(-0.75, 0.55, 0)
+	_interior.add_child(panel)
+	_bloque(Vector3(0.05, 0.86, 0.05), Vector3(0, -0.45, 0.04), COLOR_ACERO.darkened(0.2), false, panel)  # Columna.
+	_bloque(Vector3(0.36, 0.03, 0.3), Vector3.ZERO, COLOR_NOCHE.lightened(0.08), false, panel)
+	_bloque(Vector3(0.36, 0.032, 0.012), Vector3(0, 0, -0.145), COLOR_ACERO, false, panel)
+	_rotulo_tecla("AUXILIAR", Vector3(0, 0.02, -0.165), panel)
+	var datos_teclas := [
+		["LUCES", Color(1.0, 0.85, 0.45), _alternar_luces, Vector3(-0.085, 0, -0.06)],
+		["RADIO", Color(0.4, 0.7, 1.0), _llamar_radio, Vector3(0.085, 0, -0.06)],
+		["ESTADO", Color(0.45, 0.9, 0.6), _ver_estado, Vector3(-0.085, 0, 0.08)],
+		["BIO-BOX", Color(1.0, 0.62, 0.3), _ver_biobox, Vector3(0.085, 0, 0.08)],
+	]
+	for datos in datos_teclas:
+		var cuerpo := StaticBody3D.new()
+		cuerpo.position = datos[3] + Vector3(0, 0.03, 0)
+		var forma := CollisionShape3D.new()
+		forma.shape = BoxShape3D.new()
+		forma.shape.size = Vector3(0.13, 0.06, 0.1)
+		cuerpo.add_child(forma)
+		_bloque(Vector3(0.12, 0.025, 0.085), Vector3.ZERO, COLOR_NOCHE, false, cuerpo)
+		var luz := MeshInstance3D.new()
+		luz.mesh = Fondo._caja(Vector3(0.105, 0.01, 0.022))
+		luz.material_override = _material_luz((datos[1] as Color).darkened(0.1))
+		luz.position = Vector3(0, 0.015, 0.025)
+		cuerpo.add_child(luz)
+		panel.add_child(cuerpo)
+		_botones_aux.append(cuerpo)
+		_controles[cuerpo] = [datos[0], datos[2]]
+		_rotulo_tecla(datos[0], datos[3] + Vector3(0, 0.05, -0.012), panel, true)
+		cuerpo.input_event.connect(func(_c: Node, evento: InputEvent, _p: Vector3, _n: Vector3, _f: int) -> void:
+			if evento is InputEventMouseButton and evento.pressed and evento.button_index == MOUSE_BUTTON_LEFT:
+				_usar_control(cuerpo))
+
+
+## Nombre de una tecla: letras blancas limpias, sin contorno (estilo de cabina moderna).
+func _rotulo_tecla(texto: String, posicion: Vector3, padre: Node3D = null, acostado := false) -> void:
+	var rotulo := Label3D.new()
+	rotulo.text = texto
+	rotulo.font_size = 30
+	rotulo.outline_size = 0
+	rotulo.pixel_size = 0.0011
+	rotulo.modulate = Color(0.92, 0.95, 1.0, 0.92)
+	rotulo.position = posicion
+	if acostado:
+		rotulo.rotation.x = -PI / 2.0  # Pegado a la superficie del panel.
+	(padre if padre else _interior).add_child(rotulo)
 
 
 func _foco(material: StandardMaterial3D, posicion: Vector3, radio: float) -> void:

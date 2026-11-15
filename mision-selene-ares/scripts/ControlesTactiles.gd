@@ -130,7 +130,7 @@ func _process(_delta: float) -> void:
 	visible = not pausado
 	var en_menu := escena != null and escena.name == "MenuPrincipal"
 	var mostrar := {
-		"usar": _caminando,
+		"usar": _caminando or _pedidos.get("usar", false),
 		"saltar": _caminando,
 		"foto": _caminando and _pedidos.get("foto", false),
 		"accion": _pedidos.get("accion", false),
