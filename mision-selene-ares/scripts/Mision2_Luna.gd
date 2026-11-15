@@ -29,7 +29,7 @@ const COLOR_ACERO := Color(0.42, 0.478, 0.565)
 const COLOR_TIERRA := Color(0.545, 0.369, 0.235)
 
 ## Misión 3 del guion. Mientras no exista, al terminar la caminata se vuelve al menú.
-const SIGUIENTE_ESCENA := "res://scenes/Mision3_Escolta.tscn"
+const SIGUIENTE_ESCENA := "res://scenes/Mision2_Partida.tscn"
 const MENU := "res://scenes/MenuPrincipal.tscn"
 ## Dirección de la Tierra en el cielo lunar (la misma del shader CieloLuna).
 const DIRECCION_TIERRA := Vector3(0.578, 0.438, -0.689)  # Igual que en CieloLuna.gdshader.
@@ -851,7 +851,7 @@ func _terminar_eva(rescate: bool) -> void:
 		GameManager.cambiar("oxigeno_traje", 30.0)
 		_arti.decir("¡Usé el oxígeno de reserva y te traje de vuelta! Lo que recogiste está a salvo. Recarga el traje y vuelve a salir cuando quieras.")
 	elif _hielo_recogido >= _hielos.size() and _roca_ok and _foto_ok:
-		_arti.decir("¡Caminata completa! Hielo, roca lunar y foto científica: los científicos en la Tierra van a estar felices. Prepárate: nuestro próximo destino es Marte.")
+		_arti.decir("¡Caminata completa! Hielo, roca lunar y foto científica: los científicos en la Tierra van a estar felices. Les envío todo ahora mismo.")
 		_ir_a_marte()
 	else:
 		_arti.decir("Bienvenido de vuelta. Todavía falta algo de la lista: puedes volver a salir por la esclusa.")
@@ -862,9 +862,9 @@ func _ir_a_marte() -> void:
 	var fundido := create_tween().set_parallel()
 	fundido.tween_property(_fundido, "modulate:a", 1.0, 1.0)
 	fundido.tween_property(_llegada, "modulate:a", 1.0, 1.0)
-	_llegada.text = "Rumbo a Marte\n6 meses de viaje en sueño criogénico"
+	_llegada.text = "Transmisión entrante…"  # Sigue en Mision2_Partida: la llamada y el despegue.
 	await fundido.finished
-	await get_tree().create_timer(4.0, false).timeout
+	await get_tree().create_timer(1.5, false).timeout
 	get_tree().change_scene_to_file(SIGUIENTE_ESCENA if ResourceLoader.exists(SIGUIENTE_ESCENA) else MENU)
 
 

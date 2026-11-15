@@ -25,6 +25,7 @@ const GRUPOS := [
 		["Alunizaje", "Calibrar y pilotar el descenso al Polo Sur", "res://scenes/Mision2_Alunizaje.tscn", ""],
 		["Tormenta solar", "En el biodomo, con datos reales de NASA DONKI", "res://scenes/Mision2_Luna.tscn", "tormenta"],
 		["Caminata EVA", "Hielo, rocas y foto científica", "res://scenes/Mision2_Luna.tscn", "eva"],
+		["Partida a Marte", "La llamada, el despegue y el acople con Aurora", "res://scenes/Mision2_Partida.tscn", ""],
 	]],
 	["MARTE", "Misión 3 y cierre", Color("e0703c"), [
 		["Escolta de las cápsulas", "Guiarlas desde la sala de control", "res://scenes/Mision3_Escolta.tscn", ""],

@@ -82,6 +82,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | Escena 2.2: Biodomo | `P0` | ✅ Hecho |
 | Escena 2.3: Tormenta solar (DONKI) | `P0` | ✅ Hecho (con respaldo de datos reales) |
 | Escena 2.4: Caminata EVA | `P1` | ✅ Hecho |
+| Escena 2.5: Partida a Marte (llamada, despegue y acople con Aurora) | `P1` | ✅ Hecho (falta verla en pantalla) |
 | Escena 3.1: Despegue lunar y criogenia | `P2` | 🟡 Plan B: texto `Viaje a Marte · 6 meses` |
 | Escena 3.2: Asteroides | `P2` | ✅ Hecho como **escolta desde la sala de control** (`scenes/Mision3_Escolta.tscn`) |
 | Escena 3.3: Marte | `P1` | ✅ Hecho (como tablero de control) |
@@ -291,6 +292,16 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - 🟡 Plan B hecho: texto `Viaje a Marte · 6 meses` y fundido.
 - [ ] Escena completa: cama criogénica, las 3 cápsulas de colores y la Luna alejándose.
 - [ ] Latido de corazón en el fundido.
+
+### Escena 2.5: La partida a Marte (`scenes/Mision2_Partida.tscn`, `scripts/Mision2_Partida.gd`)
+- [x] **La llamada:** al terminar la caminata EVA llega una transmisión de Control de Misión (3 páginas): felicita por los datos de la Luna, cuenta que las 3 cápsulas ya viajan a Marte y que desde la Tierra no se pueden guiar (una orden tarda de 4 a 24 minutos), y propone la Misión Ares. Botón «¡Acepto la misión!».
+- [x] **Cinemática:** el astronauta y A.R.T.I. caminan al módulo con el biodomo detrás, última mirada al biodomo, suben por la escalera y se cierra la escotilla.
+- [x] **Despegue:** cuenta regresiva, llama y polvo que cae recto (sin aire), visto desde el suelo.
+- [x] **Acople con la Estación Aurora** en la órbita de la Luna: el jugador alinea el módulo con A/D y W/S (con inercia) y acopla con Espacio; «Que lo haga A.R.T.I.» aparece si tarda. Botones para pantallas táctiles.
+- [x] **Rumbo a Marte:** Aurora enciende sus motores y se aleja de la Luna; «Día 1 · Viaje a Marte» y sueño criogénico (se dice que es ciencia ficción). Sigue en la escolta («Día 183»).
+- [x] Se puede saltar; está en el Modo Jueces («Partida a Marte») y en el menú de pausa.
+- [ ] Grabar las frases `m2_09` a `m2_15` del guion de doblaje. Control de Misión hoy es solo texto (sin voz).
+- [ ] Verla en pantalla y ajustar cámaras y tiempos (solo se probó sin ventana).
 
 ### Escena 3.2: Llegada a Marte y escolta de las cápsulas (`scenes/Mision3_Escolta.tscn`, `scripts/Mision3_Escolta.gd`)
 - [x] **Cinemática:** A.R.T.I. despierta a Comandante Junior en la cápsula criogénica de la estación en órbita de Marte (vista borrosa, vapor, tapa que se abre), le muestra Marte por la ventana y lo sienta en la sala de control. Se puede saltar.

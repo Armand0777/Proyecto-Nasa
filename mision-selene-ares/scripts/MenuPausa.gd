@@ -167,6 +167,8 @@ func _donde(escena: Node) -> Array:
 			if escena.get("_eva"):
 				return [1, MISIONES[1], "Caminata EVA", "eva"]
 			return [1, MISIONES[1], "Biodomo lunar", ""]
+		"res://scenes/Mision2_Partida.tscn":
+			return [1, MISIONES[1], "Partida de la Luna a Marte", ""]
 		"res://scenes/EstacionAurora.tscn":
 			return [2, MISIONES[2], "Estación Aurora", ""]
 		"res://scenes/RoverMarte.tscn":

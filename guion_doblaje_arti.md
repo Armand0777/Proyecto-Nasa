@@ -120,6 +120,15 @@
 | `m2_06b_tormenta_alcanzo.ogg` | Si la tormenta alcanza al biodomo | *(Con voz empática, dulce y cero regaño)* "La tormenta nos alcanzó y algunas plantas se dañaron. No pasa nada: aprendimos que hay que subir el escudo y cerrar las persianas a tiempo. Ya devolví la energía a comunicaciones y calefacción. Cuando quieras, sal por la esclusa para la caminata EVA." |
 | `m2_07_salida_eva.ogg` | Al salir por la esclusa | *(Con voz de asombro y emoción)* "¡Estás pisando la Luna, Comandante! Vigila la barra azul de Oxígeno de tu traje. Usa tu escáner para encontrar hielo de agua (suena más rápido cuando estás cerca), recoge un fragmento lunar y toma una foto científica con la tecla F antes de que se acabe tu aire." |
 | `m2_08_que_es_hielo.ogg` | Botón `[? ¿Por qué hay hielo en la Luna?]` | *(Con voz misteriosa y amigable)* "En los cráteres del Polo Sur nunca da la luz del Sol, ¡puede hacer más de 200 grados bajo cero! Ahí el hielo se conserva congelado desde hace millones de años y podemos derretirlo para beber agua y hacer oxígeno." |
+| `m2_09_llamada.ogg` | Partida: al terminar la caminata EVA, junto al biodomo | *(Sorprendida y emocionada)* "¡Comandante, llega una transmisión de Control de Misión desde la Tierra! La pongo en pantalla." |
+| `m2_10_ultima_mirada.ogg` | Al pie del módulo, mirando el biodomo por última vez | *(Tranquila y con cariño, casi en voz baja)* "Aquí aprendiste a vivir lejos de casa. Ahora vamos más lejos." |
+| `m2_11_despegue_luna.ogg` | Dentro del módulo, antes de la cuenta regresiva | *(Segura, como piloto)* "Todos los sistemas listos. Despegar de la Luna cuesta menos combustible que hacerlo de la Tierra: aquí la gravedad es seis veces menor." |
+| `m2_11b_luna_a_marte.ogg` | Botón `[? ¿Por qué pasamos por la Luna para ir a Marte?]` | *(Didáctica)* "Porque salir de la Luna es más fácil que salir de la Tierra, y aquí se puede practicar cómo vivir en otro mundo. El programa Artemis de la NASA sigue esa idea: de la Luna a Marte." |
+| `m2_12_acoplar.ogg` | En la órbita de la Luna, frente a la Estación Aurora | *(Maravillada y después clara, explicando)* "Ahí está Aurora, nuestra estación. Alinea el módulo con A, D, W y S hasta que la cruz quede dentro del círculo, y pulsa Espacio para acoplar." |
+| `m2_12b_que_es_acoplar.ogg` | Botón `[? ¿Qué es acoplar?]` | *(Didáctica)* "Es unir dos naves en el espacio por una puerta especial, para pasar de una a otra sin salir al vacío. Así llegan los astronautas a la Estación Espacial Internacional." |
+| `m2_13_acople_fuera.ogg` | Se pulsa Espacio con la cruz fuera del círculo | *(Paciente, sin regañar)* "Todavía no estamos alineados: lleva la cruz al centro del círculo y vuelve a intentarlo." |
+| `m2_14_ayuda_acople.ogg` | Botón «Que lo haga A.R.T.I.» | *(Cariñosa, enseñando)* "¡Te ayudo! Mira cómo llevo la cruz al centro, despacito." |
+| `m2_15_rumbo_a_marte.ogg` | El módulo queda acoplado a Aurora | *(Triunfal y después suave)* "¡Acople perfecto! Aurora enciende sus motores: rumbo a Marte. El viaje dura seis meses, así que vamos a dormir en las cápsulas criogénicas. Eso todavía es ciencia ficción: lo imaginamos para el juego." |
 
 ---
 

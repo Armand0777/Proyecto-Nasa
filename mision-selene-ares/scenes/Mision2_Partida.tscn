@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+; Misión 2, final: la llamada de Control de Misión, el despegue de la Luna, el acople con la Estación
+; Aurora y la partida hacia Marte. Todo se arma en scripts/Mision2_Partida.gd.
+
+[ext_resource type="Script" path="res://scripts/Mision2_Partida.gd" id="1_partida"]
+[ext_resource type="PackedScene" path="res://scenes/fondos/FondoLuna.tscn" id="2_exterior"]
+[ext_resource type="PackedScene" path="res://scenes/DialogoARTI.tscn" id="3_dialogo"]
+
+[node name="Mision2_Partida" type="Node3D"]
+script = ExtResource("1_partida")
+
+[node name="Exterior" parent="." instance=ExtResource("2_exterior")]
+tamano_terreno = 4000.0
+celdas = 111
+montanas = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="DialogoARTI" parent="UI" instance=ExtResource("3_dialogo")]
+unique_name_in_owner = true
