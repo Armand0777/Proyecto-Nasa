@@ -26,7 +26,7 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("toma="):
 			toma = arg.substr(5)
-	Ajustes.voz_arti = false  # La voz del sistema no queda en el video; mejor que no suene.
+	Ajustes.voz_arti = OS.get_cmdline_user_args().has("voz")  # La voz del sistema no queda en el video; mejor que no suene.
 	_capa = CanvasLayer.new()
 	_capa.layer = 127
 	add_child(_capa)
@@ -206,6 +206,9 @@ func _grabar() -> void:
 		"09_descenso":
 			# El módulo baja hacia el Polo Sur y despliega las patas.
 			await _ir("res://scenes/Mision2_Alunizaje.tscn")
+			await _hasta(func() -> bool: return is_instance_valid(escena.get("_boton_chequeo")) or not (escena.get("_deslizadores") as Dictionary).is_empty())
+			if is_instance_valid(escena.get("_boton_chequeo")):
+				(escena.get("_boton_chequeo") as Button).pressed.emit()
 			await _hasta(func() -> bool: return not (escena.get("_deslizadores") as Dictionary).is_empty())
 			escena.call("_alunizar")
 			await _hasta(func() -> bool: return float(escena.get("_altura_abs")) - (escena.get("_zona") as Vector3).y < 1700.0)
@@ -265,6 +268,20 @@ func _grabar() -> void:
 			await _esperar(0.1)
 			_accion()
 			await _esperar(4.0)
+		"prueba_despegue", "prueba_despegue_lenta":
+			# No es una toma: recorre solo el despegue, las etapas y el viaje hasta llegar al alunizaje,
+			# para comprobar que nada falla (la «lenta» va a velocidad normal).
+			_auto_cabina = true
+			_ocultar_ui = false
+			await _ir("res://scenes/Mision1_Tierra.tscn", "cabina")
+			_negro.hide()
+			if toma == "prueba_despegue_lenta":
+				Engine.time_scale = 1.0
+			await _esperar(0.5)
+			escena.get_node("Cabina").call("_despegar")
+			await _hasta(func() -> bool: return get_tree().current_scene != null and get_tree().current_scene.scene_file_path.ends_with("Mision2_Alunizaje.tscn"), 400.0)
+			await _esperar(4.0)
+			print("PRUEBA_DESPEGUE_COMPLETA")
 		_:
 			push_error("Toma desconocida: %s" % toma)
 	_corte()

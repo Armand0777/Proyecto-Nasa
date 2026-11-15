@@ -6,3 +6,6 @@ build/
 
 # Tomas grabadas para el tráiler (herramientas/trailer).
 grabaciones_trailer/
+
+# Clave personal de api.nasa.gov (cada quien crea la suya).
+mision-selene-ares/data/clave_nasa.txt

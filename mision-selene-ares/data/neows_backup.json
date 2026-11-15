@@ -1,0 +1,53 @@
+{
+	"fuente": "NASA NeoWs (api.nasa.gov), respuesta del 2026-11-15",
+	"near_earth_objects": {
+		"2026-11-15": [
+			{
+				"absolute_magnitude_h": 25.0,
+				"close_approach_data": [
+					{
+						"close_approach_date": "2026-11-15",
+						"close_approach_date_full": "2026-Nov-15 02:19",
+						"epoch_date_close_approach": 1794709140000.0,
+						"miss_distance": {
+							"astronomical": "0.1210884812",
+							"kilometers": "18114578.869055044",
+							"lunar": "47.1034191868",
+							"miles": "11255877.3672618472"
+						},
+						"orbiting_body": "Earth",
+						"relative_velocity": {
+							"kilometers_per_hour": "31907.337094012",
+							"kilometers_per_second": "8.8631491928",
+							"miles_per_hour": "19825.9784293321"
+						}
+					}
+				],
+				"estimated_diameter": {
+					"feet": {
+						"estimated_diameter_max": 194.9956979785,
+						"estimated_diameter_min": 87.2047272
+					},
+					"kilometers": {
+						"estimated_diameter_max": 0.0594346868,
+						"estimated_diameter_min": 0.02658
+					},
+					"meters": {
+						"estimated_diameter_max": 59.4346868419,
+						"estimated_diameter_min": 26.58
+					},
+					"miles": {
+						"estimated_diameter_max": 0.0369309908,
+						"estimated_diameter_min": 0.0165160412
+					}
+				},
+				"id": "3841634",
+				"is_potentially_hazardous_asteroid": false,
+				"is_sentry_object": false,
+				"name": "(2019 HW3)",
+				"nasa_jpl_url": "https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr=3841634",
+				"neo_reference_id": "3841634"
+			}
+		]
+	}
+}

@@ -80,7 +80,7 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 | Escena 1.2: Cabina y despegue | `P0` | ✅ Hecho |
 | Escena 2.1: Órbita y alunizaje | `P1` | ✅ Hecho |
 | Escena 2.2: Biodomo | `P0` | ✅ Hecho |
-| Escena 2.3: Tormenta solar (DONKI) | `P0` | ✅ Hecho (falta el respaldo con datos reales) |
+| Escena 2.3: Tormenta solar (DONKI) | `P0` | ✅ Hecho (con respaldo de datos reales) |
 | Escena 2.4: Caminata EVA | `P1` | ✅ Hecho |
 | Escena 3.1: Despegue lunar y criogenia | `P2` | 🟡 Plan B: texto `Viaje a Marte · 6 meses` |
 | Escena 3.2: Asteroides | `P2` | ✅ Hecho como **escolta desde la sala de control** (`scenes/Mision3_Escolta.tscn`) |
@@ -251,7 +251,11 @@ Se empezó a agregar sonidos y se detuvo a la mitad.
 - [x] **Puzle 5, Inciso A:** panel con Comunicaciones, Calefacción y Escudo; se pasa energía al escudo y aparece `SIN SEÑAL` al cortar comunicaciones.
 - [x] **Puzle 5, Inciso B:** persianas blindadas que bajan.
 - [x] Final distinto si se protegió a tiempo o no (sin castigo fuerte).
-- [ ] **Respaldo con datos reales:** falta crear `mision-selene-ares/data/nasa_backup.json` con llamaradas reales de DONKI. Sin internet, hoy sale como "evento de práctica". (El 14 nov la API de la NASA no respondía.)
+- [x] **Respaldo con datos reales:** `mision-selene-ares/data/nasa_backup.json` tiene las 28 llamaradas reales de DONKI del 10 y 11 de mayo de 2024. Sin internet, la tormenta usa la X5.8 del 11 de mayo y la marca como ARCHIVADO (el escudo pide 80).
+- [x] **NASA OSDR (15 nov):** chequeo médico al despertar en órbita lunar (`Mision2_Alunizaje.gd`, después del acople) con el estudio OSD-575 (sangre de los 4 astronautas de Inspiration4, antes y después de 3 días en órbita). Ficha en `data/osdr_osd575.json`; `NasaApi.estudio_astronautas()` la confirma con la API de OSDR (EN VIVO) o la deja como ARCHIVADO. También sale en "Ciencia real de la NASA" del cierre.
+- [x] **NASA NeoWs y clave del equipo (15 nov):** en el viaje a la Luna (`Cabina.gd`, a las 14 h de misión) se muestran los asteroides reales que pasan cerca de la Tierra ese día (`NasaApi.asteroides_de_hoy()`). La clave de api.nasa.gov se lee de `data/clave_nasa.txt` (fuera del repositorio; incluida en la exportación con `include_filter`); sin ella se usa `DEMO_KEY`.
+- [ ] NeoWs: guardar una respuesta real en `data/neows_backup.json` para tener dato ARCHIVADO sin conexión. Grabar la pista `m1_28b_asteroides`.
+- [ ] Grabar las pistas nuevas `m2_00b_chequeo_medico` y `m2_00c_como_lo_estudiaron`. Probar OSDR en la versión web (si el navegador bloquea la consulta, queda ARCHIVADO).
 - 🟡 Sirena: el sonido está conectado (ver sección de sonidos).
 - [ ] Paredes dobles que se llenan de agua al subir el escudo, con brillo violeta.
 - [ ] Los ojos de A.R.T.I. se ponen rojos.

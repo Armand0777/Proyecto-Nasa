@@ -20,6 +20,7 @@ const SIGUIENTE_ESCENA := "res://scenes/Mision2_Luna.tscn"
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const ModuloLunar := preload("res://scripts/ModuloLunar.gd")
 const ARTI_ESCENA := preload("res://scenes/ARTI.tscn")
+const NasaApi := preload("res://scripts/NasaApi.gd")
 ## [id, nombre, zona verde mínima, máxima, para qué sirve]
 const SISTEMAS := [
 	["propulsores", "Propulsores de freno", 40.0, 55.0, "frenan la caída: sin aire, en la Luna no sirven los paracaídas"],
@@ -55,6 +56,11 @@ const INTENTOS_MAXIMOS := 2
 @onready var _fundido: ColorRect = %Fundido
 
 var _deslizadores := {}
+## Chequeo médico al despertar: ficha del estudio OSD-575 de NASA OSDR ({} = no se pudo leer) y su
+## botón «Continuar».
+var _estudio := {}
+var _estudio_listo := false
+var _boton_chequeo: Button
 var _valores := {}
 var _aterrizar: Button
 var _ajustando := false
@@ -163,7 +169,17 @@ func _ready() -> void:
 	_camara_descenso.look_at(_posicion() + Vector3.UP * _foco_alto)
 	_camara_descenso.make_current()
 	_en_orbita = true
+	_buscar_estudio()
 	_acoplar()
+
+
+## Pide la ficha del estudio de astronautas mientras dura el acople (EN VIVO o ARCHIVADA).
+func _buscar_estudio() -> void:
+	var api := NasaApi.new()
+	add_child(api)
+	_estudio = await api.estudio_astronautas()
+	api.queue_free()
+	_estudio_listo = true
 
 
 ## La cápsula se acopla al módulo de alunizaje que esperaba en órbita; después se calibra el descenso.
@@ -174,6 +190,7 @@ func _acoplar() -> void:
 	await acople.finished
 	Sonidos.tocar("golpe.ogg", -12.0)
 	await _pausa(2.0)
+	await _chequeo_medico()
 	_crear_panel()
 	_arti.decir(
 		"¡Despierta, Comandante! Llegamos a la órbita de la Luna. Vamos a aterrizar en el Polo Sur porque ahí hay hielo de agua escondido. Equilibra la batería de descenso antes de bajar: deja los tres sistemas en la zona verde.",
@@ -305,6 +322,62 @@ func _actualizar() -> void:
 
 
 # --- Descenso pilotado ---
+
+## Chequeo médico después de 3 días de viaje, con ciencia real: el estudio OSD-575 de NASA OSDR midió
+## la sangre de los 4 astronautas de Inspiration4 antes y después de 3 días en órbita. La ficha dice
+## de dónde salió (EN VIVO o ARCHIVADO); si no se pudo leer, el chequeo se salta (nada inventado).
+func _chequeo_medico() -> void:
+	while not _estudio_listo:
+		await get_tree().process_frame
+	if _estudio.is_empty():
+		return
+	var dato := _estudio
+	GameManager.estado_osdr = "estudio %s de la misión %s (%s)" % [dato.id, dato.mision, dato.estado]
+	var panel := PanelContainer.new()
+	panel.anchor_left = 1.0
+	panel.anchor_right = 1.0
+	panel.offset_left = -840.0
+	panel.offset_right = -40.0
+	panel.offset_top = 24.0
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 10)
+	panel.add_child(caja)
+	var titulo := Label.new()
+	titulo.text = "Chequeo médico · ciencia real"
+	titulo.theme_type_variation = &"Titulo"
+	titulo.add_theme_font_size_override("font_size", 40)
+	caja.add_child(titulo)
+	for linea: String in [
+		"Tu viaje a la Luna: 3 días  ·  Signos vitales: normales",
+		"Misión real %s (%s): %d astronautas, %d días en órbita" % [dato.mision, dato.anio, dato.astronautas, dato.dias],
+		"Les tomaron sangre %d veces: %d antes del vuelo y %d después (hasta %d días después)" % [dato.tomas_antes + dato.tomas_despues, dato.tomas_antes, dato.tomas_despues, dato.ultimo_dia],
+		"Midieron las defensas, el corazón y cómo se recupera el cuerpo",
+	]:
+		var texto := Label.new()
+		texto.text = "• " + linea
+		texto.add_theme_font_size_override("font_size", 22)
+		texto.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		caja.add_child(texto)
+	var fuente := Label.new()
+	fuente.text = "Fuente: NASA OSDR · estudio %s · %s" % [dato.id, dato.estado]
+	fuente.add_theme_font_size_override("font_size", 20)
+	fuente.add_theme_color_override("font_color", VERDE if dato.estado == "EN VIVO" else AMARILLO)
+	caja.add_child(fuente)
+	_boton_chequeo = Button.new()
+	_boton_chequeo.text = "Continuar"
+	_boton_chequeo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_boton_chequeo.custom_minimum_size = Vector2(320, 70)
+	caja.add_child(_boton_chequeo)
+	$UI.add_child(panel)
+	_arti.decir(
+		"Mientras despiertas, reviso tu salud, Comandante. Viajamos tres días, igual que la misión Inspiration4. Los científicos estudiaron la sangre de sus cuatro astronautas antes y después del vuelo, para saber cómo cambian en el espacio las defensas y el corazón, y cómo se recupera el cuerpo al volver. ¡Tus signos están muy bien!",
+		"¿Cómo lo estudiaron?",
+		"Les tomaron muestras de sangre siete veces: tres antes del lanzamiento y cuatro después de volver, hasta más de seis meses después. Así pudieron comparar el cuerpo antes y después del viaje. Esos datos son públicos en la base OSDR de la NASA, para que cualquier científico pueda usarlos.",
+		{}, "m2_00b_chequeo_medico", "m2_00c_como_lo_estudiaron")
+	await _boton_chequeo.pressed
+	get_viewport().gui_release_focus()
+	panel.queue_free()
+
 
 ## Con la calibración lista empieza el descenso desde la órbita, en el mismo plano. Lo calibrado
 ## define el combustible, el tamaño de la zona y el aguante del golpe.

@@ -80,6 +80,8 @@ func _ready() -> void:
 	GameManager.fotos.clear()
 	GameManager.carga_elegida.clear()
 	GameManager.estado_donki = "no se jugó la tormenta"
+	GameManager.estado_osdr = "no se hizo el chequeo médico"
+	GameManager.estado_neows = "no se vieron los asteroides del día"
 	GameManager.escolta.clear()
 	# El exterior trae su propia cámara (la del menú); aquí se ve con la del jugador.
 	$Exterior/Pivote/Camara.current = false

@@ -1,0 +1,171 @@
+{
+  "exportacion": {
+    "fecha": "2026-11-14",
+    "consulta_origen": "https://osdr.nasa.gov/bio/repo/search?q=&data_source=cgene,alsda,esa&data_type=study",
+    "cantidad_estudios_seleccionados": 1,
+    "criterio_de_seleccion": "Estudio directo en seres humanos que compara indicadores fisiologicos antes y despues de un vuelo espacial y abarca sistemas metabolico, inmunitario y cardiovascular.",
+    "aclaracion": "Esta exportacion contiene la ficha y los metadatos del estudio seleccionado; no incluye todos los archivos de resultados de laboratorio ni los otros estudios del catalogo."
+  },
+  "estudio": {
+    "identificador": "OSD-575",
+    "identificador_alsda": "LSDS-8",
+    "titulo": "SpaceX Inspiration4 Blood Serum Metabolic Panel and Immune/Cardiac Cytokine Arrays (Comprehensive Metabolic Panel and Multiplex)",
+    "version": 3,
+    "fecha_actualizacion_version": "2024-06-11",
+    "fecha_envio": "2022-12-05",
+    "fecha_publicacion_inicial": "2024-05-14",
+    "doi": "10.26030/mc5d-p710",
+    "licencia": "CC0-1.0",
+    "fuente_de_datos": "ALSDA / NASA OSDR",
+    "organismo": "Homo sapiens",
+    "cantidad_participantes": 4,
+    "cantidad_muestras": 28,
+    "tipo_de_muestra": "Suero sanguineo",
+    "resumen_en_espanol": "El estudio analiza muestras de suero de cuatro astronautas de la mision Inspiration4 antes y despues de un vuelo de tres dias en orbita terrestre baja. Mide cambios metabolicos y biomarcadores inmunitarios y cardiovasculares asociados al vuelo espacial.",
+    "relevancia_fisiologica": [
+      "Cambios metabolicos",
+      "Respuesta inmunitaria e inflamatoria",
+      "Biomarcadores cardiovasculares",
+      "Evolucion y recuperacion despues del vuelo"
+    ],
+    "mision": {
+      "nombre": "SpaceX Inspiration4",
+      "tipo": "Vuelo espacial en orbita terrestre baja",
+      "fecha_inicio": "2021-09-16",
+      "fecha_fin": "2021-09-18",
+      "duracion_aproximada_dias": 3,
+      "tripulacion": "Cuatro astronautas privados"
+    },
+    "factores": [
+      "Tiempo",
+      "Vuelo espacial"
+    ],
+    "ensayos": [
+      {
+        "medicion": "Inmunoensayo",
+        "tecnologia": "Multiplex",
+        "plataforma": "Eve Technologies Panel HDCVD9",
+        "objetivo": "Panel cardiovascular humano de 9 biomarcadores"
+      },
+      {
+        "medicion": "Inmunoensayo",
+        "tecnologia": "Multiplex",
+        "plataforma": "Eve Technologies Panel HD71",
+        "objetivo": "Panel humano de 71 citocinas y quimiocinas"
+      },
+      {
+        "medicion": "Inmunoensayo",
+        "tecnologia": "Multiplex",
+        "plataforma": "Alamar Biosciences",
+        "objetivo": "Panel NULISA-seq de inflamacion: 124 citocinas/quimiocinas y 80 proteinas relacionadas con la respuesta inmunitaria"
+      },
+      {
+        "medicion": "Quimica analitica",
+        "tecnologia": "Panel metabolico completo",
+        "plataforma": "Quest Diagnostics / Beckman Coulter AU5800",
+        "objetivo": "Indicadores metabolicos del suero"
+      }
+    ],
+    "muestreo": {
+      "preservacion": "Tubo separador de suero (SST)",
+      "temperatura_almacenamiento": "-80 grados Celsius",
+      "momentos": [
+        {
+          "codigo": "L-92",
+          "descripcion": "92 dias antes del lanzamiento",
+          "fase": "Pre-vuelo"
+        },
+        {
+          "codigo": "L-44",
+          "descripcion": "44 dias antes del lanzamiento",
+          "fase": "Pre-vuelo"
+        },
+        {
+          "codigo": "L-3",
+          "descripcion": "3 dias antes del lanzamiento",
+          "fase": "Pre-vuelo"
+        },
+        {
+          "codigo": "R+1",
+          "descripcion": "1 dia despues del regreso",
+          "fase": "Post-vuelo"
+        },
+        {
+          "codigo": "R+45",
+          "descripcion": "45 dias despues del regreso",
+          "fase": "Post-vuelo"
+        },
+        {
+          "codigo": "R+82",
+          "descripcion": "82 dias despues del regreso",
+          "fase": "Post-vuelo"
+        },
+        {
+          "codigo": "R+194",
+          "descripcion": "194 dias despues del regreso",
+          "fase": "Post-vuelo"
+        }
+      ]
+    },
+    "muestras": [
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_L-92","momento":"L-92","fase":"Pre-vuelo"},
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_L-44","momento":"L-44","fase":"Pre-vuelo"},
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_L-3","momento":"L-3","fase":"Pre-vuelo"},
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_R+1","momento":"R+1","fase":"Post-vuelo"},
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_R+45","momento":"R+45","fase":"Post-vuelo"},
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_R+82","momento":"R+82","fase":"Post-vuelo"},
+      {"participante":"C001","sexo":"Masculino","muestra":"C001_serum_R+194","momento":"R+194","fase":"Post-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_L-92","momento":"L-92","fase":"Pre-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_L-44","momento":"L-44","fase":"Pre-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_L-3","momento":"L-3","fase":"Pre-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_R+1","momento":"R+1","fase":"Post-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_R+45","momento":"R+45","fase":"Post-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_R+82","momento":"R+82","fase":"Post-vuelo"},
+      {"participante":"C002","sexo":"Femenino","muestra":"C002_serum_R+194","momento":"R+194","fase":"Post-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_L-92","momento":"L-92","fase":"Pre-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_L-44","momento":"L-44","fase":"Pre-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_L-3","momento":"L-3","fase":"Pre-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_R+1","momento":"R+1","fase":"Post-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_R+45","momento":"R+45","fase":"Post-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_R+82","momento":"R+82","fase":"Post-vuelo"},
+      {"participante":"C003","sexo":"Femenino","muestra":"C003_serum_R+194","momento":"R+194","fase":"Post-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_L-92","momento":"L-92","fase":"Pre-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_L-44","momento":"L-44","fase":"Pre-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_L-3","momento":"L-3","fase":"Pre-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_R+1","momento":"R+1","fase":"Post-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_R+45","momento":"R+45","fase":"Post-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_R+82","momento":"R+82","fase":"Post-vuelo"},
+      {"participante":"C004","sexo":"Masculino","muestra":"C004_serum_R+194","momento":"R+194","fase":"Post-vuelo"}
+    ],
+    "estudios_relacionados": [
+      "OSD-569",
+      "OSD-570",
+      "OSD-571",
+      "OSD-572",
+      "OSD-573",
+      "OSD-574",
+      "OSD-630",
+      "OSD-656",
+      "OSD-687"
+    ],
+    "publicaciones_destacadas": [
+      {
+        "titulo": "The Space Omics and Medical Atlas (SOMA) and international astronaut biobank",
+        "doi": "10.1038/s41586-024-07639-y"
+      },
+      {
+        "titulo": "Collection of Biospecimens from the Inspiration4 Mission Establishes the Standards for the Space Omics and Medical Atlas (SOMA)",
+        "doi": "10.1038/s41467-024-48806-z"
+      }
+    ],
+    "etica": {
+      "consentimiento": "Los cuatro tripulantes dieron su consentimiento para compartir datos y muestras.",
+      "aprobacion": "Weill Cornell Medicine IRB, protocolo 21-05023569"
+    },
+    "fuentes": {
+      "pagina_del_estudio": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+      "api_metadatos": "https://visualization.osdr.nasa.gov/biodata/api/v2/dataset/OSD-575/",
+      "documentacion_api": "https://visualization.osdr.nasa.gov/biodata/api/"
+    }
+  }
+}

@@ -78,8 +78,14 @@ El proyecto usa el renderer **Compatibility**, el que permite exportar a la web.
 Solo listamos lo que el juego usa de verdad.
 
 * **NASA DONKI** (base de datos del clima espacial): la tormenta solar de la Luna pide la llamarada solar más fuerte de los últimos 30 días. Su clase (C, M o X) decide cuánto escudo hace falta: X pide 80, M pide 60 y C pide 40.
-  * El juego dice siempre de dónde sale el dato: **EN VIVO**, **ARCHIVADO** (desde `data/nasa_backup.json`) o **evento de práctica** si no hay conexión. Nunca muestra un dato inventado como real.
+  * El juego dice siempre de dónde sale el dato: **EN VIVO**, **ARCHIVADO** (desde `data/nasa_backup.json`: las 28 llamaradas reales del 10 y 11 de mayo de 2024, con la X5.8 del 11 de mayo) o **evento de práctica** si tampoco está el respaldo. Nunca muestra un dato inventado como real.
   * Fuente: <https://kauai.ccmc.gsfc.nasa.gov/DONKI/>
+* **NASA NeoWs** (vigilancia de asteroides): en el viaje de la Tierra a la Luna, la pantalla muestra cuántos asteroides pasan cerca de la Tierra ese día y cuál pasa más cerca (nombre, tamaño y distancia), marcado **EN VIVO**. Sin conexión no se muestra nada (o **ARCHIVADO**, si existe `data/neows_backup.json`).
+  * Fuente: <https://api.nasa.gov/> (Asteroids NeoWs)
+* **Clave de api.nasa.gov:** DONKI y NeoWs usan la clave escrita en `mision-selene-ares/data/clave_nasa.txt` (una línea; el archivo no se sube al repositorio, cada integrante crea el suyo). Sin clave se usa `DEMO_KEY`, que permite muy pocas consultas por hora.
+* **NASA OSDR** (base de datos abierta de ciencia espacial): al despertar en órbita lunar, A.R.T.I. hace un chequeo médico y muestra el estudio **OSD-575**: la sangre de los 4 astronautas de la misión Inspiration4, medida 3 veces antes y 4 veces después de sus 3 días en órbita (lo mismo que dura el viaje a la Luna en el juego).
+  * La ficha está en `data/osdr_osd575.json` (**ARCHIVADO**); si hay conexión, la API de OSDR confirma la misión y sus fechas (**EN VIVO**).
+  * Fuente: <https://osdr.nasa.gov/bio/repo/data/studies/OSD-575> (DOI 10.26030/mc5d-p710, licencia CC0)
 * **Programa Artemis:** la base de lanzamiento, el cohete con tanque central naranja y la cápsula se inspiran en él. Fuente: <https://www.nasa.gov/humans-in-space/artemis/>
 * **Huerto Veggie** de la Estación Espacial: la luz rosada de cultivo del biodomo viene de sus LEDs rojos y azules.
 * **Rovers Curiosity y Perseverance:**
@@ -113,7 +119,7 @@ mision-selene-ares/                      Proyecto de Godot
 ├─ shaders/       Cielos de Marte, la Tierra y la Luna
 ├─ ui/            Tema visual y fuentes
 ├─ audio/voz_arti Grabaciones de la voz de A.R.T.I. (ver su LEEME.md)
-└─ data/          Respaldo con datos reales de DONKI (nasa_backup.json)
+└─ data/          Datos reales de la NASA: llamaradas de DONKI (nasa_backup.json) y estudio de OSDR (osdr_osd575.json)
 ```
 
 ---
@@ -139,6 +145,7 @@ mision-selene-ares/                      Proyecto de Godot
 | Fuente **Fredoka** (títulos) | Copyright 2016 The Fredoka Project Authors | SIL Open Font License 1.1 (`ui/fuentes/OFL_Fredoka.txt`) |
 | Fuente **Nunito** (textos) | Copyright 2014 The Nunito Project Authors | SIL Open Font License 1.1 (`ui/fuentes/OFL_Nunito.txt`) |
 | Datos de llamaradas solares | NASA DONKI (CCMC) | Datos públicos de la NASA |
+| Estudio OSD-575 (fisiología de astronautas, Inspiration4) | NASA OSDR / ALSDA | CC0 1.0 |
 | Viento de Marte (`audio/efectos/marte_viento.wav`, recorte de 12 s) | NASA/JPL-Caltech/LANL/CNES/CNRS/ISAE-Supaero: micrófono de SuperCam del rover Perseverance, sol 4 (22 feb 2021), de [Sounds from Beyond](https://www.nasa.gov/sounds-from-beyond/) | Material de la NASA, uso según sus [normas de uso de medios](https://www.nasa.gov/nasa-brand-center/images-and-media/) |
 | Sonido del despegue (`audio/efectos/despegue.mp3`) | NASA, "Liftoff", de [Sounds from Beyond](https://www.nasa.gov/sounds-from-beyond/) | Material de la NASA, uso según sus normas de uso de medios |
 | Efectos de interfaz, ciencia ficción e impactos (`audio/efectos/*.ogg`) | [Kenney](https://kenney.nl) (Interface Sounds, Sci-Fi Sounds, Impact Sounds) | CC0 1.0 (dominio público) |

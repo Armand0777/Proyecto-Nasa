@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Escenarios generados por código:** `scripts/fondos/FondoPlaneta.gd` es la base con ayudas `malla_plana`, `_caja`, `_cilindro`, `_esfera`; `FondoTierra/Luna/Marte.gd` construyen cada paisaje. Shaders en `shaders/`.
 
-**Datos NASA:** `NasaApi.gd` pide a DONKI la llamarada más fuerte de los últimos 30 días; la clase (C/M/X) fija el escudo necesario. Siempre indicar la procedencia: EN VIVO, ARCHIVADO (`data/nasa_backup.json`) o evento de práctica. Nunca mostrar un dato inventado como real.
+**Datos NASA:** `NasaApi.gd` pide a DONKI la llamarada más fuerte de los últimos 30 días (la clase C/M/X fija el escudo de la tormenta solar) y a OSDR el estudio OSD-575 (chequeo médico al despertar en órbita lunar, en `Mision2_Alunizaje.gd`). Siempre indicar la procedencia: EN VIVO, ARCHIVADO (`data/nasa_backup.json`, `data/osdr_osd575.json`) o evento de práctica. Nunca mostrar un dato inventado como real. También pide a NeoWs los asteroides del día (viaje a la Luna, en `Cabina.gd`). La clave de api.nasa.gov se lee de `data/clave_nasa.txt` (ignorado por git; sin él se usa `DEMO_KEY`); nunca escribir la clave en el código ni en un commit. `api-nasa/` guarda los JSON originales descargados.
 
 ## Reglas del proyecto
 

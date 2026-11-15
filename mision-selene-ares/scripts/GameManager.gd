@@ -78,6 +78,10 @@ var carga_elegida: Array[String] = []
 var fotos: Array[Image] = []
 ## Qué dato de NASA DONKI se usó en la tormenta de la Luna (para el panel de ciencia del cierre).
 var estado_donki := "no se jugó la tormenta"
+## De dónde salió la ficha del estudio de astronautas (NASA OSDR) del chequeo médico.
+var estado_osdr := "no se hizo el chequeo médico"
+## Lo que se vio de los asteroides del día (NASA NeoWs) en el viaje a la Luna.
+var estado_neows := "no se vieron los asteroides del día"
 ## Cómo llegó cada cápsula a Marte en la escolta (Mision3_Escolta): integridad de 10 a 100 por
 ## «solar», «habitat» y «bio». Vacío si no se jugó. Mision3_Marte lo descuenta al llegar.
 var escolta := {}

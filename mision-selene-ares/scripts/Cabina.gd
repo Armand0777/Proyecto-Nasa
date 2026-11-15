@@ -23,6 +23,7 @@ signal _rumbo_alineado
 signal _motor_encendido
 
 const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
+const NasaApi := preload("res://scripts/NasaApi.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
 const Decoracion := preload("res://scripts/Decoracion.gd")
@@ -821,6 +822,9 @@ func _viaje_a_la_luna() -> void:
 	_texto_motores = "CÁPSULA\nVIAJE A LA LUNA"
 	for luz in _interior.find_children("*", "OmniLight3D", true, false):
 		create_tween().tween_property(luz, "light_energy", (luz as OmniLight3D).light_energy * 0.3, 3.0)
+	# Mientras tanto se piden a la NASA los asteroides que pasan cerca de la Tierra hoy (NeoWs).
+	var asteroides := {"listo": false, "dato": {}}
+	_buscar_asteroides(asteroides)
 	# Tiempo acelerado: 72 horas en 30 segundos (unas 10.000 veces más rápido).
 	_viajando = true
 	# Empieza desde afuera: la cápsula avanza hacia la Luna, que se ve crecer. Con C se va adentro.
@@ -834,6 +838,8 @@ func _viaje_a_la_luna() -> void:
 	viaje.tween_property(_luna, "scale", Vector3.ONE * 4.0, 30.0)
 	await _pausa(2.5)
 	_dialogo.decir("Ya vamos camino a la Luna. Por la ventana, la Tierra se ve cada vez más pequeña. El viaje dura unos tres días: yo vigilo todo mientras descansas.", "", "", {}, "m1_28_viaje")
+	await _esperar_horas(14.0)
+	await _mostrar_asteroides(asteroides)
 	await _esperar_horas(36.0)
 	_dialogo.decir("Ya vamos por la mitad del camino: ¡unos ciento noventa y dos mil kilómetros! Sin aire que nos frene, la nave sigue avanzando casi sin gastar combustible.", "", "", {}, "m1_29_mitad_camino")
 	await _esperar_horas(71.9)
@@ -868,6 +874,35 @@ func _viaje_a_la_luna() -> void:
 	_mostrar_banner("ÓRBITA LUNAR · 100 km")
 	_dialogo.decir("¡Estamos en órbita, a cien kilómetros de la Luna! Sigue descansando un poquito: en un rato preparamos el alunizaje.", "", "", {}, "m1_31_orbita_lunar")
 	await _pausa(6.0)
+
+
+func _buscar_asteroides(resultado: Dictionary) -> void:
+	var api := NasaApi.new()
+	add_child(api)
+	resultado.dato = await api.asteroides_de_hoy()
+	api.queue_free()
+	resultado.listo = true
+
+
+## Dato real en el viaje: los asteroides que pasan cerca de la Tierra hoy (NASA NeoWs), con su
+## procedencia (EN VIVO o ARCHIVADO). Si no llegó ningún dato, no se muestra nada (nada inventado).
+func _mostrar_asteroides(resultado: Dictionary) -> void:
+	if not resultado.listo or (resultado.dato as Dictionary).is_empty():
+		return
+	var dato: Dictionary = resultado.dato
+	var cuando := "HOY" if dato.estado == "EN VIVO" else "EL %s" % dato.fecha
+	GameManager.estado_neows = "%d asteroides el %s; el más cercano, %s, pasó a %s km (%s)" % [
+		dato.cantidad, dato.fecha, dato.nombre, _con_puntos(int(dato.km)), dato.estado]
+	_dialogo.decir("Mira la pantalla, Comandante: la NASA vigila los asteroides que pasan cerca de la Tierra y calcula su camino con muchos años de anticipación. Ahí ves los que pasan en estos días.", "", "", {}, "m1_28b_asteroides")
+	_banner.text = "ASTEROIDES CERCA DE LA TIERRA %s: %d\nEl más cercano: %s · unos %d m · pasa a %s km (%.1f veces la distancia a la Luna)\nFuente: NASA NeoWs · %s" % [
+		cuando, dato.cantidad, dato.nombre, maxi(1, roundi(dato.metros)), _con_puntos(int(dato.km)), dato.lunas, dato.estado]
+	_banner.modulate.a = 0.0
+	_banner.show()
+	var tween := create_tween()
+	tween.tween_property(_banner, "modulate:a", 1.0, 0.4)
+	tween.tween_interval(7.0)
+	tween.tween_property(_banner, "modulate:a", 0.0, 0.8)
+	await _pausa(1.0)
 
 
 func _esperar_horas(horas: float) -> void:
