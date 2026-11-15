@@ -19,6 +19,7 @@ const Fondo := preload("res://scripts/fondos/FondoPlaneta.gd")
 const Interactuable := preload("res://scripts/Interactuable.gd")
 const FlechaGuia := preload("res://scripts/FlechaGuia.gd")
 const Decoracion := preload("res://scripts/Decoracion.gd")
+const MODELO_TRAJE := preload("res://modelos/astronauta/astronauta.glb")
 
 ## Colores del guion: interior blanco y luz azul fría de la criogenia (sección 3.1).
 const COLOR_PARED := Color(0.867, 0.902, 0.941)
@@ -874,56 +875,29 @@ func _construir_sala_mision() -> void:
 	_panel_luz(Vector3(0, ALTO - 0.02, centro_z), Vector2(0.6, 2.0), Color.WHITE)
 
 
-## Traje espacial provisional en su soporte (colores del guion: blanco, naranja, visor dorado y
-## franjas rojas). Es un modelo simple hecho con formas; se puede cambiar por un modelo mejor
-## poniéndolo como hijo de _traje en lugar de las formas.
+## Traje espacial en su soporte: el astronauta de modelos/astronauta (mide 2 m con el casco; se
+## achica un poco para que quede a la altura de Comandante Junior). Está quieto: es un traje colgado.
 func _crear_traje() -> void:
-	const BLANCO := Color(0.95, 0.96, 0.98)
-	const NARANJA := Color(1.0, 0.478, 0.102)
-	const ROJO := Color(1.0, 0.231, 0.361)
-	const DORADO := Color(1.0, 0.78, 0.28)
 	_traje = StaticBody3D.new()
 	_traje.set_script(Interactuable)
 	_traje.texto = "Ponerte el traje espacial"
 	_traje.position = POS_TRAJE
-	_traje.rotation.y = PI  # El visor mira hacia la entrada del laboratorio (+z).
+	_traje.rotation.y = PI  # Como el soporte de antes: el frente queda hacia la entrada del laboratorio (+z).
 	var forma := CollisionShape3D.new()
 	forma.shape = BoxShape3D.new()
 	forma.shape.size = Vector3(1.0, 2.1, 0.8)
 	forma.position.y = 1.05
 	_traje.add_child(forma)
-	# [malla, posición, color]
-	var piezas := [
-		[Fondo._cilindro(0.45, 0.5, 0.1, 10), Vector3(0, 0.05, 0), COLOR_ACERO],  # Base del soporte.
-		[Fondo._cilindro(0.04, 0.04, 0.5, 6), Vector3(0, 0.3, 0), COLOR_ACERO],  # Poste.
-		[Fondo._caja(Vector3(0.2, 0.75, 0.24)), Vector3(-0.13, 0.85, 0), BLANCO],  # Piernas.
-		[Fondo._caja(Vector3(0.2, 0.75, 0.24)), Vector3(0.13, 0.85, 0), BLANCO],
-		[Fondo._caja(Vector3(0.24, 0.12, 0.3)), Vector3(-0.13, 0.5, -0.03), NARANJA],  # Botas.
-		[Fondo._caja(Vector3(0.24, 0.12, 0.3)), Vector3(0.13, 0.5, -0.03), NARANJA],
-		[Fondo._caja(Vector3(0.56, 0.62, 0.34)), Vector3(0, 1.52, 0), BLANCO],  # Torso.
-		[Fondo._caja(Vector3(0.58, 0.07, 0.36)), Vector3(0, 1.32, 0), ROJO],  # Franjas rojas.
-		[Fondo._caja(Vector3(0.58, 0.07, 0.36)), Vector3(0, 1.72, 0), ROJO],
-		[Fondo._caja(Vector3(0.22, 0.16, 0.06)), Vector3(0, 1.55, -0.2), NARANJA],  # Panel del pecho.
-		[Fondo._caja(Vector3(0.46, 0.56, 0.22)), Vector3(0, 1.55, 0.27), BLANCO],  # Mochila de oxígeno.
-		[Fondo._caja(Vector3(0.16, 0.6, 0.18)), Vector3(-0.38, 1.45, 0), BLANCO],  # Brazos.
-		[Fondo._caja(Vector3(0.16, 0.6, 0.18)), Vector3(0.38, 1.45, 0), BLANCO],
-		[Fondo._caja(Vector3(0.17, 0.12, 0.19)), Vector3(-0.38, 1.12, 0), NARANJA],  # Guantes.
-		[Fondo._caja(Vector3(0.17, 0.12, 0.19)), Vector3(0.38, 1.12, 0), NARANJA],
-	]
-	var casco := Fondo._esfera(12, 6)
-	casco.radius = 0.24
-	casco.height = 0.48
-	piezas.append([casco, Vector3(0, 2.05, 0), BLANCO])
-	var visor := Fondo._esfera(12, 6)
-	visor.radius = 0.19
-	visor.height = 0.3
-	piezas.append([visor, Vector3(0, 2.06, -0.1), DORADO])
-	for datos in piezas:
-		var malla := MeshInstance3D.new()
-		malla.mesh = Fondo.malla_plana(datos[0], datos[2])
-		malla.material_override = _material
-		malla.position = datos[1]
-		_traje.add_child(malla)
+	var base := MeshInstance3D.new()
+	base.mesh = Fondo.malla_plana(Fondo._cilindro(0.55, 0.6, 0.1, 12), COLOR_ACERO)
+	base.material_override = _material
+	base.position.y = 0.05
+	_traje.add_child(base)
+	var astronauta: Node3D = MODELO_TRAJE.instantiate()
+	astronauta.scale = Vector3.ONE * 0.88
+	astronauta.position.y = 0.1
+	astronauta.rotation.y = PI  # El modelo mira a +z: se gira para compensar el giro del soporte.
+	_traje.add_child(astronauta)
 	_traje.usado.connect(_ponerse_traje)
 	add_child(_traje)
 	_letrero("TRAJE ESPACIAL", POS_TRAJE + Vector3(0, 0.3, 0.6), 0.0, 36, COLOR_TURQUESA)

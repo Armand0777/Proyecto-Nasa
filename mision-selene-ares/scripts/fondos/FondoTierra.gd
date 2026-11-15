@@ -13,6 +13,16 @@ const COLOR_NARANJA := Color(0.88, 0.45, 0.16)
 ## Franjas de seguridad del guion (#FF7A1A).
 const COLOR_SEGURIDAD := Color(1.0, 0.478, 0.102)
 
+## Vegetación de modelos/ (se arma con herramientas/convertir_modelos.gd: color en los vértices,
+## menos triángulos y niveles de detalle, para dibujar cientos de copias en la web).
+const MALLA_PASTO := preload("res://modelos/pasto/pasto-modular-juego.res")
+const MALLA_ARO := preload("res://modelos/pasto/pasto-aro-juego.res")
+const MALLA_PINO := preload("res://modelos/arboles/pino-juego.res")
+const MALLA_COPA_GRANDE := preload("res://modelos/arboles/arbol-copa-grande-juego.res")
+const MALLA_COPA_PEQUENA := preload("res://modelos/arboles/arbol-copa-pequena-juego.res")
+const MALLA_ARBUSTO_REDONDO := preload("res://modelos/arboles/arbusto-redondo-juego.res")
+const MALLA_ARBUSTO_BAJO := preload("res://modelos/arboles/arbusto-bajo-juego.res")
+
 @export var posicion_cohete := Vector2(34.0, -136.0)
 
 var _balizas: MeshInstance3D  # Luces rojas de aviso de la torre (todas en una malla).
@@ -404,7 +414,8 @@ func _crear_pasto(libre: Callable, centro: Vector2) -> void:
 	var transformaciones: Array[Transform3D] = []
 	var colores: Array[Color] = []
 	var intentos := 0
-	while transformaciones.size() < 14000 and intentos < 60000:
+	# Cada copia es un manchón de pasto de ~1 m (modelos/pasto), no una mata: hacen falta muchas menos.
+	while transformaciones.size() < 3000 and intentos < 30000:
 		intentos += 1
 		var angulo := azar.randf() * TAU
 		var distancia := sqrt(azar.randf()) * 85.0
@@ -414,43 +425,10 @@ func _crear_pasto(libre: Callable, centro: Vector2) -> void:
 		var z := centro.y + sin(angulo) * distancia
 		if not libre.call(x, z, 0.0):
 			continue
-		transformaciones.append(_transformar(azar, x, z, 0.7, 1.4))
+		transformaciones.append(_transformar(azar, x, z, 0.8, 1.3))
 		var mezcla := tono.get_noise_2d(x, z) * 0.5 + 0.5
 		colores.append(Color(0.86, 0.96, 0.82).lerp(Color(1.12, 1.07, 0.82), mezcla))
-	_en_bloques(transformaciones, colores, _malla_mata(), material_pasto, 14.0, 48.0, false)
-
-
-## Una mata: cuatro hojas curvas de tres tramos, anchas abajo y en punta arriba,
-## oscuras en la base y verde amarillento en la punta.
-func _malla_mata() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_normal(Vector3.UP)
-	var azar := RandomNumberGenerator.new()
-	azar.seed = 3
-	var abajo := COLOR_PASTO.darkened(0.3)
-	var punta := Color(0.68, 0.87, 0.33)
-	for hoja in 4:
-		var angulo := TAU * hoja / 4.0 + azar.randf_range(-0.4, 0.4)
-		var hacia := Vector3(cos(angulo), 0, sin(angulo))
-		var lado := Vector3(-hacia.z, 0, hacia.x)
-		var alto := azar.randf_range(0.32, 0.5)
-		var curva := azar.randf_range(0.08, 0.18)
-		var izquierda: Array[Vector3] = []
-		var derecha: Array[Vector3] = []
-		for tramo in 4:
-			var t := tramo / 3.0
-			var medio := hacia * (0.03 + curva * t * t) + Vector3(0, alto * t, 0)
-			var ancho := 0.035 * (1.0 - t * 0.9)
-			izquierda.append(medio - lado * ancho)
-			derecha.append(medio + lado * ancho)
-		for tramo in 3:
-			var c0 := abajo.lerp(punta, tramo / 3.0)
-			var c1 := abajo.lerp(punta, (tramo + 1) / 3.0)
-			for punto in [[izquierda[tramo], c0], [derecha[tramo], c0], [izquierda[tramo + 1], c1], [derecha[tramo], c0], [derecha[tramo + 1], c1], [izquierda[tramo + 1], c1]]:
-				st.set_color(punto[1])
-				st.add_vertex(punto[0])
-	return st.commit()
+	_en_bloques(transformaciones, colores, MALLA_PASTO, material_pasto, 14.0, 48.0, false)
 
 
 ## Flores en manchones: cada manchón es de un color, con flores juntas en el centro.
@@ -496,7 +474,7 @@ func _malla_flor() -> ArrayMesh:
 	return st.commit()
 
 
-## Arbustos redondos (se mecen como los árboles) y piedras con un poco de musgo.
+## Arbustos de modelos/arboles (se mecen como los árboles) y piedras con un poco de musgo.
 func _crear_arbustos_y_piedras(libre: Callable, centro: Vector2) -> void:
 	var azar := RandomNumberGenerator.new()
 	azar.seed = 61
@@ -515,20 +493,14 @@ func _crear_arbustos_y_piedras(libre: Callable, centro: Vector2) -> void:
 			arbustos.append(_transformar(azar, x, z, 0.6, 1.3))
 		elif piedras.size() < 160:
 			piedras.append(_transformar(azar, x, z, 0.3, 0.9))
-	_en_bloques(arbustos, [], _malla_arbusto(), material_arbol, 30.0, 120.0, false)
+	# Dos arbustos de modelos/arboles, mitad y mitad.
+	var redondos: Array[Transform3D] = []
+	var bajos: Array[Transform3D] = []
+	for i in arbustos.size():
+		(redondos if i % 2 == 0 else bajos).append(arbustos[i])
+	_en_bloques(redondos, [], MALLA_ARBUSTO_REDONDO, material_arbol, 30.0, 120.0, false)
+	_en_bloques(bajos, [], MALLA_ARBUSTO_BAJO, material_arbol, 30.0, 120.0, false)
 	_en_bloques(piedras, [], _malla_piedra(), _material, 30.0, 70.0, false)
-
-
-func _malla_arbusto() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var azar := RandomNumberGenerator.new()
-	azar.seed = 8
-	var bola := _esfera(8, 5)
-	for datos in [[Vector3(0, 0.45, 0), 0.6, Color(0.28, 0.55, 0.22)], [Vector3(0.4, 0.35, 0.15), 0.42, Color(0.34, 0.62, 0.24)], [Vector3(-0.35, 0.38, -0.2), 0.45, Color(0.31, 0.58, 0.23)]]:
-		var forma := Transform3D(Basis.IDENTITY.scaled(Vector3(1.0, 0.75, 1.0) * datos[1]), datos[0])
-		st.append_from(malla_plana(bola, datos[2], azar, Vector2(0.85, 1.15)), 0, forma)
-	return st.commit()
 
 
 func _malla_piedra() -> ArrayMesh:
@@ -542,13 +514,15 @@ func _malla_piedra() -> ArrayMesh:
 	return st.commit()
 
 
-## Árboles low-poly de tres formas (pino, roble de copa ancha y árbol delgado) con tronco sólido.
+## Árboles de modelos/arboles (pino, copa grande y copa pequeña) con tronco sólido; los cercanos
+## a la base llevan un aro de pasto al pie.
 ## Las copas se mecen con el viento (shader Arbol).
 func _crear_arboles(libre: Callable) -> void:
 	var azar := RandomNumberGenerator.new()
 	azar.seed = 5
-	var tipos := [_malla_pino(), _malla_roble(), _malla_delgado()]
+	var tipos := [MALLA_PINO, MALLA_COPA_GRANDE, MALLA_COPA_PEQUENA]
 	var listas: Array = [[] as Array[Transform3D], [] as Array[Transform3D], [] as Array[Transform3D]]
+	var aros: Array[Transform3D] = []  # Aro de pasto al pie de los árboles cercanos a la base.
 	var cuerpos := StaticBody3D.new()
 	add_child(cuerpos)
 	var intentos := 0
@@ -564,6 +538,8 @@ func _crear_arboles(libre: Callable) -> void:
 		var forma := _transformar(azar, x, z, 0.85, 1.4)
 		var tipo := azar.randi() % 3
 		listas[tipo].append(forma)
+		if distancia < 90.0:
+			aros.append(Transform3D(Basis(Vector3.UP, azar.randf() * TAU), forma.origin))
 		total += 1
 		var tronco := CollisionShape3D.new()
 		tronco.shape = CylinderShape3D.new()
@@ -574,56 +550,7 @@ func _crear_arboles(libre: Callable) -> void:
 	for i in 3:
 		var lista: Array[Transform3D] = listas[i]
 		_en_bloques(lista, [], tipos[i], material_arbol, 40.0, 260.0, true)
-
-
-func _malla_pino() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var azar := RandomNumberGenerator.new()
-	azar.seed = 11
-	st.append_from(malla_plana(_cilindro(0.18, 0.28, 1.8, 6), Color(0.45, 0.3, 0.18)), 0, Transform3D(Basis.IDENTITY, Vector3(0, 0.9, 0)))
-	var pisos := [[1.9, 2.2, 2.0, 0.0], [1.55, 2.0, 3.1, 0.04], [1.2, 1.8, 4.1, 0.08], [0.8, 1.5, 5.0, 0.12]]
-	for datos in pisos:
-		var giro := Basis(Vector3.UP, azar.randf() * TAU)
-		var cono := malla_plana(_cilindro(0.0, datos[0], datos[1], 8), Color(0.15, 0.46, 0.27).lightened(datos[3]), azar, Vector2(0.92, 1.08))
-		st.append_from(cono, 0, Transform3D(giro, Vector3(0, datos[2], 0)))
-	return st.commit()
-
-
-func _malla_roble() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var azar := RandomNumberGenerator.new()
-	azar.seed = 12
-	var madera := Color(0.47, 0.32, 0.2)
-	st.append_from(malla_plana(_cilindro(0.24, 0.36, 2.4, 7), madera), 0, Transform3D(Basis.IDENTITY, Vector3(0, 1.2, 0)))
-	for lado in [-1.0, 1.0]:
-		var rama := Basis(Vector3.BACK, lado * 0.7)
-		st.append_from(malla_plana(_cilindro(0.08, 0.14, 1.4, 5), madera), 0, Transform3D(rama, Vector3(lado * 0.4, 2.5, 0)))
-	var copa := _esfera(9, 6)
-	var masas := [
-		[Vector3(0, 3.5, 0), Vector3(1.9, 1.4, 1.9), Color(0.33, 0.62, 0.23)],
-		[Vector3(1.2, 3.1, 0.4), Vector3(1.2, 1.0, 1.2), Color(0.29, 0.57, 0.22)],
-		[Vector3(-1.1, 3.2, -0.5), Vector3(1.3, 1.0, 1.3), Color(0.3, 0.58, 0.22)],
-		[Vector3(0.2, 4.3, 0.3), Vector3(1.2, 0.9, 1.2), Color(0.44, 0.72, 0.28)],
-		[Vector3(-0.4, 2.9, 1.0), Vector3(1.0, 0.8, 1.0), Color(0.27, 0.53, 0.21)],
-	]
-	for datos in masas:
-		var forma := Transform3D(Basis.IDENTITY.scaled(datos[1]), datos[0])
-		st.append_from(malla_plana(copa, datos[2], azar, Vector2(0.86, 1.14)), 0, forma)
-	return st.commit()
-
-
-func _malla_delgado() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var azar := RandomNumberGenerator.new()
-	azar.seed = 13
-	st.append_from(malla_plana(_cilindro(0.12, 0.18, 3.2, 6), Color(0.88, 0.86, 0.8)), 0, Transform3D(Basis.IDENTITY, Vector3(0, 1.6, 0)))
-	var copa := _esfera(8, 6)
-	st.append_from(malla_plana(copa, Color(0.48, 0.74, 0.3), azar, Vector2(0.88, 1.12)), 0, Transform3D(Basis.IDENTITY.scaled(Vector3(1.1, 1.9, 1.1)), Vector3(0, 4.2, 0)))
-	st.append_from(malla_plana(copa, Color(0.42, 0.68, 0.27), azar, Vector2(0.88, 1.12)), 0, Transform3D(Basis.IDENTITY.scaled(Vector3(0.8, 1.2, 0.8)), Vector3(0.3, 3.2, 0.2)))
-	return st.commit()
+	_en_bloques(aros, [], MALLA_ARO, material_pasto, 30.0, 60.0, false)
 
 
 ## Cúpula de nubes: nubes low-poly blancas, hechas de esferas, en un anillo alto alrededor.

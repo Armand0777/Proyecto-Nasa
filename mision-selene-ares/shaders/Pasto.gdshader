@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode cull_disabled, diffuse_toon, specular_disabled, world_vertex_coords;
+render_mode cull_disabled, diffuse_burley, specular_disabled, world_vertex_coords;
 // Pasto y flores de la pradera.
 // - Viento en olas: ráfagas que cruzan la pradera (se ven avanzar) y un temblor suave.
 // - Se aparta al pasar el jugador o A.R.T.I. (sus posiciones las manda FondoTierra.actualizar_pasto).

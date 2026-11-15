@@ -27,6 +27,11 @@ Este archivo es el **guion definitivo** (`guion_definitivo_mision_selene_ares.md
      se mueve, se abre o se toma se pasa en esa lista. Las lámparas no llevan sombra
      (`Ajustes.sombras_lamparas`): cada una con sombra baja una sala de ~135 a ~55 cuadros por segundo.
      Lo que no se ve se apaga con `_encender(zona, false)`.
+   - **Modelos 3D (`modelos/`):** árboles, arbustos y pasto vienen como `.glb` muy detallados; el
+     juego usa versiones livianas (`*-juego.res`: color en los vértices, menos triángulos y niveles
+     de detalle) que arma `herramientas/convertir_modelos.gd`. Si cambia un `.glb`, se vuelve a correr
+     esa herramienta (las instrucciones están arriba del script). Los `.glb` de árboles y pasto no se
+     exportan a la web. El traje del laboratorio usa `modelos/astronauta/astronauta.glb` tal cual.
 
 ---
 

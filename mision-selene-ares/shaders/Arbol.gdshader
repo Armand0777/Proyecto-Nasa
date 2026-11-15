@@ -1,7 +1,7 @@
 shader_type spatial;
-render_mode cull_disabled, diffuse_toon, specular_disabled;
+render_mode cull_disabled, diffuse_burley, specular_disabled;
 // Árboles y arbustos de la pradera: la copa se mece con el viento (el tronco casi no se mueve).
-// Cada árbol se mece un poco distinto según dónde está. Colores de vértice, sombreado tipo dibujo.
+// Cada árbol se mece un poco distinto según dónde está. Colores de vértice, sombreado suave.
 
 uniform float fuerza = 0.03;
 // Desde qué altura (en metros del modelo) empieza a moverse.
